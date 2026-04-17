@@ -85,6 +85,16 @@ To share MMKV data between your main app and an extension (widget, share extensi
 
 > **V4 change:** The key was renamed from `AppGroup` to `AppGroupIdentifier`.
 
+## Rule of Thumb — how many instances?
+
+| App size | Recommended instances |
+|----------|----------------------|
+| Small / simple | 1 (default) |
+| Medium | 2–3 (e.g., usercache, auth, session) |
+| Large / multi-module | 3–5, grouped by domain |
+
+**Why not more?** Each MMKV instance memory-maps its own file. More instances means more mmap'd regions held open simultaneously, which increases the app's resident memory footprint. On memory-constrained devices this can trigger OS memory warnings or even OOM kills — especially if several instances are large. Consolidating related keys into fewer instances keeps the mmap count low and makes `trim()` / `clearAll()` operations simpler. Only split into a separate instance when you have a clear reason (different encryption keys, different lifecycle like per-user vs global, or App Group sharing).
+
 ## Gotchas
 
 - **Same `id` = same file.** Two `createMMKV({ id: 'foo' })` calls return instances pointing to the same underlying file. This is fine — but encrypting one will affect all references.
