@@ -1,6 +1,6 @@
 ---
 name: react-native-mmkv
-description: Use this skill whenever an agent is working in a project that uses react-native-mmkv. Covers creating and configuring MMKV instances, reading/writing all value types (string, number, boolean, buffer), React hooks for reactive UI, value-change listeners, encryption, AsyncStorage migration, and state-management integrations (zustand, redux-persist, jotai, react-query). Also covers storage limits, multi-process mode, and the V4 upgrade from the class-based API.
+description: Fast synchronous key-value storage for React Native via react-native-mmkv (Nitro-backed). Covers creating and configuring MMKV instances, reading/writing all value types (string, number, boolean, buffer), React hooks for reactive UI, value-change listeners, encryption, AsyncStorage migration, and state-management integrations (zustand, redux-persist, jotai, react-query). Also covers storage limits, multi-process mode, and the V4 upgrade from the class-based API.
 license: MIT
 metadata:
   author: margelo

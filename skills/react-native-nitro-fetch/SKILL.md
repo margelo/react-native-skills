@@ -1,6 +1,6 @@
 ---
 name: nitro-fetch
-description: Use this skill whenever an agent is working in a project that uses react-native-nitro-fetch, react-native-nitro-websockets, or react-native-nitro-text-decoder. Covers the fetch API, global replacement, prefetching and cold-start cache warming, the NitroWebSocket class and pre-warming, migrating from React Native's built-in WebSocket, the in-process NetworkInspector, native Perfetto / Instruments tracing, the native TextDecoder, and plugging nitro-fetch into axios via a custom adapter.
+description: Fast native networking primitives for React Native built on Nitro Modules — react-native-nitro-fetch, react-native-nitro-websockets, and react-native-nitro-text-decoder. Covers the fetch API, global replacement, prefetching and cold-start cache warming, the NitroWebSocket class and pre-warming, migrating from React Native's built-in WebSocket, the in-process NetworkInspector, native Perfetto / Instruments tracing, the native TextDecoder, and plugging nitro-fetch into axios via a custom adapter.
 license: MIT
 metadata:
   author: Margelo
