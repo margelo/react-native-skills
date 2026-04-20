@@ -468,9 +468,9 @@ v4 `pixelFormat` was on the Camera (`"yuv" | "rgb"`). In v5 it moves to the Fram
 
 ```tsx
 const frameOutput = useFrameOutput({
-  pixelFormat: 'yuv',     // default, fastest
+  pixelFormat: 'yuv',     // default, faster than RGB
   // pixelFormat: 'rgb',  // forces YUV→RGB conversion; prefer the Resizer for ML
-  // pixelFormat: 'native' // zero-conversion GPU pipelines — verify via frame.pixelFormat
+  // pixelFormat: 'native' // zero-conversion GPU pipelines - fastest - verify actual format via frame.pixelFormat
   onFrame,
 })
 ```
