@@ -128,8 +128,9 @@ Rules:
 - Never throws for an unreachable combination — it picks the closest supported fallback.
 - Use `resolutionBias: output` to say "optimize for this output's resolution" instead of picking pixel dimensions by hand.
 - Set per-output `targetResolution` (e.g. `usePhotoOutput({ targetResolution: CommonResolutions.UHD_16_9 })`) rather than computing `{ width, height }` in a format filter.
-- Probe support with `isSessionConfigSupported(...)` when you need to gate UI (e.g. "show HDR toggle only if supported").
-- `onSessionConfigSelected={(config) => console.log(config.toString())}` tells you what the Camera actually picked.
+- Probe support with `device.isSessionConfigSupported(...)` when you need to gate UI (e.g. "show HDR toggle only if supported").
+- Resolve target constraints without opening a Camera via `VisionCamera.resolveConstraints(...)` upfront if desired.
+- `onSessionConfigSelected={(config) => console.log(config.toString())}` tells you what the Camera actually picked (same as `VisionCamera.resolveConstraints(...)`).
 
 Common migrations:
 
