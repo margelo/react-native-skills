@@ -41,6 +41,8 @@ npm i react-native-vision-camera@5 react-native-nitro-modules react-native-nitro
 npm i react-native-vision-camera-worklets react-native-worklets
 # If you used code scanning:
 npm i react-native-vision-camera-barcode-scanner
+# If you used location tagging (EXIF/video metadata):
+npm i react-native-vision-camera-location
 # If you used vision-camera-resize-plugin:
 npm i react-native-vision-camera-resizer
 cd ios && pod install
