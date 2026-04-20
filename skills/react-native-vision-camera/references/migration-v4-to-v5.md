@@ -6,10 +6,10 @@ V5 is a ground-up Nitro rewrite. Do not try to incrementally upgrade — most su
 
 | Concern | v4 | v5 |
 |---|---|---|
-| Enable photo | `<Camera photo={true} />` | `outputs={[usePhotoOutput()]}` |
-| Enable video | `<Camera video={true} audio={true} />` | `outputs={[useVideoOutput({ enableAudio: true })]}` |
-| Enable frame processor | `frameProcessor={useFrameProcessor(...)}` | `outputs={[useFrameOutput({ onFrame })]}` |
-| Enable code scanner | `codeScanner={useCodeScanner(...)}` | Separate package `react-native-vision-camera-barcode-scanner` → `outputs={[useBarcodeScannerOutput(...)]}` OR iOS-only native `useObjectOutput` |
+| Enable photo | `<Camera photo={true} />` | `const photoOutput = usePhotoOutput()` then `outputs={[photoOutput]}` |
+| Enable video | `<Camera video={true} audio={true} />` | `const videoOutput = useVideoOutput({ enableAudio: true })` then `outputs={[videoOutput]}` |
+| Enable frame processor | `frameProcessor={useFrameProcessor(...)}` | `const frameOutput = useFrameOutput({ onFrame })` then `outputs={[frameOutput]}` |
+| Enable code scanner | `codeScanner={useCodeScanner(...)}` | Separate package `react-native-vision-camera-barcode-scanner` → `const barcodeOutput = useBarcodeScannerOutput(...)` then `outputs={[barcodeOutput]}` OR iOS-only native `useObjectOutput` |
 | Format / resolution / fps / HDR | `useCameraFormat(device, [...])` + `format`, `fps`, `videoHdr`, `photoHdr` props | `constraints={[...]}` prop — priority-ordered, auto-negotiated |
 | Take photo | `await cameraRef.current.takePhoto({ flash: 'on' })` | `await photoOutput.capturePhoto({ flash: 'on' })` — returns in-memory `Photo` |
 | Save photo to file | takePhoto returned a file path already | `await photoOutput.capturePhotoToFile(...)` returns `{ filePath }` |
