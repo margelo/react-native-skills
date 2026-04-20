@@ -48,9 +48,9 @@ const photo = await photoOutput.capturePhoto(
 const { filePath } = await photoOutput.capturePhotoToFile({ flash: 'on' }, {})
 ```
 
-### `takeSnapshot` — zero-shutter-lag preview grab
+### `takeSnapshot` — zero-shutter-lag preview grab (Android only)
 
-On the Camera ref, `takeSnapshot({ quality: 90 })` grabs the latest preview buffer and JPEG-encodes it synchronously. Lower fidelity than `capturePhoto`, but instant. Good for burst / scanner UIs where the user can't tell the difference.
+On the Camera ref, `takeSnapshot({ quality: 90 })` grabs the latest preview buffer and JPEG-encodes it synchronously. Lower fidelity than `capturePhoto`, but instant. Good for burst / scanner UIs where the user can't tell the difference. This is Android only.
 
 ### RAW
 
