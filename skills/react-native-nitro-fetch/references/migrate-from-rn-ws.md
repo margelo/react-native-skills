@@ -230,4 +230,4 @@ Libraries that *don't* accept an injection and hard-code `new WebSocket(...)` in
 - API reference: [`using-websockets.md`](./using-websockets.md)
 - Pre-warming: [`websocket-prewarm.md`](./websocket-prewarm.md)
 - Inspector: [`network-inspector.md`](./network-inspector.md)
-- Source: [`packages/react-native-nitro-websockets/src/index.ts`](../../../packages/react-native-nitro-websockets/src/index.ts)
+- Source: [`packages/react-native-nitro-websockets/src/index.ts`](https://github.com/margelo/react-native-nitro-fetch/tree/main/packages/react-native-nitro-websockets/src/index.ts)

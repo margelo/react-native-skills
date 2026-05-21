@@ -89,7 +89,7 @@ type WebSocketMessageEvent = {
 };
 ```
 
-Source: [`packages/react-native-nitro-websockets/src/index.ts`](../../../packages/react-native-nitro-websockets/src/index.ts).
+Source: [`packages/react-native-nitro-websockets/src/index.ts`](https://github.com/margelo/react-native-nitro-fetch/tree/main/packages/react-native-nitro-websockets/src/index.ts).
 
 ## Recipes
 
@@ -186,9 +186,9 @@ For migrating an existing app, see [`migrate-from-rn-ws.md`](./migrate-from-rn-w
 
 ## Pointers
 
-- Source: [`packages/react-native-nitro-websockets/src/index.ts`](../../../packages/react-native-nitro-websockets/src/index.ts)
-- C++ side: [`packages/react-native-nitro-websockets/cpp/HybridWebSocket.cpp`](../../../packages/react-native-nitro-websockets/cpp/HybridWebSocket.cpp)
-- Bundled CA: [`packages/react-native-nitro-websockets/android/src/main/cpp/cacert.pem`](../../../packages/react-native-nitro-websockets/android/src/main/cpp/cacert.pem)
-- Working example: [`example/src/screens/WebSocketScreen.tsx`](../../../example/src/screens/WebSocketScreen.tsx)
-- Long-form docs: [`docs-website/docs/websockets.md`](../../../docs-website/docs/websockets.md)
+- Source: [`packages/react-native-nitro-websockets/src/index.ts`](https://github.com/margelo/react-native-nitro-fetch/tree/main/packages/react-native-nitro-websockets/src/index.ts)
+- C++ side: [`packages/react-native-nitro-websockets/cpp/HybridWebSocket.cpp`](https://github.com/margelo/react-native-nitro-fetch/tree/main/packages/react-native-nitro-websockets/cpp/HybridWebSocket.cpp)
+- Bundled CA: [`packages/react-native-nitro-websockets/android/src/main/cpp/cacert.pem`](https://github.com/margelo/react-native-nitro-fetch/tree/main/packages/react-native-nitro-websockets/android/src/main/cpp/cacert.pem)
+- Working example: [`example/src/screens/WebSocketScreen.tsx`](https://github.com/margelo/react-native-nitro-fetch/tree/main/example/src/screens/WebSocketScreen.tsx)
+- Long-form docs: [`docs-website/docs/websockets.md`](https://github.com/margelo/react-native-nitro-fetch/tree/main/docs-website/docs/websockets.md)
 - Related: [`websocket-prewarm.md`](./websocket-prewarm.md), [`migrate-from-rn-ws.md`](./migrate-from-rn-ws.md), [`network-inspector.md`](./network-inspector.md)

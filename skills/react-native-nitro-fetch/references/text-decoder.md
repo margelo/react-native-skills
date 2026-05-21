@@ -68,7 +68,7 @@ What's actually supported:
 | `ignoreBOM: true` | A leading byte-order mark is dropped instead of being included. |
 | `decode(buf, { stream: true })` | Holds incomplete code points until the next call so you can chunk binary input. |
 
-Source: [`packages/react-native-nitro-text-decoder/src/TextDecoder.ts`](../../../packages/react-native-nitro-text-decoder/src/TextDecoder.ts).
+Source: [`packages/react-native-nitro-text-decoder/src/TextDecoder.ts`](https://github.com/margelo/react-native-nitro-fetch/tree/main/packages/react-native-nitro-text-decoder/src/TextDecoder.ts).
 
 ## Recipes
 
@@ -140,6 +140,6 @@ Prefer one of:
 
 ## Pointers
 
-- Source: [`packages/react-native-nitro-text-decoder/src`](../../../packages/react-native-nitro-text-decoder/src)
-- Used internally by: [`packages/react-native-nitro-websockets/src/index.ts`](../../../packages/react-native-nitro-websockets/src/index.ts) (look for `utf8Decoder`)
+- Source: [`packages/react-native-nitro-text-decoder/src`](https://github.com/margelo/react-native-nitro-fetch/tree/main/packages/react-native-nitro-text-decoder/src)
+- Used internally by: [`packages/react-native-nitro-websockets/src/index.ts`](https://github.com/margelo/react-native-nitro-fetch/tree/main/packages/react-native-nitro-websockets/src/index.ts) (look for `utf8Decoder`)
 - Pairs with: [`using-websockets.md`](./using-websockets.md)
