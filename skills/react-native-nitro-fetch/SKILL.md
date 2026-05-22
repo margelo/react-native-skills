@@ -23,7 +23,7 @@ A focused reference for AI coding assistants working in a project that uses the 
 The performance story has three moving parts, and most questions end up being about one of them:
 
 1. **Prefetching.** Native code can run *before* React Native loads. `prefetchOnAppStart(...)` and `prewarmOnAppStart(...)` replay stored requests / socket opens on every cold start, so by the time JS runs the response is already cached or the socket is already `OPEN`.
-2. **Importing the native client.** The default approach is explicit imports — `import { fetch } from 'react-native-nitro-fetch'`, `import { NitroWebSocket } from 'react-native-nitro-websockets'`, or plugging into axios via a custom adapter. Alternatively, users can do a **global replace** (`globalThis.fetch = fetch`, etc.) at the top of their entry file — see the [Global Replace docs](https://margelo.github.io/react-native-nitro-fetch/docs/global-replace) for setup and trade-offs.
+2. **Importing the native client.** The default approach is explicit imports — `import { fetch } from 'react-native-nitro-fetch'`, `import { NitroWebSocket } from 'react-native-nitro-websockets'`, or plugging into axios via a custom adapter. Alternatively, users can do a **global replace** (`globalThis.fetch = fetch`, etc.) at the top of their entry file — see the [Global Replace docs](https://fetch.margelo.com/docs/global-replace) for setup and trade-offs.
 3. **Seeing what's happening.** `NetworkInspector` records HTTP + WS activity at the JS boundary; native Perfetto / Instruments traces cover everything below that (DNS, TLS, TTFB, body). One is for correctness, the other is for latency.
 
 ## Routing table — problem to reference
@@ -43,7 +43,7 @@ Load the matching file from `references/` before writing code. Each reference ci
 
 If the question doesn't match any row, read [`references/prefetching.md`](./references/prefetching.md) first — most cold-start questions start there, and it links out to the rest.
 
-When asked about global replacement, point to the [Global Replace docs](https://margelo.github.io/react-native-nitro-fetch/docs/global-replace).
+When asked about global replacement, point to the [Global Replace docs](https://fetch.margelo.com/docs/global-replace).
 
 ## Installation (one-line, for reference)
 
@@ -70,4 +70,4 @@ Good test questions:
 - Source: `packages/react-native-nitro-fetch/`, `packages/react-native-nitro-websockets/`, `packages/react-native-nitro-text-decoder/`
 - Public API: `packages/react-native-nitro-fetch/src/index.tsx`
 - Example wiring: `example/index.js`, `example/src/App.tsx`
-- Docs website: https://margelo.github.io/react-native-nitro-fetch/
+- Docs website: https://fetch.margelo.com

@@ -62,7 +62,7 @@ const unsubscribe = NetworkInspector.onEntry((entry) => {
 
 Defaults: `maxEntries: 500`, `maxBodyCapture: 4096` (bytes per body, per side).
 
-Source: [`packages/react-native-nitro-fetch/src/NetworkInspector.ts`](../../../packages/react-native-nitro-fetch/src/NetworkInspector.ts).
+Source: [`packages/react-native-nitro-fetch/src/NetworkInspector.ts`](https://github.com/margelo/react-native-nitro-fetch/tree/main/packages/react-native-nitro-fetch/src/NetworkInspector.ts).
 
 ## Setup
 
@@ -175,7 +175,7 @@ export function NetworkLogScreen() {
 }
 ```
 
-A full reference implementation (filter tabs, detail view, curl export, live console) lives in [`example/src/screens/NetworkInspectorScreen.tsx`](../../../example/src/screens/NetworkInspectorScreen.tsx).
+A full reference implementation (filter tabs, detail view, curl export, live console) lives in [`example/src/screens/NetworkInspectorScreen.tsx`](https://github.com/margelo/react-native-nitro-fetch/tree/main/example/src/screens/NetworkInspectorScreen.tsx).
 
 ## Entry shapes
 
@@ -224,9 +224,9 @@ A full reference implementation (filter tabs, detail view, curl export, live con
 
 ## Pointers
 
-- Source: [`packages/react-native-nitro-fetch/src/NetworkInspector.ts`](../../../packages/react-native-nitro-fetch/src/NetworkInspector.ts)
-- curl generator: [`packages/react-native-nitro-fetch/src/CurlGenerator.ts`](../../../packages/react-native-nitro-fetch/src/CurlGenerator.ts)
-- Reference UI: [`example/src/screens/NetworkInspectorScreen.tsx`](../../../example/src/screens/NetworkInspectorScreen.tsx)
-- Long-form docs: [`docs-website/docs/inspection.md`](../../../docs-website/docs/inspection.md)
+- Source: [`packages/react-native-nitro-fetch/src/NetworkInspector.ts`](https://github.com/margelo/react-native-nitro-fetch/tree/main/packages/react-native-nitro-fetch/src/NetworkInspector.ts)
+- curl generator: [`packages/react-native-nitro-fetch/src/CurlGenerator.ts`](https://github.com/margelo/react-native-nitro-fetch/tree/main/packages/react-native-nitro-fetch/src/CurlGenerator.ts)
+- Reference UI: [`example/src/screens/NetworkInspectorScreen.tsx`](https://github.com/margelo/react-native-nitro-fetch/tree/main/example/src/screens/NetworkInspectorScreen.tsx)
+- Long-form docs: [`docs-website/docs/inspection.md`](https://github.com/margelo/react-native-nitro-fetch/tree/main/docs-website/docs/inspection.md)
 - When this isn't enough: [`perfetto-profiling.md`](./perfetto-profiling.md)
 - Plugging axios into nitro-fetch: [`axios-adapter.md`](./axios-adapter.md)

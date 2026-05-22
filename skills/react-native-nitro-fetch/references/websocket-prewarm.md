@@ -33,7 +33,7 @@ This is for the *next* launch, not the current one. Pre-warming and immediately 
 
 ### iOS — automatic
 
-iOS auto-bootstraps via `+load` in [`packages/react-native-nitro-websockets/ios/NitroWSAutoBootstrap.mm`](../../../packages/react-native-nitro-websockets/ios/NitroWSAutoBootstrap.mm). Nothing to wire.
+iOS auto-bootstraps via `+load` in [`packages/react-native-nitro-websockets/ios/NitroWSAutoBootstrap.mm`](https://github.com/margelo/react-native-nitro-fetch/blob/main/packages/react-native-nitro-websockets/ios/NitroWSAutoBootstrap.mm). Nothing to wire.
 
 ### Android — one line in `Application.onCreate`
 
@@ -49,7 +49,7 @@ class MainApplication : Application(), ReactApplication {
 }
 ```
 
-Reference: [`example/android/app/src/main/java/nitrofetch/example/MainApplication.kt`](../../../example/android/app/src/main/java/nitrofetch/example/MainApplication.kt).
+Reference: [`example/android/app/src/main/java/nitrofetch/example/MainApplication.kt`](https://github.com/margelo/react-native-nitro-fetch/blob/main/example/android/app/src/main/java/nitrofetch/example/MainApplication.kt).
 
 If you skip this on Android, the JS API silently writes to disk and nothing on the native side ever reads it back.
 
@@ -69,7 +69,7 @@ import {
 | `removeFromPrewarmQueue(url)` | Drop one entry. No-op if it isn't there. |
 | `clearPrewarmQueue()` | Wipe the queue. |
 
-Source: [`packages/react-native-nitro-websockets/src/prewarm.ts`](../../../packages/react-native-nitro-websockets/src/prewarm.ts).
+Source: [`packages/react-native-nitro-websockets/src/prewarm.ts`](https://github.com/margelo/react-native-nitro-fetch/blob/main/packages/react-native-nitro-websockets/src/prewarm.ts).
 
 ## Recipes
 
@@ -157,9 +157,9 @@ If your stored auth header expires, register a token-refresh config (see `docs-w
 
 ## Pointers
 
-- JS: [`packages/react-native-nitro-websockets/src/prewarm.ts`](../../../packages/react-native-nitro-websockets/src/prewarm.ts)
-- Android bootstrap: [`packages/react-native-nitro-websockets/android/src/main/java/com/margelo/nitro/nitrofetchwebsockets/NitroWebSocketAutoPrewarmer.kt`](../../../packages/react-native-nitro-websockets/android/src/main/java/com/margelo/nitro/nitrofetchwebsockets/NitroWebSocketAutoPrewarmer.kt)
-- iOS bootstrap: [`packages/react-native-nitro-websockets/ios/NitroWSAutoBootstrap.mm`](../../../packages/react-native-nitro-websockets/ios/NitroWSAutoBootstrap.mm)
-- C++ singleton: [`packages/react-native-nitro-websockets/cpp/WebSocketPrewarmer.hpp`](../../../packages/react-native-nitro-websockets/cpp/WebSocketPrewarmer.hpp)
-- Working example: [`example/src/screens/WebSocketScreen.tsx`](../../../example/src/screens/WebSocketScreen.tsx)
+- JS: [`packages/react-native-nitro-websockets/src/prewarm.ts`](https://github.com/margelo/react-native-nitro-fetch/tree/main/packages/react-native-nitro-websockets/src/prewarm.ts)
+- Android bootstrap: [`packages/react-native-nitro-websockets/android/src/main/java/com/margelo/nitro/nitrofetchwebsockets/NitroWebSocketAutoPrewarmer.kt`](https://github.com/margelo/react-native-nitro-fetch/tree/main/packages/react-native-nitro-websockets/android/src/main/java/com/margelo/nitro/nitrofetchwebsockets/NitroWebSocketAutoPrewarmer.kt)
+- iOS bootstrap: [`packages/react-native-nitro-websockets/ios/NitroWSAutoBootstrap.mm`](https://github.com/margelo/react-native-nitro-fetch/tree/main/packages/react-native-nitro-websockets/ios/NitroWSAutoBootstrap.mm)
+- C++ singleton: [`packages/react-native-nitro-websockets/cpp/WebSocketPrewarmer.hpp`](https://github.com/margelo/react-native-nitro-fetch/tree/main/packages/react-native-nitro-websockets/cpp/WebSocketPrewarmer.hpp)
+- Working example: [`example/src/screens/WebSocketScreen.tsx`](https://github.com/margelo/react-native-nitro-fetch/tree/main/example/src/screens/WebSocketScreen.tsx)
 - Related: [`using-websockets.md`](./using-websockets.md), [`migrate-from-rn-ws.md`](./migrate-from-rn-ws.md)

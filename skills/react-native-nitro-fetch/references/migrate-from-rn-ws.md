@@ -48,7 +48,7 @@ For more on the new API surface, see [`using-websockets.md`](./using-websockets.
 
 ### 1. Replace `new WebSocket(...)` with `new NitroWebSocket(...)` at the call sites
 
-> You can also do a global swap (`globalThis.WebSocket = NitroWebSocket`) — see the [Global Replace docs](https://margelo.github.io/react-native-nitro-fetch/docs/global-replace).
+> You can also do a global swap (`globalThis.WebSocket = NitroWebSocket`) — see the [Global Replace docs](https://fetch.margelo.com/docs/global-replace).
 
 ```ts
 // before
@@ -204,7 +204,7 @@ const socket = io('wss://example.com', {
 });
 ```
 
-Libraries that *don't* accept an injection and hard-code `new WebSocket(...)` internally will keep using React Native's built-in WebSocket. You can do a [global replace](https://margelo.github.io/react-native-nitro-fetch/docs/global-replace) to route everything through NitroWebSocket.
+Libraries that *don't* accept an injection and hard-code `new WebSocket(...)` internally will keep using React Native's built-in WebSocket. You can do a [global replace](https://fetch.margelo.com/docs/global-replace) to route everything through NitroWebSocket.
 
 ## Checklist
 
@@ -219,7 +219,7 @@ Libraries that *don't* accept an injection and hard-code `new WebSocket(...)` in
 
 ## Gotchas
 
-- **Global swap** is also supported — see the [Global Replace docs](https://margelo.github.io/react-native-nitro-fetch/docs/global-replace).
+- **Global swap** is also supported — see the [Global Replace docs](https://fetch.margelo.com/docs/global-replace).
 - **Forgetting that `e.binaryData` is `undefined` for text frames.** Always check `e.isBinary` first.
 - **Sending a `Blob`.** TypeScript may not catch it; runtime will. Convert first.
 - **`NitroWebSocket.OPEN`.** Doesn't exist. Use the string `'OPEN'`.
@@ -230,4 +230,4 @@ Libraries that *don't* accept an injection and hard-code `new WebSocket(...)` in
 - API reference: [`using-websockets.md`](./using-websockets.md)
 - Pre-warming: [`websocket-prewarm.md`](./websocket-prewarm.md)
 - Inspector: [`network-inspector.md`](./network-inspector.md)
-- Source: [`packages/react-native-nitro-websockets/src/index.ts`](../../../packages/react-native-nitro-websockets/src/index.ts)
+- Source: [`packages/react-native-nitro-websockets/src/index.ts`](https://github.com/margelo/react-native-nitro-fetch/tree/main/packages/react-native-nitro-websockets/src/index.ts)
