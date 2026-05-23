@@ -2,7 +2,7 @@
 id: prefetching
 title: Prefetching with nitro-fetch
 scope: react-native-nitro-fetch
-keywords: prefetch, cold start, cache, performance, app launch, prefetchKey
+keywords: prefetch, cold start, cache, performance, app launch, prefetchKey, POST, JSON, FormData, multipart, registerPrefetch, first launch
 ---
 
 # Prefetching with nitro-fetch
@@ -96,6 +96,119 @@ await prefetchOnAppStart('https://api.example.com/feed', {
 ```
 
 On the *next* launch, the request fires while React Native is still booting. By the time `Home` mounts and calls `fetch('https://api.example.com/feed', { headers: { prefetchKey: 'home-feed' } })`, the response is already sitting in the cache.
+
+### Prefetch a POST request (JSON or FormData)
+
+`prefetchOnAppStart` persists `method`, `bodyString` / `bodyBytes` / `bodyFormData`, headers (including `Content-Type`), `timeoutMs`, and `followRedirects`. The native cold-start replay reconstructs the request exactly — a JSON POST is replayed as a JSON POST, a multipart upload is replayed as a multipart upload.
+
+```ts
+// JSON body — the Content-Type header is persisted and replayed verbatim
+await prefetchOnAppStart('https://api.example.com/open-app', {
+  method: 'POST',
+  body: JSON.stringify({ appId: 'home', userId: 42 }),
+  headers: { 'Content-Type': 'application/json' },
+  prefetchKey: 'open-app',
+});
+
+// FormData — string fields and React Native file refs ({ uri, type, name })
+const fd = new FormData();
+fd.append('user', 'alice');
+fd.append('avatar', { uri: avatarUri, type: 'image/jpeg', name: 'a.jpg' } as any);
+await prefetchOnAppStart('https://api.example.com/upload', {
+  method: 'POST',
+  body: fd,
+  prefetchKey: 'upload-avatar',
+});
+```
+
+The consuming `fetch()` must use the same `method` + `body` shape (the server has to actually receive a matching request) and reference the entry by `prefetchKey`:
+
+```ts
+const res = await fetch('https://api.example.com/open-app', {
+  method: 'POST',
+  body: JSON.stringify({ appId: 'home', userId: 42 }),
+  headers: {
+    'Content-Type': 'application/json',
+    prefetchKey: 'open-app',
+  },
+});
+// res.headers.get('nitroPrefetched') === 'true' on the second cold launch onward
+```
+
+**FormData file URIs:** the URI is stored verbatim. A transient `content://` or `file://` captured at scheduling time may not be valid on the next cold launch — the multipart builder throws and the entry is skipped. Prefer bundled assets or persistent app-data paths.
+
+**Storage format:** defaults are omitted so the JSON queue stays compact and backward-compatible. A body-less GET keeps the original `{ url, prefetchKey, headers }` shape; older binaries simply ignore the new fields when present.
+
+### First-launch prefetches via native registration
+
+`prefetchOnAppStart` runs from JS, so its earliest possible firing is the *second* cold launch after install (JS has to run once to seed the queue). To prefetch on the very first launch, register URLs from native code. Both APIs share the same persistent queue, so JS-side `removeFromAutoPrefetch()` works on natively-registered entries too.
+
+**Android** — `AutoPrefetcher.registerPrefetch` is `@JvmOverloads`, so the existing 4-arg call keeps compiling and the new args slot in by name:
+
+```kotlin
+// android/app/src/main/java/.../MainApplication.kt
+import com.margelo.nitro.nitrofetch.AutoPrefetcher
+
+override fun onCreate() {
+  super.onCreate()
+
+  // GET (existing form)
+  AutoPrefetcher.registerPrefetch(
+    this,
+    "https://api.example.com/feed",
+    "feed",
+    mapOf("Accept" to "application/json"),
+  )
+
+  // POST + FormData (extended form)
+  AutoPrefetcher.registerPrefetch(
+    context = this,
+    url = "https://api.example.com/open-app",
+    prefetchKey = "open-app",
+    headers = mapOf("X-App" to "demo"),
+    method = "POST",
+    bodyFormData = listOf(
+      mapOf("name" to "appId", "value" to "home"),
+      mapOf("name" to "userId", "value" to "42"),
+    ),
+  )
+
+  AutoPrefetcher.prefetchOnStart(this) // existing — drains the queue
+  loadReactNative(this)
+}
+```
+
+Other extended params: `bodyString: String? = null`, `bodyBytes: String? = null`, `timeoutMs: Double? = null`, `followRedirects: Boolean? = null`.
+
+**iOS** — Swift `@objc` can't expose default args, so the extended API is a separate selector (`registerPrefetchWithURL:prefetchKey:headers:method:bodyString:bodyBytes:bodyFormData:timeoutMs:followRedirects:`):
+
+```swift
+// AppDelegate.swift — in application(_:didFinishLaunchingWithOptions:)
+
+// GET (existing 3-arg form)
+NitroAutoPrefetcher.registerPrefetch(
+  withUrl: "https://api.example.com/feed",
+  prefetchKey: "feed",
+  headers: ["Accept": "application/json"]
+)
+
+// POST + JSON (extended form)
+NitroAutoPrefetcher.registerPrefetch(
+  withURL: "https://api.example.com/open-app",
+  prefetchKey: "open-app",
+  headers: ["Content-Type": "application/json"],
+  method: "POST",
+  bodyString: #"{"appId":"home","userId":42}"#,
+  bodyBytes: nil,
+  bodyFormData: nil,
+  timeoutMs: nil,
+  followRedirects: nil
+)
+```
+
+No explicit `prefetchOnStart()` call is needed on iOS — the `+load` bootstrap in `NitroBootstrap.mm` fires after launch automatically.
+
+ObjC callers can `#import <NitroFetch/NitroAutoPrefetcher.h>` from a bridging header; both selectors are declared there.
 
 ### Pass the key two ways
 
@@ -208,7 +321,7 @@ If you don't register a refresh config, the bootstrap reuses whatever headers we
 - **Mismatched keys → cold cache.** A prefetch with `prefetchKey: 'home'` and a fetch with `prefetchKey: 'home-feed'` are unrelated. The URL alone is *not* the cache key.
 - **Android wiring missing.** `prefetchOnAppStart` writes silently; only the missing `Application.onCreate` line gives it away. Double-check it.
 - **Prefetch loops.** The native side doesn't throttle. Don't call `prefetchOnAppStart` for fifty endpoints — you're just slowing down boot.
-- **POST/PUT prefetches.** Allowed, but only sensible for idempotent endpoints. The cache lookup is by `prefetchKey`, not by request body.
+- **POST/PUT prefetches.** Fully supported — `method` and body (`string`, `bodyBytes`, FormData) are persisted alongside the URL and replayed exactly. The cache lookup is still by `prefetchKey`, not by request body, so only schedule POST prefetches for endpoints where replaying the same payload returns the same response (idempotent or read-modeled-as-write).
 - **Stale prefetches after deploys.** If your backend changes shape, old cached responses can hit the new client. Bump the `prefetchKey` (e.g. include a schema version).
 
 ## Pointers
