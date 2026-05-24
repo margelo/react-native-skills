@@ -5,7 +5,7 @@ license: MIT
 metadata:
   author: Margelo
   scope: react-native-nitro-fetch, react-native-nitro-websockets, react-native-nitro-text-decoder
-  tags: react-native, networking, fetch, websocket, prefetch, performance, cold-start, axios, inspector, perfetto
+  tags: react-native, networking, fetch, websocket, prefetch, performance, cold-start, axios, inspector, perfetto, cache-ttl, freshness
 ---
 
 # react-native-nitro-fetch

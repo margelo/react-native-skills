@@ -2,7 +2,7 @@
 id: prefetching
 title: Prefetching with nitro-fetch
 scope: react-native-nitro-fetch
-keywords: prefetch, cold start, cache, performance, app launch, prefetchKey, POST, JSON, FormData, multipart, registerPrefetch, first launch
+keywords: prefetch, cold start, cache, performance, app launch, prefetchKey, POST, JSON, FormData, multipart, registerPrefetch, first launch, prefetchCacheTtlMs, cache ttl, freshness
 ---
 
 # Prefetching with nitro-fetch
@@ -240,6 +240,65 @@ await removeFromAutoPrefetch('home-feed');
 
 If you don't, the next cold start will fire the prefetch with stale credentials.
 
+### Configuring cache TTL
+
+A cached prefetch is fresh for **5 seconds** by default. The lookup is at *read time* — `fetch()` evicts and skips any entry older than the TTL. Five seconds is fine for "user is about to tap this row," but too short for a cross-launch prefetch that has to survive the JS bundle boot or a list screen reached via a slow route.
+
+Pass `prefetchCacheTtlMs` on **both** the prefetch and the consuming `fetch()` (each call brings its own TTL — there is no global default to set):
+
+```ts
+// In-session: warm a screen up to 60s before it's mounted.
+await prefetch('https://api.example.com/items/42', {
+  headers: { prefetchKey: 'item-42' },
+  prefetchCacheTtlMs: 60_000,
+});
+
+// Consume — same TTL so the cache hit doesn't get skipped.
+const res = await fetch('https://api.example.com/items/42', {
+  headers: { prefetchKey: 'item-42' },
+  prefetchCacheTtlMs: 60_000,
+});
+```
+
+For cross-launch prefetches, the TTL is persisted alongside the request in the MMKV queue, so the next cold start honors it:
+
+```ts
+await prefetchOnAppStart('https://api.example.com/feed', {
+  prefetchKey: 'home-feed',
+  prefetchCacheTtlMs: 5 * 60_000, // 5 minutes
+});
+```
+
+For native-side registration, both platforms accept the TTL as a named arg:
+
+```kotlin
+// Android — registerPrefetch is @JvmOverloads
+AutoPrefetcher.registerPrefetch(
+  context = this,
+  url = "https://api.example.com/feed",
+  prefetchKey = "feed",
+  headers = mapOf("Accept" to "application/json"),
+  prefetchCacheTtlMs = 300_000.0, // Double, in ms
+)
+```
+
+```swift
+// iOS — use the extended @objc selector with the trailing prefetchCacheTtlMs:
+NitroAutoPrefetcher.registerPrefetch(
+  withURL: "https://api.example.com/feed",
+  prefetchKey: "feed",
+  headers: ["Accept": "application/json"],
+  method: nil, bodyString: nil, bodyBytes: nil, bodyFormData: nil,
+  timeoutMs: nil, followRedirects: nil,
+  prefetchCacheTtlMs: NSNumber(value: 300_000)
+)
+```
+
+Notes:
+- Omitting the option keeps the historical 5-second behavior. There's no backward-incompat.
+- A long TTL amplifies the "Stale prefetches after deploys" risk below — bump `prefetchKey` on schema changes regardless of TTL.
+- A value `<= 0` disables cache hits for that key — `getResultIfFresh`/`hasFreshResult` check `age <= maxAgeMs`, so any positive age fails.
+
 ### Fetching tokens for cross-start prefetches
 
 A `prefetchOnAppStart` entry is replayed by **native code, before JS runs**. That's the whole point — but it means there's no JS runtime around to mint a fresh access token. The package solves this with `registerTokenRefresh`: you describe a refresh endpoint and how to map its response into headers, and the native bootstrap calls it on cold start before replaying the queue.
@@ -322,7 +381,7 @@ If you don't register a refresh config, the bootstrap reuses whatever headers we
 - **Android wiring missing.** `prefetchOnAppStart` writes silently; only the missing `Application.onCreate` line gives it away. Double-check it.
 - **Prefetch loops.** The native side doesn't throttle. Don't call `prefetchOnAppStart` for fifty endpoints — you're just slowing down boot.
 - **POST/PUT prefetches.** Fully supported — `method` and body (`string`, `bodyBytes`, FormData) are persisted alongside the URL and replayed exactly. The cache lookup is still by `prefetchKey`, not by request body, so only schedule POST prefetches for endpoints where replaying the same payload returns the same response (idempotent or read-modeled-as-write).
-- **Stale prefetches after deploys.** If your backend changes shape, old cached responses can hit the new client. Bump the `prefetchKey` (e.g. include a schema version).
+- **Stale prefetches after deploys.** If your backend changes shape, old cached responses can hit the new client. Bump the `prefetchKey` (e.g. include a schema version). The default 5-second TTL limits the blast radius; raising it via `prefetchCacheTtlMs` (see "Configuring cache TTL" above) widens the window and makes a `prefetchKey` bump more important.
 
 ## Pointers
 
