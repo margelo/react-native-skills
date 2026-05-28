@@ -19,6 +19,16 @@ Use this before writing the `.nitro.ts` spec and keep using it while implementin
 - **Do not create multiple types in a single file at top level.** Create multiple files for stuff like this. The only exception is truly local types/structs/classes/enums, which can be nested private.
 - **Make almost all classes `final`.** This is better for performance, unless you really expect them to be overridden. Usually that never happens in Nitro HybridObjects.
 
+## Cross-Platform API Abstractions
+
+React Native is a cross-platform framework - try to avoid leaking too much platform specific information into public APIs. For example, instead of 1:1 mirroring iOS/Android APIs to TypeScript, try to find common abstractions.
+
+Try not to overly abstract like the Web/JS-style. The sweet-spot is right in-between. See `react-native-vision-camera` or `react-native-nitro-image` for good, cross-platform abstractions that don't leak platform specific behaviour into user APIs.
+
+Only rarely, e.g. like the `CameraObjectOutput` which is a native Object Metadata output implemented via `AVCaptureMetadataObjectsOutput` - this is only available on iOS, yet the public APIs don't mention the AVFoundation types as it is unnecessary for the user.
+
+On the other side, stuff like GPU-powered, zero-copy, or similar concepts are close-to-the-metal APIs that are good to expose to the API user via Nitro, which is something Web-APIs often avoid. Find the sweet-spot here.
+
 ## Error Handling
 
 - **Avoid swallowing errors silently.** Don't just early return, don't just log/print. Either throw or reject promise if possible, or have a separate error listener if an error is being sent in a different execution context.
