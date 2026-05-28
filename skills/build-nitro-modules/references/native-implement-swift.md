@@ -22,7 +22,7 @@ class HybridMath: NSObject {
 ```swift
 import NitroModules
 
-class HybridMath: HybridMathSpec {
+final class HybridMath: HybridMathSpec {
   func add(a: Double, b: Double) throws -> Double { a + b }
 }
 ```
@@ -58,7 +58,7 @@ touch ios/HybridMath.swift
 ```swift
 import NitroModules
 
-class HybridMath: HybridMathSpec {
+final class HybridMath: HybridMathSpec {
 
   // Synchronous methods — most generated methods have `throws`
   func add(a: Double, b: Double) throws -> Double {
@@ -182,7 +182,7 @@ func round(value: Double, decimals: Double?) -> Double {
 ```swift
 func divide(a: Double, b: Double) throws -> Double {
   guard b != 0 else {
-    throw NSError(domain: "Math", code: 1, userInfo: [NSLocalizedDescriptionKey: "Division by zero!"])
+    throw RuntimeError("Division by zero!")
   }
   return a / b
 }
@@ -214,9 +214,13 @@ var zoom: Double {
 - **`any HybridSpec` not `HybridSpec`** — In modern Swift, protocol types need the `any` keyword
 - **Not including the file in podspec** — Swift files must be in the `source_files` glob in `.podspec`
 - **Using the `override` keyword** — The generated spec is a Swift *protocol*, not a superclass. Conforming methods and properties must NOT use `override` (unlike the Kotlin counterpart, which does). `override` only applies when overriding a superclass member.
+- **Using `NSError` or Objective-C types** — Nitro bridges Swift directly; prefer `RuntimeError("...")` or another Swift `Error`
+- **Silently returning on unavailable APIs** — Throw a clear runtime error instead of `guard ... else { return }`
+- **Non-final implementation classes** — Make almost all classes `final` unless you really expect subclasses
 
 ## Related Skills
 
+- [api-design-best-practices.md](api-design-best-practices.md) — API shape, errors, native state, memory, buffers, hooks, and Harness tests
 - [native-nitrogen-codegen.md](native-nitrogen-codegen.md) — Must generate specs before implementing
 - [spec-nitro-json.md](spec-nitro-json.md) — Configure `"swift"` in autolinking
 - [native-implement-kotlin.md](native-implement-kotlin.md) — Android Kotlin counterpart

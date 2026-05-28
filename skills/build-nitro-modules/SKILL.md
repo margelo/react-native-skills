@@ -83,16 +83,17 @@ Reference these guidelines when:
 | Priority | Category | Impact | Reference |
 |----------|----------|--------|-----------|
 | 1 | Monorepo scaffold | CRITICAL | [setup-monorepo-init.md][setup-monorepo-init] |
-| 2 | HybridObject spec | CRITICAL | [spec-hybrid-object.md][spec-hybrid-object] |
-| 3 | nitro.json autolinking | CRITICAL | [spec-nitro-json.md][spec-nitro-json] |
-| 4 | Nitrogen codegen | HIGH | [native-nitrogen-codegen.md][native-nitrogen-codegen] |
-| 5 | C++ implementation | HIGH | [native-implement-cpp.md][native-implement-cpp] |
-| 6 | Kotlin implementation | HIGH | [native-implement-kotlin.md][native-implement-kotlin] |
-| 7 | Swift implementation | HIGH | [native-implement-swift.md][native-implement-swift] |
-| 8 | Example app setup *(if requested)* | HIGH | [example-app-setup.md][example-app-setup] |
-| 9 | Android Gradle paths *(if example app)* | HIGH | [example-android-config.md][example-android-config] |
-| 10 | Metro + install + test *(if example app)* | HIGH | [example-metro-install.md][example-metro-install] |
-| 11 | npm publish prep | MEDIUM | [spec-package-publish.md][spec-package-publish] |
+| 2 | API design best practices | CRITICAL | [api-design-best-practices.md][api-design-best-practices] |
+| 3 | HybridObject spec | CRITICAL | [spec-hybrid-object.md][spec-hybrid-object] |
+| 4 | nitro.json autolinking | CRITICAL | [spec-nitro-json.md][spec-nitro-json] |
+| 5 | Nitrogen codegen | HIGH | [native-nitrogen-codegen.md][native-nitrogen-codegen] |
+| 6 | C++ implementation | HIGH | [native-implement-cpp.md][native-implement-cpp] |
+| 7 | Kotlin implementation | HIGH | [native-implement-kotlin.md][native-implement-kotlin] |
+| 8 | Swift implementation | HIGH | [native-implement-swift.md][native-implement-swift] |
+| 9 | Example app setup *(if requested)* | HIGH | [example-app-setup.md][example-app-setup] |
+| 10 | Android Gradle paths *(if example app)* | HIGH | [example-android-config.md][example-android-config] |
+| 11 | Metro + install + test *(if example app)* | HIGH | [example-metro-install.md][example-metro-install] |
+| 12 | npm publish prep | MEDIUM | [spec-package-publish.md][spec-package-publish] |
 
 ## Quick Reference
 
@@ -144,6 +145,7 @@ Run: `bun example android`, `bun example ios`, `bun specs`
 | File | Description |
 |------|-------------|
 | [setup-monorepo-init.md][setup-monorepo-init] | Monorepo workspace structure and `nitrogen init` scaffold |
+| [api-design-best-practices.md][api-design-best-practices] | Nitro API shape, typed specs, errors, native state, memory, buffers, hooks, and Harness tests |
 | [spec-hybrid-object.md][spec-hybrid-object] | Writing `*.nitro.ts` specs and exporting HybridObjects |
 | [spec-nitro-json.md][spec-nitro-json] | `nitro.json` all fields, autolinking, namespace configuration |
 | [native-nitrogen-codegen.md][native-nitrogen-codegen] | Running Nitrogen and verifying generated files |
@@ -160,6 +162,7 @@ Run: `bun example android`, `bun example ios`, `bun specs`
 | Problem | Reference | Action |
 |---------|-----------|--------|
 | Don't know where to start | [setup-monorepo-init.md][setup-monorepo-init] | Scaffold with `nitrogen init` |
+| API shape unclear | [api-design-best-practices.md][api-design-best-practices] | Prefer typed, instance-based APIs with explicit errors |
 | Spec file syntax error | [spec-hybrid-object.md][spec-hybrid-object] | Fix `*.nitro.ts` interface |
 | Autolinking not working | [spec-nitro-json.md][spec-nitro-json] | Check `nitro.json` autolinking block |
 | Nitrogen generates no files | [native-nitrogen-codegen.md][native-nitrogen-codegen] | Verify spec file extension and run command from right dir |
@@ -172,6 +175,7 @@ Run: `bun example android`, `bun example ios`, `bun specs`
 | Package missing files on npm | [spec-package-publish.md][spec-package-publish] | Fix `files` field in `package.json` |
 
 [setup-monorepo-init]: references/setup-monorepo-init.md
+[api-design-best-practices]: references/api-design-best-practices.md
 [spec-hybrid-object]: references/spec-hybrid-object.md
 [spec-nitro-json]: references/spec-nitro-json.md
 [native-nitrogen-codegen]: references/native-nitrogen-codegen.md

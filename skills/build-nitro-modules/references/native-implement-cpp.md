@@ -206,9 +206,13 @@ void HybridMath::compute(double input, std::function<void(double)> onResult) {
 - **Using `float` instead of `double`** — Nitro uses `double` for all `number` types
 - **Using `std::future<T>`** — Nitro does not use `std::future`; always use `std::shared_ptr<Promise<T>>` with `Promise<T>::async(...)`
 - **Missing `TAG` member** — Required for `HybridObject(TAG)` constructor call
+- **Inheriting from generated `_base` types** — Do not inherit from `_base`; implement the generated spec directly or the real Nitro base type required by the current API
+- **Silently returning on unavailable APIs** — Throw a clear exception instead of returning, logging, or printing
+- **Generic maps by default** — Prefer typed structs/methods/types over `AnyMap` or `Record<K, V>`
 
 ## Related Skills
 
+- [api-design-best-practices.md](api-design-best-practices.md) — API shape, errors, native state, memory, buffers, hooks, and Harness tests
 - [native-nitrogen-codegen.md](native-nitrogen-codegen.md) — Must generate specs before implementing
 - [spec-nitro-json.md](spec-nitro-json.md) — Configure `"c++"` in autolinking
 - [native-implement-kotlin.md](native-implement-kotlin.md) — Android Kotlin alternative

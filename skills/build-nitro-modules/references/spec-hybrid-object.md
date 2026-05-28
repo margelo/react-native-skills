@@ -53,7 +53,18 @@ rm packages/react-native-math/src/specs/Example.nitro.ts
 
 The scaffold creates `Example.nitro.ts` as a placeholder — always replace it with your domain-specific spec.
 
-### 2. Create the spec file
+### 2. Design the API shape first
+
+Before writing methods, apply [api-design-best-practices.md](api-design-best-practices.md):
+
+- Use properties for cheap state-like getters, for example `readonly isAccelerometerAvailable: boolean`, instead of functions like `isAccelerometerAvailable()`.
+- Use `is*`, `has*`, or similar prefixes for boolean properties.
+- Use typed structs instead of 3+ params.
+- Prefer typed structs/methods/types over `AnyMap` or `Record<K, V>`.
+- Use instance-based APIs and factory HybridObjects when native state, pre-warming, or native resources matter.
+- Do not model not-implemented or unavailable platform behaviour as no-op methods; make the native implementation throw or reject explicitly.
+
+### 3. Create the spec file
 
 Name it after the module's domain: `Math.nitro.ts`, `Camera.nitro.ts`, `Crypto.nitro.ts`.
 
@@ -63,7 +74,7 @@ Name it after the module's domain: `Math.nitro.ts`, `Camera.nitro.ts`, `Crypto.n
 touch packages/react-native-math/src/specs/Math.nitro.ts
 ```
 
-### 3. Write the interface
+### 4. Write the interface
 
 ```typescript
 import { type HybridObject, NitroModules } from 'react-native-nitro-modules'
@@ -87,7 +98,7 @@ interface Math extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
 }
 ```
 
-### 4. Choose platform languages
+### 5. Choose platform languages
 
 In the `HybridObject<{ ... }>` generic:
 - `ios: 'swift'` — iOS implemented in Swift
@@ -99,7 +110,7 @@ For C++ only (both platforms): `HybridObject<{ ios: 'c++'; android: 'c++' }>`
 
 > **Note:** Both the `.nitro.ts` spec and `nitro.json` autolinking use `"c++"`. In `nitro.json`, the C++ autolinking entry uses `"all": { "language": "c++", "implementationClassName": "HybridMath" }`.
 
-### 5. Export the HybridObject (Step 10)
+### 6. Export the HybridObject (Step 10)
 
 After implementing native code, export from `src/index.ts`:
 
@@ -167,8 +178,12 @@ export { camera }
 - **Forgetting platform languages** — `HybridObject<{}>` without specifying ios/android will fail
 - **Modifying generated files** — Never edit files in `nitrogen/generated/`; edit only the `.nitro.ts` spec
 - **Missing export** — The hybrid object won't be usable without the `createHybridObject` call and export
+- **Getter methods instead of properties** — Don't create functions that could be simple property getters, such as `isAccelerometerAvailable()`
+- **Too many positional params** — Use objects / structs instead of 3+ params
+- **Generic maps by default** — Prefer typed structs/methods/types over `AnyMap` or `Record<K, V>`
 
 ## Related Skills
 
+- [api-design-best-practices.md](api-design-best-practices.md) — API shape, errors, native state, memory, buffers, hooks, and Harness tests
 - [spec-nitro-json.md](spec-nitro-json.md) — Configure autolinking to match the interface name
 - [native-nitrogen-codegen.md](native-nitrogen-codegen.md) — Run codegen after writing the spec

@@ -21,7 +21,7 @@ class HybridMath : HybridMathSpec() {
 ```kotlin
 @Keep
 @DoNotStrip
-class HybridMath : HybridMathSpec() {
+final class HybridMath : HybridMathSpec() {
   override fun add(a: Double, b: Double): Double = a + b
 }
 ```
@@ -65,7 +65,7 @@ import com.facebook.proguard.annotations.DoNotStrip
 
 @Keep
 @DoNotStrip
-class HybridMath : HybridMathSpec() {
+final class HybridMath : HybridMathSpec() {
 
   // Synchronous method
   override fun add(a: Double, b: Double): Double = a + b
@@ -228,9 +228,12 @@ override fun divide(a: Double, b: Double): Double {
 - **Calling blocking code outside `Promise.async`** — Network calls, delay, etc. must be inside `Promise.async { }` (uses coroutines)
 - **Storing `NitroModules.applicationContext` in a field** — It can be null at construction time; always access it via a `get()` property
 - **Not null-checking `applicationContext`** — Always use `?: throw Error("No ApplicationContext set!")` to fail explicitly
+- **Silently returning on unavailable APIs** — Throw a clear error instead of returning, logging, or printing
+- **Non-final implementation classes** — Make almost all classes `final` unless you really expect subclasses
 
 ## Related Skills
 
+- [api-design-best-practices.md](api-design-best-practices.md) — API shape, errors, native state, memory, buffers, hooks, and Harness tests
 - [native-nitrogen-codegen.md](native-nitrogen-codegen.md) — Must generate specs before implementing
 - [spec-nitro-json.md](spec-nitro-json.md) — Configure `"kotlin"` in autolinking
 - [native-implement-swift.md](native-implement-swift.md) — iOS Swift counterpart
