@@ -16,6 +16,15 @@ If the library is a Nitro Module, use this skill for the public TypeScript and R
 3. Check the surface against the rules below.
 4. Implement only after the public shape is coherent.
 
+## API Freshness
+
+Before choosing public API shape, dependency APIs, platform capabilities, or implementation strategy, verify current official sources instead of relying on trained memory. Library, React, React Native, platform, and tooling APIs evolve quickly.
+
+- Prefer official docs, source repositories, release notes, changelogs, package READMEs, and current package metadata.
+- Look for `llms.txt` or `llms-full.txt` on official docs sites when available, and use those as compact current context.
+- Treat remembered API details as a starting hypothesis only. If current docs or source disagree, follow the current docs/source and mention the change when relevant.
+- Avoid designing against stale blog posts, old snippets, or outdated trained assumptions when an official current source is available.
+
 ## API Shape Rules
 
 - Prefer a single source of truth. Do not split related state across booleans and dependent values when one typed value can express the state. Prefer `timeoutMs?: number` over `enableTimeout: boolean` plus `timeoutMs?: number`.
@@ -56,6 +65,12 @@ If the library is a Nitro Module, use this skill for the public TypeScript and R
 - Static assertions or fatal errors are only for impossible internal states, not for states reachable from JS user code.
 - For React Native, design cross-platform concepts instead of mirroring iOS and Android APIs 1:1. Avoid leaking native class names or framework details unless that low-level access is the feature.
 - Do not over-abstract into a generic web-shaped API if the value is closer to the metal, such as GPU, zero-copy, native-resource, or hardware concepts.
+
+## Avoid Workaround APIs
+
+- Do not encode temporary patches, platform bugs, dependency quirks, or stale implementation details into the public API shape unless callers genuinely need to reason about them.
+- Prefer fixing the root cause, using official extension points, or hiding compatibility code behind a stable domain API.
+- If a workaround is unavoidable, keep it narrow and internal where possible. If it must be public, document why it exists, what issue it tracks, and when it can be removed.
 
 ## TypeScript Facades
 

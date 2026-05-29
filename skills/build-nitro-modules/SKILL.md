@@ -21,17 +21,9 @@ Generated files under `nitrogen/generated/` are outputs. Change the `.nitro.ts` 
 
 Use `api-design` first when shaping the public TypeScript, JavaScript, React, or React Native API. This skill adds the Nitro-specific constraints: HybridObject state, generated specs, native resource ownership, zero-copy data, threading, platform implementation, codegen, and real-device validation.
 
+Let `api-design` own general public API rules and API freshness checks. In this skill, only add Nitro-specific freshness checks for mobile toolchain and generated-template decisions: verify current Nitro, React Native, Gradle, Xcode, Swift, Kotlin, NDK, and package-tooling docs/source before choosing versions, config fields, or native implementation details.
+
 If the user is building a JS-only React or React Native library, do not apply this skill unless Nitro, HybridObjects, native modules, codegen, C++/Swift/Kotlin bindings, or `react-native-nitro-modules` are part of the task.
-
-## API Freshness
-
-Before choosing APIs, versions, platform requirements, templates, config shape, or native implementation details, verify current sources instead of relying on model memory. Mobile APIs, React Native, Nitro, Gradle, Xcode, Swift, Kotlin, NDK, and package tooling move quickly.
-
-- Prefer official docs, source repositories, release notes, changelogs, package READMEs, and generated templates.
-- Look for `llms.txt` or `llms-full.txt` on official docs sites when available, and use those as compact current context.
-- Use current package metadata or source when deciding install commands, minimum versions, or config fields.
-- Treat remembered API details as a starting hypothesis only. If current docs or source disagree, follow the current docs/source and mention the change when relevant.
-- Avoid basing Nitro, native, or example-app decisions on old blog posts, stale snippets, or past trained memory when an official current source is available.
 
 ## Repository Defaults
 
@@ -160,7 +152,7 @@ Full step-by-step references below.
 Reference these guidelines when:
 - Creating any new React Native native module using the Nitro framework
 - Checking Nitro minimum platform requirements
-- Verifying current APIs, templates, dependency versions, and tooling behavior before making implementation decisions
+- Verifying current Nitro, React Native, and native-toolchain requirements before making implementation decisions
 - Designing or reviewing the public API shape of a Nitro-backed library
 - Deciding whether an API should be static, instance-based, sync, async, callback-based, or resource-backed
 - Writing HybridObject TypeScript specs (`*.nitro.ts` files)
@@ -275,7 +267,7 @@ Run: `bun example android`, `bun example ios`, `bun specs`
 | Problem | Reference | Action |
 |---------|-----------|--------|
 | Need to design the public API first | `api-design` + this SKILL.md | Shape the TS/React API, then apply Nitro constraints |
-| Need latest APIs or setup guidance | Current official docs/source + this SKILL.md | Check official docs, release notes, source repos, package metadata, or `llms-full.txt` before deciding |
+| Need latest general APIs | `api-design` | Check official docs, release notes, source repos, package metadata, or `llms-full.txt` before deciding |
 | Need a recommended repo structure | [setup-monorepo-init.md][setup-monorepo-init] | Use `packages/`, `apps/` or `example/`, optional `docs/`, `scripts/`, `config/`, and `.github/workflows/` |
 | Unsure static module vs instance API | This SKILL.md | Prefer HybridObjects for native state, resources, prewarming, and zero-copy data |
 | Don't know where to start | [setup-monorepo-init.md][setup-monorepo-init] | Scaffold with `nitrogen init` |
