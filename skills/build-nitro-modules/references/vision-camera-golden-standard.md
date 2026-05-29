@@ -49,6 +49,8 @@ For apps, use a real RN app. `apps/<name>` is the VisionCamera-style choice for 
 ## Public API Layers
 
 - Export one runtime root factory object, created from the autolinked root HybridObject.
+- Name the runtime factory export as a product/domain object, not as the spec type. VisionCamera uses `VisionCamera = createHybridObject<CameraFactory>('CameraFactory')`; Nitro Image uses `Images = createHybridObject<ImageFactory>('ImageFactory')`.
+- Keep the generated spec/interface name descriptive, usually `SomethingFactory`, and keep the `createHybridObject(...)` key matching `nitro.json`. Only the JS value export gets the more ergonomic product/domain name.
 - Export all public specs and common types from `src/index.ts` so users can type advanced integrations.
 - Layer hooks and React components over the imperative core; do not make hooks the only API.
 - Put domain defaults and convenience in hooks/utilities, while keeping Nitro specs explicit.

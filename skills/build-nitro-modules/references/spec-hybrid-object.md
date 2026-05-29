@@ -195,6 +195,19 @@ export interface MediaFactory extends HybridObject<{ ios: 'swift'; android: 'kot
 
 In this pattern, `MediaFactory` is autolinked because JS creates it directly. `VideoOutput` and `Recorder` can be returned from factory methods and usually do not need their own `nitro.json` autolinking entries.
 
+Export the factory under a product/domain object name rather than the spec type name:
+
+```typescript
+// src/Media.ts
+import { NitroModules } from 'react-native-nitro-modules'
+import type { MediaFactory } from './specs/MediaFactory.nitro'
+
+export const Media =
+  NitroModules.createHybridObject<MediaFactory>('MediaFactory')
+```
+
+The autolinking key remains `MediaFactory` because it matches the generated spec and `nitro.json`. The JS export can be more ergonomic and should not mechanically become `mediaFactory`, `MediaFactory`, or `HybridMediaFactory`. Use names like `VisionCamera`, `Images`, `Media`, or another product/domain noun that reads well at call sites.
+
 ### Native protocol extension points
 
 Use this pattern when third-party native code should extend the library while still passing objects through JS/TS as typed HybridObjects.
