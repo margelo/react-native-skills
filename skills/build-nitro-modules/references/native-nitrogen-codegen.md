@@ -63,7 +63,7 @@ bun specs
 ```json
 {
   "scripts": {
-    "specs": "nitro-codegen"
+    "specs": "nitrogen"
   }
 }
 ```

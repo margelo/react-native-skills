@@ -35,7 +35,7 @@ class HybridMath : HybridMathSpec() {
 ## Prerequisites
 
 - Nitrogen has generated `HybridMathSpec.kt`, usually in `nitrogen/generated/android/kotlin/com/margelo/nitro/<namespace>/`
-- `nitro.json` has `"kotlin": "HybridMath"` in the autolinking block
+- `nitro.json` has an Android autolinking entry with `"language": "kotlin"` and `"implementationClassName": "HybridMath"`
 
 ## Step-by-Step
 

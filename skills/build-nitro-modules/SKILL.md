@@ -148,14 +148,21 @@ Reference these guidelines when:
 ### Minimum HybridObject Spec (`src/specs/Math.nitro.ts`)
 
 ```typescript
-import { type HybridObject, NitroModules } from 'react-native-nitro-modules'
+import type { HybridObject } from 'react-native-nitro-modules'
 
-interface Math extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
+export interface Math extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
   add(a: number, b: number): number
 }
+```
 
-const math = NitroModules.createHybridObject<Math>('Math')
-export { math }
+### Minimum JS Export (`src/index.ts`)
+
+```typescript
+import { NitroModules } from 'react-native-nitro-modules'
+import type { Math } from './specs/Math.nitro'
+
+export const math = NitroModules.createHybridObject<Math>('Math')
+export type { Math }
 ```
 
 ### Minimum `nitro.json`
@@ -170,7 +177,16 @@ export { math }
     "androidCxxLibName": "ReactNativeMath"
   },
   "autolinking": {
-    "Math": { "swift": "HybridMath", "kotlin": "HybridMath" }
+    "Math": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridMath"
+      },
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "HybridMath"
+      }
+    }
   }
 }
 ```

@@ -6,7 +6,7 @@ tags: hybrid-object, spec, nitro.ts, typescript, NitroModules, export, interface
 
 # Skill: Writing HybridObject Specs and Exporting
 
-Covers Steps 4 and 10: deleting the default spec, writing a domain-specific `*.nitro.ts` spec, and exporting the HybridObject.
+Covers Steps 4 and 10: deleting the default spec, writing a domain-specific `*.nitro.ts` spec, and exporting the HybridObject from runtime JS/TS.
 
 ## Quick Pattern
 
@@ -17,19 +17,16 @@ import { type HybridObject } from 'react-native-nitro-modules'
 interface Example extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {}
 ```
 
-**Correct** — domain-specific spec with export:
+**Correct** — domain-specific spec that exports only the interface:
 ```typescript
 // src/specs/Math.nitro.ts
-import { type HybridObject, NitroModules } from 'react-native-nitro-modules'
+import type { HybridObject } from 'react-native-nitro-modules'
 
-interface Math extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
+export interface Math extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
   add(a: number, b: number): number
   subtract(a: number, b: number): number
   multiply(a: number, b: number): Promise<number>
 }
-
-const math = NitroModules.createHybridObject<Math>('Math')
-export { math }
 ```
 
 ## When to Use
@@ -66,9 +63,9 @@ touch packages/react-native-math/src/specs/Math.nitro.ts
 ### 3. Write the interface
 
 ```typescript
-import { type HybridObject, NitroModules } from 'react-native-nitro-modules'
+import type { HybridObject } from 'react-native-nitro-modules'
 
-interface Math extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
+export interface Math extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
   // Synchronous methods
   add(a: number, b: number): number
   subtract(a: number, b: number): number
@@ -101,16 +98,14 @@ For C++ only (both platforms): `HybridObject<{ ios: 'c++'; android: 'c++' }>`
 
 ### 5. Export the HybridObject (Step 10)
 
-After implementing native code, export from `src/index.ts`:
+After implementing native code, create and export the HybridObject from `src/index.ts`:
 
 ```typescript
 // src/index.ts
 import { NitroModules } from 'react-native-nitro-modules'
 import type { Math } from './specs/Math.nitro'
 
-const math = NitroModules.createHybridObject<Math>('Math')
-
-export { math }
+export const math = NitroModules.createHybridObject<Math>('Math')
 export type { Math }
 ```
 
@@ -124,13 +119,13 @@ export type { Math }
 ### Module with properties and listener callbacks
 
 ```typescript
-import { type HybridObject, NitroModules } from 'react-native-nitro-modules'
+import type { HybridObject } from 'react-native-nitro-modules'
 
-interface ListenerSubscription {
+export interface ListenerSubscription {
   remove: () => void
 }
 
-interface Camera extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
+export interface Camera extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
   // Properties
   readonly isRecording: boolean
   zoom: number
@@ -147,9 +142,15 @@ interface Camera extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
   // Sync methods
   setFlashMode(mode: 'on' | 'off' | 'auto'): void
 }
+```
 
-const camera = NitroModules.createHybridObject<Camera>('Camera')
-export { camera }
+Then create it in `src/index.ts`:
+
+```typescript
+import { NitroModules } from 'react-native-nitro-modules'
+import type { Camera } from './specs/Camera.nitro'
+
+export const camera = NitroModules.createHybridObject<Camera>('Camera')
 ```
 
 ### TypeScript → Native type mapping
@@ -172,7 +173,8 @@ export { camera }
 - **Mismatch between interface name and autolinking key** — `createHybridObject<Math>('Math')` string must match `nitro.json`
 - **Forgetting platform languages** — `HybridObject<{}>` without specifying ios/android will fail
 - **Modifying generated files** — Never edit files in `nitrogen/generated/`; edit only the `.nitro.ts` spec
-- **Missing export** — The hybrid object won't be usable without the `createHybridObject` call and export
+- **Creating runtime objects inside specs** — Keep `.nitro.ts` files focused on exported types; create the runtime object in `src/index.ts`
+- **Missing export** — The hybrid object won't be usable from JS without the `createHybridObject` call and export
 
 ## Related Skills
 

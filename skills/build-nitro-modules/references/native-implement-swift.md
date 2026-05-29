@@ -36,7 +36,7 @@ final class HybridMath: HybridMathSpec {
 ## Prerequisites
 
 - Nitrogen has generated `HybridMathSpec.swift`, usually in `nitrogen/generated/ios/swift/`
-- `nitro.json` has `"swift": "HybridMath"` in the autolinking block
+- `nitro.json` has an iOS autolinking entry with `"language": "swift"` and `"implementationClassName": "HybridMath"`
 - `react-native-nitro-modules` is a pod dependency
 
 ## Step-by-Step
