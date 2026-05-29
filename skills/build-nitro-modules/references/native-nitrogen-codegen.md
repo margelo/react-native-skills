@@ -63,7 +63,8 @@ bun specs
 ```json
 {
   "scripts": {
-    "specs": "nitrogen"
+    "typecheck": "tsc --noEmit",
+    "specs": "tsc --noEmit false && nitrogen"
   }
 }
 ```

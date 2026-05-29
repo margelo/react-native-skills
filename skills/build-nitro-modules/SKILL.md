@@ -26,21 +26,28 @@ If the user is building a JS-only React or React Native library, do not apply th
 ## Nitro API Design Rules
 
 - Prefer Nitro Modules over TurboModules or handwritten JSI for native module work. Nitro is usually faster and safer because it avoids many raw JSI lifetime, threading, and runtime-destruction hazards. Use raw JSI only when Nitro's Raw JSI Methods are truly required.
+- For larger libraries, prefer one small public factory/entry HybridObject that creates stateful domain objects. Keep the root default-constructible for autolinking, and create objects that need arguments through factory methods.
 - Design around native state when it improves the API. A `HybridObject` can represent a native resource, prewarmed engine, file, image, database, sensor session, stream, or other stateful object instead of forcing everything into static module functions.
 - Use factory HybridObjects for resources that require construction arguments, async setup, I/O, or validation. Example: expose `FileFactory.loadFileFromPath(path): Promise<File>` instead of trying to construct `File` directly from JS.
 - Keep HybridObjects focused on one purpose or lifecycle. Avoid giant native objects that own unrelated domains.
-- Use sync methods by default only for fast, in-process work. Use `Promise` for hardware calls, I/O, async platform APIs, blocking work, or anything that can take meaningful time.
+- Autolink only public roots, factories, views, or global utilities that JS must construct directly. Other HybridObjects can be returned from factory methods and do not need their own `nitro.json` autolinking entries.
+- Use sync methods by default only for fast, in-process work, cheap native object creation, cached metadata, and local transforms. Use `Promise` for permissions, hardware/session setup, I/O, capture/recording, platform async APIs, blocking work, or anything that can take meaningful time.
 - As a rule of thumb, benchmark the method and make it async if it takes longer than roughly 50ms.
+- If a transform has both cheap and potentially heavy paths, consider explicit sync and async twins such as `convertX()` and `convertXAsync()` instead of hiding blocking work behind one ambiguous method.
 - Use properties for cheap observed state or capability, especially readonly capability flags such as `readonly isAccelerometerAvailable: boolean`. Use methods for side effects, expensive work, allocation, mutation, or failure.
 - Prefer typed structs, interfaces, literal unions, enums, readonly properties, and explicit methods over `AnyMap`, `Record<string, unknown>`, stringly typed commands, or loosely shaped event payloads.
 - Use structs for meaningful domain shapes, option groups, and same-type parameter clusters. Do not wrap unrelated hot-path values in a struct only to reduce argument count; Nitro eagerly converts structs, so unnecessary wrappers can be slower than explicit parameters.
 - Avoid variants only when a simpler typed model expresses the state. Use variants or discriminated unions when they are the clearest representation, even if they have some runtime overhead.
 - Use `ArrayBuffer` for zero-copy native data access. When receiving an `ArrayBuffer` from JS and using it on another thread, copy it first if it is not owning.
 - Use `Error` in TypeScript specs for real JS Error prototypes instead of custom typed error objects.
-- Use listener functions for repeated events and callbacks, returning an unsubscribe/subscription handle. Avoid mutable callback properties unless there is a strong reason.
-- Use `Sync<(...) => ...>` callbacks only for rare cases that must synchronously block the JS thread, such as specific worklet interop.
+- Use listener functions for repeated events and callbacks, returning a `ListenerSubscription`-style object with `remove()`. Avoid mutable callback properties unless there is a strong reason.
+- Use callback option structs for one-shot operation progress when callbacks belong to one method call, such as capture or recording progress callbacks.
+- Use `setOn...Callback(callback | undefined)` only for single hot-path callbacks owned by an object, where replacing or removing the callback is the natural operation.
+- Use `Sync<(...) => ...>` callbacks only for rare thread-bound hot paths that must synchronously execute on a specific JS runtime or worklet thread.
 - Put ergonomic defaults and convenience shaping in TypeScript when that keeps the native Nitro spec simpler and more explicit. For example, normalize optional options in TS before calling a stricter native method.
 - Preserve React Native's cross-platform abstraction. Do not expose AVFoundation, Android framework, or platform-specific class names in public APIs unless direct low-level access is the point.
+- For Nitro Views, expose the raw `getHostComponent` wrapper plus higher-level React components or hooks when they materially improve ergonomics. Keep them layered over the same native objects and refs.
+- Document Nitro public specs heavily with JSDoc. Include lifecycle, defaults, platform availability, performance costs, disposal requirements, and examples directly on exported interfaces.
 
 ## Nitro Native Implementation Rules
 
@@ -101,9 +108,10 @@ cd packages/react-native-math && npx nitrogen
 
 # 3. Create example app
 npx @react-native-community/cli@latest init --skip-install MathExample
+mkdir -p apps && mv MathExample apps/example
 
 # 4. Install and test
-cd example && bun add ../packages/react-native-math
+cd apps/example && bun add ../../packages/react-native-math
 bun add react-native-nitro-modules
 bun example android
 bun example ios
@@ -142,6 +150,7 @@ Reference these guidelines when:
 | 9 | Android Gradle paths *(if example app)* | HIGH | [example-android-config.md][example-android-config] |
 | 10 | Metro + install + test *(if example app)* | HIGH | [example-metro-install.md][example-metro-install] |
 | 11 | npm publish prep | MEDIUM | [spec-package-publish.md][spec-package-publish] |
+| 12 | VisionCamera-style full library patterns | MEDIUM | [vision-camera-golden-standard.md][vision-camera-golden-standard] |
 
 ## Quick Reference
 
@@ -197,7 +206,7 @@ export type { Math }
 {
   "scripts": {
     "specs": "bun --cwd packages/react-native-math run specs",
-    "example": "bun --cwd example"
+    "example": "bun --cwd apps/example"
   }
 }
 ```
@@ -219,6 +228,7 @@ Run: `bun example android`, `bun example ios`, `bun specs`
 | [example-android-config.md][example-android-config] | `settings.gradle` and `build.gradle` monorepo path fixes |
 | [example-metro-install.md][example-metro-install] | Metro watchFolders, library install, App.tsx usage, test runs |
 | [spec-package-publish.md][spec-package-publish] | `package.json` author, `files` field, npm publish readiness |
+| [vision-camera-golden-standard.md][vision-camera-golden-standard] | Package layout, API layering, Nitro object modeling, and publishing patterns inspired by VisionCamera |
 
 ## Problem → Skill Mapping
 
@@ -237,6 +247,7 @@ Run: `bun example android`, `bun example ios`, `bun specs`
 | Metro can't resolve library | [example-metro-install.md][example-metro-install] | Add `watchFolders` to `metro.config.js` |
 | Version mismatch between example and package | [example-app-setup.md][example-app-setup] | Align `react-native` versions across workspaces |
 | Package missing files on npm | [spec-package-publish.md][spec-package-publish] | Fix `files` field in `package.json` |
+| Need a full-featured library structure | [vision-camera-golden-standard.md][vision-camera-golden-standard] | Use the VisionCamera-inspired package, API, hooks, views, and Nitro object model |
 
 [setup-monorepo-init]: references/setup-monorepo-init.md
 [spec-hybrid-object]: references/spec-hybrid-object.md
@@ -249,3 +260,4 @@ Run: `bun example android`, `bun example ios`, `bun specs`
 [example-android-config]: references/example-android-config.md
 [example-metro-install]: references/example-metro-install.md
 [spec-package-publish]: references/spec-package-publish.md
+[vision-camera-golden-standard]: references/vision-camera-golden-standard.md
