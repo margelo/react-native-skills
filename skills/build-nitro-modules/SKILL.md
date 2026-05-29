@@ -15,7 +15,7 @@ End-to-end skill for building a React Native Nitro Module: monorepo scaffolding 
 
 Nitro Modules use a codegen pipeline (`nitrogen`) that reads `.nitro.ts` spec files and generates native C++/Swift/Kotlin boilerplate. You then fill in the implementation. This is fundamentally different from old-style turbo modules.
 
-> **NEVER modify any file inside `nitrogen/generated/`.** These files are fully regenerated every time `npx nitrogen` runs — any manual edits will be silently overwritten. Always edit only the `.nitro.ts` spec file, then re-run nitrogen to regenerate.
+Generated files under `nitrogen/generated/` are outputs. Change the `.nitro.ts` spec or native implementation source, then re-run nitrogen instead of manually editing generated files. These files can be committed to git, and many Nitro libraries do commit them, but the repo policy can choose otherwise. They must be included in the npm package so consumers can build the native library.
 
 ## Pair With API Design
 
@@ -35,7 +35,7 @@ If the user is building a JS-only React or React Native library, do not apply th
 - As a rule of thumb, benchmark the method and make it async if it takes longer than roughly 50ms.
 - If a transform has both cheap and potentially heavy paths, consider explicit sync and async twins such as `convertX()` and `convertXAsync()` instead of hiding blocking work behind one ambiguous method.
 - Use properties for cheap observed state or capability, especially readonly capability flags such as `readonly isAccelerometerAvailable: boolean`. Use methods for side effects, expensive work, allocation, mutation, or failure.
-- Prefer typed structs, interfaces, literal unions, enums, readonly properties, and explicit methods over `AnyMap`, `Record<string, unknown>`, stringly typed commands, or loosely shaped event payloads.
+- Prefer typed structs, interfaces, string literal unions, readonly properties, and explicit methods over `AnyMap`, `Record<string, unknown>`, stringly typed commands, or loosely shaped event payloads. Use runtime enums only when callers need runtime enum values.
 - Use structs for meaningful domain shapes, option groups, and same-type parameter clusters. Do not wrap unrelated hot-path values in a struct only to reduce argument count; Nitro eagerly converts structs, so unnecessary wrappers can be slower than explicit parameters.
 - Avoid variants only when a simpler typed model expresses the state. Use variants or discriminated unions when they are the clearest representation, even if they have some runtime overhead.
 - Use `ArrayBuffer` for zero-copy native data access. When receiving an `ArrayBuffer` from JS and using it on another thread, copy it first if it is not owning.
@@ -112,7 +112,7 @@ mkdir -p apps && mv MathExample apps/example
 
 # 4. Install and test
 cd apps/example && bun add ../../packages/react-native-math
-bun add react-native-nitro-modules
+bun add react-native-nitro-modules@<same-version-as-package>
 bun example android
 bun example ios
 ```
@@ -164,13 +164,16 @@ export interface Math extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> 
 }
 ```
 
-### Minimum JS Export (`src/index.ts`)
+### Minimum Runtime + Type Exports (`src/index.ts`)
 
 ```typescript
 import { NitroModules } from 'react-native-nitro-modules'
 import type { Math } from './specs/Math.nitro'
 
+// Runtime value that JS users import and call.
 export const math = NitroModules.createHybridObject<Math>('Math')
+
+// TypeScript-only spec interface for annotations and advanced consumers.
 export type { Math }
 ```
 

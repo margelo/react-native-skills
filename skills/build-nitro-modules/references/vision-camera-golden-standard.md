@@ -19,7 +19,7 @@ packages/react-native-math/
 ├── nitrogen/
 ├── src/
 │   ├── index.ts
-│   ├── VisionMath.ts              # runtime root factory export
+│   ├── NitroMath.ts               # runtime root factory export
 │   ├── specs/
 │   │   ├── common-types/
 │   │   ├── inputs/
@@ -126,4 +126,4 @@ Use VisionCamera-style package metadata:
 }
 ```
 
-The podspec should live at package root and match `nitro.json`'s `ios.iosModuleName`, for example `NitroMath.podspec` with `s.name = "NitroMath"`.
+Keep npm package naming separate from native module naming. For example, the npm package can be `react-native-math`, while the root podspec and native module name are `NitroMath.podspec` and `s.name = "NitroMath"`, matching `nitro.json`'s `ios.iosModuleName` and `android.androidCxxLibName`.

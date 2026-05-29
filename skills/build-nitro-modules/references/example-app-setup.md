@@ -14,8 +14,9 @@ Covers Steps 11–13: creating the React Native example app with RN CLI, adding 
 # Create example app (from monorepo root)
 npx @react-native-community/cli@latest init --skip-install MathExample
 
-# Move to example/ folder
-mv MathExample example
+# Move to apps/example/ folder
+mkdir -p apps
+mv MathExample apps/example
 
 # Add to workspace, then install
 bun install
@@ -46,12 +47,13 @@ npx @react-native-community/cli@latest init --skip-install MathExample
 - Name the app based on the library (e.g. `MathExample`, `CameraExample`)
 - See [RN CLI docs](https://github.com/react-native-community/cli/blob/main/docs/commands.md#init) for additional options
 
-### 2. Move to `example/` folder
+### 2. Move to `apps/example/` folder
 
 The scaffold creates a folder named `MathExample`. Rename it:
 
 ```bash
-mv MathExample example
+mkdir -p apps
+mv MathExample apps/example
 ```
 
 The monorepo should look like:
@@ -60,15 +62,16 @@ The monorepo should look like:
 .
 ├── packages/
 │   └── react-native-math/
-├── example/              ← example app lives here
-│   ├── android/
-│   ├── ios/
-│   ├── App.tsx
-│   └── package.json
+├── apps/
+│   └── example/          ← example app lives here
+│       ├── android/
+│       ├── ios/
+│       ├── App.tsx
+│       └── package.json
 └── package.json          ← root workspace
 ```
 
-### 3. Add `example` to root workspaces
+### 3. Add `apps/*` to root workspaces
 
 In the root `package.json`:
 
@@ -76,7 +79,7 @@ In the root `package.json`:
 {
   "workspaces": [
     "packages/*",
-    "example"
+    "apps/*"
   ]
 }
 ```
@@ -87,7 +90,7 @@ In the root `package.json`:
 
 Check the example app's RN version:
 ```bash
-cat example/package.json | grep '"react-native"'
+cat apps/example/package.json | grep '"react-native"'
 ```
 
 Open `packages/react-native-math/package.json` and ensure:
@@ -99,8 +102,8 @@ Open `packages/react-native-math/package.json` and ensure:
     "react-native-nitro-modules": "*"
   },
   "devDependencies": {
-    "react": "18.3.1",
-    "react-native": "0.76.5"
+    "react": "<same-as-example>",
+    "react-native": "<same-as-example>"
   }
 }
 ```
@@ -125,11 +128,11 @@ bun install
   "private": true,
   "workspaces": [
     "packages/*",
-    "example"
+    "apps/*"
   ],
   "scripts": {
     "specs": "bun --cwd packages/react-native-math run specs",
-    "example": "bun --cwd example"
+    "example": "bun --cwd apps/example"
   }
 }
 ```
@@ -142,12 +145,12 @@ bun install
   "peerDependencies": {
     "react": "*",
     "react-native": "*",
-    "react-native-nitro-modules": "^0.20.0"
+    "react-native-nitro-modules": "*"
   },
   "devDependencies": {
-    "react": "18.3.1",
-    "react-native": "0.76.5",
-    "react-native-nitro-modules": "^0.20.0"
+    "react": "<same-as-example>",
+    "react-native": "<same-as-example>",
+    "react-native-nitro-modules": "<same-as-package>"
   }
 }
 ```
@@ -163,7 +166,7 @@ find . -name "package.json" -not -path "*/node_modules/*" | xargs grep '"react-n
 
 - **Forgetting `--skip-install`** — Without it, npm/yarn installs from the wrong directory; use `--skip-install` then `bun install` from root
 - **Two RN versions** — Even a minor version mismatch causes cryptic `Invariant Violation` errors at runtime
-- **Not moving to `example/`** — The app folder name must match what's in `workspaces`
+- **Not moving to `apps/example/`** — The app folder must match the workspace glob
 - **Running `pod install` before workspace is set up** — Do `bun install` from root first, then `pod install`
 
 ## Related Skills

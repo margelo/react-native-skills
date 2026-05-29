@@ -124,6 +124,8 @@ Rules:
 - Each entry requires `language` and `implementationClassName`
 - Use `"all"` for a shared C++ implementation; use `"ios"` / `"android"` for platform-specific Swift/Kotlin
 - The native classes must be **default-constructible** (no required constructor arguments)
+- Only autolink objects JS creates directly, such as root factories, public utility singletons, or Hybrid Views. Objects returned from factory methods do not need autolinking entries.
+- For objects that require constructor arguments, async setup, I/O, validation, or ownership of another object, expose a factory method instead of autolinking them directly.
 
 ### 5. Multiple HybridObjects
 
@@ -156,7 +158,7 @@ Rules:
 
 ```json
 {
-  "ignorePaths": ["node_modules", "example"],
+  "ignorePaths": ["**/node_modules"],
   "gitAttributesGeneratedFlag": true
 }
 ```
@@ -215,7 +217,7 @@ Rules:
       }
     }
   },
-  "ignorePaths": ["node_modules", "example"],
+  "ignorePaths": ["**/node_modules"],
   "gitAttributesGeneratedFlag": true
 }
 ```

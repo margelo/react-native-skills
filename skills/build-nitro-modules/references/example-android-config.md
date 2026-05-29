@@ -12,18 +12,23 @@ Covers Steps 14–15: fixing `settings.gradle` and `app/build.gradle` to point t
 
 Two files need path corrections when the example app is inside a subdirectory of the monorepo:
 
-**`example/android/settings.gradle`** — fix includeBuild path:
+**`apps/example/android/settings.gradle`** — fix React Native Gradle plugin paths:
 ```groovy
-includeBuild("../../node_modules/@react-native/gradle-plugin")
+pluginManagement { includeBuild("../../../node_modules/@react-native/gradle-plugin") }
+plugins { id("com.facebook.react.settings") }
+extensions.configure(com.facebook.react.ReactSettingsExtension) { ex -> ex.autolinkLibrariesFromCommand() }
+rootProject.name = 'MathExample'
+include ':app'
+includeBuild("../../../node_modules/@react-native/gradle-plugin")
 ```
 
-**`example/android/app/build.gradle`** — fix react{} block paths:
+**`apps/example/android/app/build.gradle`** — fix react{} block paths:
 ```groovy
 react {
-    reactNativeDir = file("../../../node_modules/react-native")
-    codegenDir = file("../../../node_modules/@react-native/codegen")
-    cliFile = file("../../../node_modules/react-native/cli.js")
-    hermesCommand = "$rootDir/../../node_modules/hermes-compiler/hermesc/%OS-BIN%/hermesc"
+    reactNativeDir = file("../../../../node_modules/react-native")
+    codegenDir = file("../../../../node_modules/@react-native/codegen")
+    cliFile = file("../../../../node_modules/react-native/cli.js")
+    hermesCommand = "$rootDir/../../../node_modules/hermes-compiler/hermesc/%OS-BIN%/hermesc"
     autolinkLibrariesWithApp()
 }
 ```
@@ -36,7 +41,7 @@ react {
 
 ## Prerequisites
 
-- Example app created and moved to `example/` folder
+- Example app created and moved to `apps/example/` folder
 - Root `node_modules/` installed at the monorepo root
 
 ## Path Depth Reference
@@ -44,56 +49,54 @@ react {
 For a monorepo structured as:
 ```
 <root>/                        ← node_modules/ lives here
-  example/
-    android/
-      settings.gradle          ← 2 levels up to root: ../../
-      app/
-        build.gradle           ← 3 levels up to root: ../../../
+  apps/
+    example/
+      android/
+        settings.gradle        ← 3 levels up to root: ../../../
+        app/
+          build.gradle         ← 4 levels up to root: ../../../../
 ```
 
-`$rootDir` in Gradle refers to `<root>/example/android/`.
-So `$rootDir/../..` reaches the monorepo root.
+`$rootDir` in Gradle refers to `<root>/apps/example/android/`.
+So `$rootDir/../../..` reaches the monorepo root.
 
 ## Step-by-Step
 
-### 1. Fix `example/android/settings.gradle`
+### 1. Fix `apps/example/android/settings.gradle`
 
-Open `example/android/settings.gradle` and find:
-
-```groovy
-// ❌ Wrong — points to example/node_modules (doesn't exist in monorepo)
-includeBuild("../node_modules/@react-native/gradle-plugin")
-```
-
-Change to:
+Open `apps/example/android/settings.gradle` and make the React Native Gradle plugin paths point to the monorepo root:
 
 ```groovy
-// ✅ Correct — points to root node_modules
-includeBuild("../../node_modules/@react-native/gradle-plugin")
+pluginManagement { includeBuild("../../../node_modules/@react-native/gradle-plugin") }
+plugins { id("com.facebook.react.settings") }
+extensions.configure(com.facebook.react.ReactSettingsExtension) { ex -> ex.autolinkLibrariesFromCommand() }
+rootProject.name = 'MathExample'
+include ':app'
+includeBuild('../../../node_modules/@react-native/gradle-plugin')
 ```
 
-### 2. Fix `example/android/app/build.gradle`
+### 2. Fix `apps/example/android/app/build.gradle`
 
-Open `example/android/app/build.gradle` and find the `react { }` block. Replace with:
+Open `apps/example/android/app/build.gradle` and find the `react { }` block. Replace with:
 
 ```groovy
 react {
     /* Folders */
     // Root of your project (where root package.json lives)
-    // root = file("../../")
+    // root = file("../../../")
 
     // react-native NPM package location
-    reactNativeDir = file("../../../node_modules/react-native")
+    reactNativeDir = file("../../../../node_modules/react-native")
 
     // @react-native/codegen package location
-    codegenDir = file("../../../node_modules/@react-native/codegen")
+    codegenDir = file("../../../../node_modules/@react-native/codegen")
 
     // react-native CLI entrypoint
-    cliFile = file("../../../node_modules/react-native/cli.js")
+    cliFile = file("../../../../node_modules/react-native/cli.js")
 
     /* Hermes */
-    // hermesc is 2 levels up from $rootDir (which is example/android/)
-    hermesCommand = "$rootDir/../../node_modules/hermes-compiler/hermesc/%OS-BIN%/hermesc"
+    // hermesc is 3 levels up from $rootDir (which is apps/example/android/)
+    hermesCommand = "$rootDir/../../../node_modules/hermes-compiler/hermesc/%OS-BIN%/hermesc"
 
     /* Autolinking — keep this */
     autolinkLibrariesWithApp()
@@ -104,21 +107,21 @@ react {
 
 ```bash
 # Verify react-native is at root
-ls ../../node_modules/react-native/package.json
+ls ../../../node_modules/react-native/package.json
 
 # Verify codegen
-ls ../../node_modules/@react-native/codegen/package.json
+ls ../../../node_modules/@react-native/codegen/package.json
 
 # Verify hermes-compiler
-ls ../../node_modules/hermes-compiler/
+ls ../../../node_modules/hermes-compiler/
 ```
 
-Run from `example/android/` to match the relative path perspective.
+Run from `apps/example/android/` to match the relative path perspective.
 
 ### 4. Build to verify
 
 ```bash
-cd example
+cd apps/example
 bun android
 # or from root:
 bun example android
@@ -130,29 +133,23 @@ bun example android
 
 ```groovy
 pluginManagement {
-    includeBuild("../../node_modules/@react-native/gradle-plugin")  // ← fixed
-    repositories {
-        google()
-        mavenCentral()
-        gradlePluginPortal()
-    }
+    includeBuild("../../../node_modules/@react-native/gradle-plugin")
 }
-
+plugins { id("com.facebook.react.settings") }
+extensions.configure(com.facebook.react.ReactSettingsExtension) { ex -> ex.autolinkLibrariesFromCommand() }
 rootProject.name = 'MathExample'
-apply from: file("../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle")
-applyNativeModulesSettingsGradle(settings)
 include ':app'
-includeBuild('../../node_modules/@react-native/gradle-plugin')
+includeBuild('../../../node_modules/@react-native/gradle-plugin')
 ```
 
 ### Complete corrected `react {}` block in `build.gradle`
 
 ```groovy
 react {
-    reactNativeDir = file("../../../node_modules/react-native")
-    codegenDir = file("../../../node_modules/@react-native/codegen")
-    cliFile = file("../../../node_modules/react-native/cli.js")
-    hermesCommand = "$rootDir/../../node_modules/hermes-compiler/hermesc/%OS-BIN%/hermesc"
+    reactNativeDir = file("../../../../node_modules/react-native")
+    codegenDir = file("../../../../node_modules/@react-native/codegen")
+    cliFile = file("../../../../node_modules/react-native/cli.js")
+    hermesCommand = "$rootDir/../../../node_modules/hermes-compiler/hermesc/%OS-BIN%/hermesc"
     autolinkLibrariesWithApp()
 }
 ```
@@ -160,10 +157,10 @@ react {
 ## Common Pitfalls
 
 - **Wrong path depth** — Count the directory levels from the file to the monorepo root carefully
-- **`$rootDir` is not the monorepo root** — In Gradle, `$rootDir` is `example/android/`, not the monorepo root
+- **`$rootDir` is not the monorepo root** — In Gradle, `$rootDir` is `apps/example/android/`, not the monorepo root
 - **Forgetting `autolinkLibrariesWithApp()`** — This must stay in the `react {}` block for autolinking to work
 - **Editing both files** — Both `settings.gradle` AND `app/build.gradle` need to be updated; missing one causes different failures
-- **Hermes path uses `$rootDir` as base** — `$rootDir/../../node_modules/hermes-compiler/...` goes from `example/android/` up 2 levels to reach monorepo root
+- **Hermes path uses `$rootDir` as base** — `$rootDir/../../../node_modules/hermes-compiler/...` goes from `apps/example/android/` up 3 levels to reach monorepo root
 
 ## Related Skills
 

@@ -11,11 +11,11 @@ Covers Steps 16–20: configuring Metro watchFolders, installing the library in 
 ## Quick Commands
 
 ```bash
-# Configure Metro (edit example/metro.config.js first)
+# Configure Metro (edit apps/example/metro.config.js first)
 
 # Install library in example
-cd example
-bun add ../packages/react-native-math
+cd apps/example
+bun add ../../packages/react-native-math
 bun add react-native-nitro-modules@<same-version-as-package>
 
 # iOS: install pods
@@ -34,7 +34,7 @@ bun example ios
 
 ## Prerequisites
 
-- Example app created and moved to `example/`
+- Example app created and moved to `apps/example/`
 - Android Gradle paths corrected in `settings.gradle` and `build.gradle`
 - Library package is in `packages/<name>`
 
@@ -42,29 +42,31 @@ bun example ios
 
 ### 1. Configure Metro watchFolders
 
-Open `example/metro.config.js` and add the monorepo root to `watchFolders`:
+Open `apps/example/metro.config.js` and add the monorepo root to `watchFolders`:
 
 ```javascript
 const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
-const path = require('path');
+const path = require('node:path');
+
+const root = path.resolve(__dirname, '..', '..');
 
 const config = {
-  watchFolders: [path.resolve(__dirname, '..')],
+  watchFolders: [root],
 };
 
 module.exports = mergeConfig(getDefaultConfig(__dirname), config);
 ```
 
-Without `watchFolders`, Metro only watches the `example/` directory and can't find your library in `packages/`.
+Without `watchFolders`, Metro only watches the example app directory and can't find your library in `packages/`.
 
 ### 2. Install the library
 
 ```bash
-cd example
-bun add ../packages/react-native-math
+cd apps/example
+bun add ../../packages/react-native-math
 ```
 
-This creates a symlink from `example/node_modules/react-native-math` → `packages/react-native-math`.
+This creates a symlink from `apps/example/node_modules/react-native-math` to `packages/react-native-math`.
 
 ### 3. Install `react-native-nitro-modules` at a pinned version
 
@@ -72,10 +74,10 @@ The version must match what `packages/react-native-math` uses:
 
 ```bash
 # Check what version the package uses
-cat ../packages/react-native-math/package.json | grep nitro-modules
+cat ../../packages/react-native-math/package.json | grep nitro-modules
 
 # Install the same version in example
-bun add react-native-nitro-modules@0.20.0
+bun add react-native-nitro-modules@<same-version-as-package>
 ```
 
 Having two different versions of `react-native-nitro-modules` can cause runtime/build crashes.
@@ -83,16 +85,16 @@ Having two different versions of `react-native-nitro-modules` can cause runtime/
 ### 4. Install iOS pods
 
 ```bash
-cd example/ios
+cd apps/example/ios
 pod install
-cd ../..
+cd ../../..
 ```
 
 Run this after any new native dependency is added.
 
 ### 5. Implement App.tsx
 
-Replace the default `example/App.tsx` with a test implementation:
+Replace the default `apps/example/App.tsx` with a test implementation:
 
 ```tsx
 import React, { useState } from 'react';
@@ -133,7 +135,7 @@ In the monorepo root `package.json`:
 {
   "scripts": {
     "specs": "bun --cwd packages/react-native-math run specs",
-    "example": "bun --cwd example"
+    "example": "bun --cwd apps/example"
   }
 }
 ```
@@ -148,7 +150,7 @@ This enables:
 ```bash
 bun example android
 # or directly:
-cd example && bun android
+cd apps/example && bun android
 ```
 
 Watch for errors in logcat if the build succeeds but the app crashes.
@@ -158,16 +160,18 @@ Watch for errors in logcat if the build succeeds but the app crashes.
 ```bash
 bun example ios
 # or directly:
-cd example && bun ios
+cd apps/example && bun ios
 ```
 
 ## Code Examples
 
-### `example/metro.config.js` (complete)
+### `apps/example/metro.config.js` (complete)
 
 ```javascript
 const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
-const path = require('path');
+const path = require('node:path');
+
+const root = path.resolve(__dirname, '..', '..');
 
 /**
  * Metro configuration
@@ -176,7 +180,7 @@ const path = require('path');
  * @type {import('@react-native/metro-config').MetroConfig}
  */
 const config = {
-  watchFolders: [path.resolve(__dirname, '..')],
+  watchFolders: [root],
 };
 
 module.exports = mergeConfig(getDefaultConfig(__dirname), config);
@@ -188,9 +192,9 @@ module.exports = mergeConfig(getDefaultConfig(__dirname), config);
 {
   "scripts": {
     "specs": "bun --cwd packages/react-native-math run specs",
-    "example": "bun --cwd example",
-    "example:android": "bun --cwd example android",
-    "example:ios": "bun --cwd example ios"
+    "example": "bun --cwd apps/example",
+    "example:android": "bun --cwd apps/example android",
+    "example:ios": "bun --cwd apps/example ios"
   }
 }
 ```

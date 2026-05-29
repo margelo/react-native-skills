@@ -55,7 +55,8 @@ This skill defaults to placing the library in `packages/<name>` inside a monorep
 <root>/
 ├── packages/
 │   └── react-native-math/     ← library lives here
-├── example/                   ← example app (if requested)
+├── apps/
+│   └── example/               ← example app (if requested)
 └── package.json               ← root workspace config
 ```
 
@@ -67,7 +68,7 @@ If a root `package.json` does not exist yet, create one:
   "private": true,
   "workspaces": [
     "packages/*",
-    "example"
+    "apps/*"
   ]
 }
 ```
@@ -118,11 +119,11 @@ In the monorepo root `package.json`:
   "private": true,
   "workspaces": [
     "packages/*",
-    "example"
+    "apps/*"
   ],
   "scripts": {
     "specs": "bun --cwd packages/react-native-math run specs",
-    "example": "bun --cwd example"
+    "example": "bun --cwd apps/example"
   }
 }
 ```
@@ -143,11 +144,11 @@ bun install
   "private": true,
   "workspaces": [
     "packages/*",
-    "example"
+    "apps/*"
   ],
   "scripts": {
     "specs": "bun --cwd packages/react-native-math run specs",
-    "example": "bun --cwd example"
+    "example": "bun --cwd apps/example"
   },
   "devDependencies": {
     "typescript": "^5.0.0"
@@ -162,10 +163,11 @@ bun install
   "name": "react-native-math",
   "version": "0.1.0",
   "description": "A React Native Math module built with Nitro",
-  "main": "lib/commonjs/index.js",
-  "module": "lib/module/index.js",
-  "react-native": "src/index.ts",
-  "types": "lib/typescript/index.d.ts",
+  "main": "lib/index",
+  "module": "lib/index",
+  "react-native": "src/index",
+  "source": "src/index",
+  "types": "lib/index.d.ts",
   "peerDependencies": {
     "react": "*",
     "react-native": "*",

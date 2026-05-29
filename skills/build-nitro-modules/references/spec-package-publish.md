@@ -16,6 +16,11 @@ Covers Step 21: updating `package.json` with correct author info, ensuring all r
   "version": "0.1.0",
   "author": "Your Name <your@email.com>",
   "license": "MIT",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "specs": "tsc --noEmit false && nitrogen"
+  },
   "files": [
     "src",
     "react-native.config.js",
@@ -106,7 +111,7 @@ This controls what gets uploaded to npm. **Missing files = broken package for co
 ```
 
 Critical files that must be included:
-- `nitrogen/` — Generated native glue and autolinking files; consumers need these for builds
+- `nitrogen/` — Generated native glue and autolinking files; consumers need these for builds. These files may or may not be committed to git, but they must be published to npm.
 - `nitro.json` — Required for autolinking to work
 - `*.podspec` — Required for iOS CocoaPods integration. Prefer a root podspec named after `ios.iosModuleName`, for example `NitroMath.podspec` with `s.name = "NitroMath"`.
 - `android/build.gradle`, `android/gradle.properties`, `android/CMakeLists.txt`, and `android/src` — Android build config and source files
@@ -138,6 +143,8 @@ bun run prepare
 ```
 
 Ensure `lib/` is populated before packing.
+
+Run `bun run specs` before publishing whenever `.nitro.ts` files changed so `nitrogen/` is current.
 
 ### 5. Dry run to verify file list
 
@@ -185,6 +192,11 @@ npm publish --access public
     "ios",
     "android"
   ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "specs": "tsc --noEmit false && nitrogen"
+  },
   "files": [
     "src",
     "react-native.config.js",
@@ -218,7 +230,7 @@ npm publish --access public
 ### `.npmignore` (optional, to exclude dev files)
 
 ```
-example/
+apps/
 __tests__/
 .github/
 *.test.ts

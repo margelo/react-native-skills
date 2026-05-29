@@ -22,7 +22,13 @@ interface Example extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {}
 // src/specs/Math.nitro.ts
 import type { HybridObject } from 'react-native-nitro-modules'
 
+/**
+ * Performs fast native math operations.
+ */
 export interface Math extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
+  /**
+   * Adds two numbers synchronously.
+   */
   add(a: number, b: number): number
   subtract(a: number, b: number): number
   multiply(a: number, b: number): Promise<number>
@@ -105,14 +111,21 @@ After implementing native code, create and export the HybridObject from `src/ind
 import { NitroModules } from 'react-native-nitro-modules'
 import type { Math } from './specs/Math.nitro'
 
+// Runtime value that JS users import and call.
 export const math = NitroModules.createHybridObject<Math>('Math')
+
+// TypeScript-only spec interface for annotations and advanced consumers.
 export type { Math }
 ```
 
 **Rules:**
+- Always export the runtime HybridObject value from normal TypeScript, such as `export const math = ...`. This is the value app code uses at runtime.
+- Re-export the `.nitro.ts` interface with `export type` only as an additional type export. It does not replace the runtime value export.
 - The string `'Math'` in `createHybridObject<Math>('Math')` must exactly match the key in `nitro.json`'s `autolinking` block
 - Prefer naming native classes with the `Hybrid` prefix: `HybridMath`
 - Keep both the interface name and the autolinking key the same (e.g. `Math` = `'Math'`)
+- For larger libraries, create one autolinked factory/root object and return other stateful HybridObjects from factory methods instead of autolinking every object.
+- Add JSDoc to public spec interfaces, methods, options, callbacks, and important properties.
 
 ## Code Examples
 
@@ -153,6 +166,37 @@ import type { Camera } from './specs/Camera.nitro'
 export const camera = NitroModules.createHybridObject<Camera>('Camera')
 ```
 
+### Factory-root pattern for stateful objects
+
+Autolink the public root/factory, then create stateful resource objects through methods:
+
+```typescript
+import type { HybridObject } from 'react-native-nitro-modules'
+
+export interface VideoOutputOptions {
+  targetBitRate?: number
+}
+
+export interface Recorder extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
+  readonly isRecording: boolean
+  startRecording(
+    onFinished: (filePath: string) => void,
+    onError: (error: Error) => void,
+  ): Promise<void>
+  stopRecording(): Promise<void>
+}
+
+export interface VideoOutput extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
+  createRecorder(filePath?: string): Promise<Recorder>
+}
+
+export interface MediaFactory extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
+  createVideoOutput(options: VideoOutputOptions): VideoOutput
+}
+```
+
+In this pattern, `MediaFactory` is autolinked because JS creates it directly. `VideoOutput` and `Recorder` can be returned from factory methods and usually do not need their own `nitro.json` autolinking entries.
+
 ### TypeScript → Native type mapping
 
 | TypeScript | C++ | Kotlin | Swift |
@@ -172,7 +216,6 @@ export const camera = NitroModules.createHybridObject<Camera>('Camera')
 - **Wrong file extension** — Must be `.nitro.ts`, not `.ts` or `.d.ts`
 - **Mismatch between interface name and autolinking key** — `createHybridObject<Math>('Math')` string must match `nitro.json`
 - **Forgetting platform languages** — `HybridObject<{}>` without specifying ios/android will fail
-- **Modifying generated files** — Never edit files in `nitrogen/generated/`; edit only the `.nitro.ts` spec
 - **Creating runtime objects inside specs** — Keep `.nitro.ts` files focused on exported types; create the runtime object in `src/index.ts`
 - **Missing export** — The hybrid object won't be usable from JS without the `createHybridObject` call and export
 

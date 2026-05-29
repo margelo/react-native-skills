@@ -8,7 +8,7 @@ tags: nitrogen, codegen, generated, npx, bun, specs, verification, typescript-pa
 
 Covers Steps 6–7: running the Nitrogen codegen tool and verifying the generated native files.
 
-> **NEVER modify any file inside `nitrogen/generated/`.** Every file in that folder is fully regenerated on every `npx nitrogen` run. Edits are silently overwritten. To change the native interface, edit the `.nitro.ts` spec and re-run nitrogen.
+Generated files under `nitrogen/generated/` are build outputs. Do not manually edit them; update `.nitro.ts` specs or native implementation files and re-run nitrogen. Generated files may be committed to git, and many Nitro libraries do this, but the project can also choose not to. They must be present in the npm package.
 
 ## Quick Commands
 
@@ -209,7 +209,7 @@ abstract class HybridMathSpec: HybridObject() {
 {
   "scripts": {
     "specs": "bun --cwd packages/react-native-math run specs",
-    "example": "bun --cwd example"
+    "example": "bun --cwd apps/example"
   }
 }
 ```
