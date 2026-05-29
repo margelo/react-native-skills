@@ -12,6 +12,8 @@ Covers Steps 14–15: fixing `settings.gradle` and `app/build.gradle` when the e
 
 Only apply this when the example app is nested under `apps/example` and root `node_modules` lives at the workspace root. A shallower `example/` app or standalone app layout may work with the generated React Native config; if the generated paths resolve, leave them alone.
 
+Treat these edits as narrow layout adaptations, not a place to accumulate workaround plumbing. Prefer the official React Native Gradle plugin APIs and generated template shape; if Android needs more than path-depth corrections, investigate the package layout, workspace install, autolinking, or upstream issue first.
+
 Two files need path corrections for the `apps/example` layout:
 
 **`apps/example/android/settings.gradle`** — fix React Native Gradle plugin paths:

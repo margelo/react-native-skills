@@ -37,13 +37,13 @@ export interface Math extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> 
 
 ## When to Use
 
-- After scaffolding with `nitrogen init`, before running `npx nitrogen`
+- After scaffolding with `nitrogen init`, before running `bunx nitrogen`
 - After any API change to the module's interface
 - When adding new methods or properties to an existing module
 
 ## Prerequisites
 
-- Library scaffolded via `npx nitrogen@latest init <name>`
+- Library scaffolded via `bunx nitrogen@latest init <name>`
 - `packages/<name>/src/specs/` directory exists
 
 ## Step-by-Step
