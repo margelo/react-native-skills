@@ -80,7 +80,7 @@ If the user is building a JS-only React or React Native library, do not apply th
 
 1. **Library name** — What should the library be called? (e.g. `react-native-math`)
 2. **Monorepo with `packages/` folder** — Should the library live in `packages/<name>` inside a monorepo? *(Strongly recommended — default: yes)*
-3. **Example app** — Should an example app be created to test the module? *(Recommended — default: yes)*
+3. **Example app** — Should an example app be created to test the module, and where should it live? *(Recommended — default: yes; `apps/example` for larger monorepos, `example` or a standalone app layout when the generated RN config should stay closer to default)*
 4. **Native languages** — Which platforms and languages?
    - iOS: `swift` (default) or `cpp`
    - Android: `kotlin` (default) or `cpp`
@@ -109,6 +109,7 @@ cd packages/react-native-math && npx nitrogen
 # 3. Create example app
 npx @react-native-community/cli@latest init --skip-install MathExample
 mkdir -p apps && mv MathExample apps/example
+# Alternative: mv MathExample example
 
 # 4. Install and test
 cd apps/example && bun add ../../packages/react-native-math

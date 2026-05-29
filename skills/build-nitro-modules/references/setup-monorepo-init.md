@@ -49,16 +49,19 @@ Only proceed once all questions are answered.
 
 ### 2. Set up the monorepo structure
 
-This skill defaults to placing the library in `packages/<name>` inside a monorepo root. Nitro does not require this layout, but it keeps the library, generated files, and example app isolated:
+This skill defaults to placing the library in `packages/<name>` inside a workspace root. Nitro does not require this layout, but it keeps the library and generated files isolated:
 
 ```
 <root>/
 ├── packages/
 │   └── react-native-math/     ← library lives here
 ├── apps/
-│   └── example/               ← example app (if requested)
+│   └── example/               ← VisionCamera-style example app for larger monorepos
+├── example/                   ← alternative shallower example app location
 └── package.json               ← root workspace config
 ```
+
+Choose one example app location, not both. `apps/example` matches larger monorepos such as VisionCamera. A shallower `example/` app or standalone example app can keep more of React Native's generated config working out of the box; use that when the repo does not need an `apps/` workspace.
 
 If a root `package.json` does not exist yet, create one:
 
@@ -72,6 +75,8 @@ If a root `package.json` does not exist yet, create one:
   ]
 }
 ```
+
+For the shallower layout, use `"example"` instead of `"apps/*"` in `workspaces`.
 
 ### 3. Confirm the library name
 
@@ -127,6 +132,8 @@ In the monorepo root `package.json`:
   }
 }
 ```
+
+If the example app lives at `example/`, use `"workspaces": ["packages/*", "example"]` and `"example": "bun --cwd example"` instead.
 
 ### 7. Install from root
 

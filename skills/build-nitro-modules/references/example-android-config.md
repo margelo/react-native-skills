@@ -1,16 +1,18 @@
 ---
-title: Android Gradle Configuration for Monorepo
+title: Android Gradle Configuration for Nested Example Apps
 impact: HIGH
 tags: android, gradle, settings.gradle, build.gradle, monorepo, paths, hermesCommand, reactNativeDir
 ---
 
-# Skill: Android Gradle Configuration for Monorepo
+# Skill: Android Gradle Configuration for Nested Example Apps
 
-Covers Steps 14–15: fixing `settings.gradle` and `app/build.gradle` to point to the correct node_modules in a monorepo.
+Covers Steps 14–15: fixing `settings.gradle` and `app/build.gradle` when the example app layout means React Native's generated Android paths no longer point to the correct `node_modules`.
 
 ## Quick Config
 
-Two files need path corrections when the example app is inside a subdirectory of the monorepo:
+Only apply this when the example app is nested under `apps/example` and root `node_modules` lives at the workspace root. A shallower `example/` app or standalone app layout may work with the generated React Native config; if the generated paths resolve, leave them alone.
+
+Two files need path corrections for the `apps/example` layout:
 
 **`apps/example/android/settings.gradle`** — fix React Native Gradle plugin paths:
 ```groovy
@@ -21,6 +23,8 @@ rootProject.name = 'MathExample'
 include ':app'
 includeBuild("../../../node_modules/@react-native/gradle-plugin")
 ```
+
+Replace the generated `settings.gradle` block with this. Do not keep older `example/android` paths, `includeBuild("../../node_modules/...")`, `native_modules.gradle`, or `applyNativeModulesSettingsGradle(...)` lines.
 
 **`apps/example/android/app/build.gradle`** — fix react{} block paths:
 ```groovy
@@ -35,13 +39,14 @@ react {
 
 ## When to Use
 
-- Every time an example app is created inside a monorepo
+- When an example app is nested deeply enough that React Native's generated Android paths do not resolve
 - Whenever Android builds fail with `FileNotFoundException` for gradle-plugin or react-native paths
-- Default paths created by `npx react-native init` assume the example is at the monorepo root — they are always wrong in a monorepo
+- When using the VisionCamera-style `apps/<name>` layout with root-level workspace dependencies
+- Do not use this just because the repo is a monorepo. Verify the generated paths first; shallower `example/` or standalone example apps can work out of the box.
 
 ## Prerequisites
 
-- Example app created and moved to `apps/example/` folder
+- Example app created and moved to `apps/example/` folder, or another nested folder whose generated paths do not resolve
 - Root `node_modules/` installed at the monorepo root
 
 ## Path Depth Reference
@@ -60,6 +65,8 @@ For a monorepo structured as:
 `$rootDir` in Gradle refers to `<root>/apps/example/android/`.
 So `$rootDir/../../..` reaches the monorepo root.
 
+If the app lives one level shallower at `<root>/example/android/`, do not blindly apply the `apps/example` paths. First check whether the generated config already resolves `node_modules`. If it does, keep it. If root workspace dependencies require a manual path, count from `example/android/` to the workspace root instead.
+
 ## Step-by-Step
 
 ### 1. Fix `apps/example/android/settings.gradle`
@@ -74,6 +81,8 @@ rootProject.name = 'MathExample'
 include ':app'
 includeBuild('../../../node_modules/@react-native/gradle-plugin')
 ```
+
+This is a replacement for the generated React Native settings file, not an append. If the file still contains `includeBuild("../../node_modules/@react-native/gradle-plugin")` or legacy `native_modules.gradle` lines, remove them.
 
 ### 2. Fix `apps/example/android/app/build.gradle`
 
