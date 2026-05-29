@@ -93,11 +93,12 @@ This creates `packages/react-native-math/` when using the monorepo layout. If th
 
 ```
 packages/react-native-math/
+├── NitroMath.podspec
 ├── android/
 │   ├── src/main/java/com/margelo/nitro/<namespace>/
 │   └── CMakeLists.txt
 ├── ios/
-│   └── ReactNativeMath.podspec
+│   └── HybridMath.swift        ← later implementation
 ├── src/
 │   └── specs/
 │       └── Example.nitro.ts    ← delete this

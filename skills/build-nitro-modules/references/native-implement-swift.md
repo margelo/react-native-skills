@@ -94,7 +94,7 @@ final class HybridMath: HybridMathSpec {
 In the package podspec, ensure the implementation file and generated files are included. Current Nitro templates usually do this through `add_nitrogen_files(s)`:
 
 ```ruby
-load 'nitrogen/generated/ios/ReactNativeMath+autolinking.rb'
+load 'nitrogen/generated/ios/NitroMath+autolinking.rb'
 add_nitrogen_files(s)
 ```
 

@@ -171,10 +171,10 @@ export type { Math }
 {
   "$schema": "https://nitro.margelo.com/nitro.schema.json",
   "cxxNamespace": ["math"],
-  "ios": { "iosModuleName": "ReactNativeMath" },
+  "ios": { "iosModuleName": "NitroMath" },
   "android": {
     "androidNamespace": ["math"],
-    "androidCxxLibName": "ReactNativeMath"
+    "androidCxxLibName": "NitroMath"
   },
   "autolinking": {
     "Math": {

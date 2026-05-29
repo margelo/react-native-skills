@@ -22,8 +22,9 @@ Covers Step 21: updating `package.json` with correct author info, ensuring all r
     "ios",
     "android",
     "cpp",
-    "nitrogen/generated",
-    "nitro.json"
+    "nitrogen",
+    "nitro.json",
+    "*.podspec"
   ]
 }
 ```
@@ -73,16 +74,17 @@ This controls what gets uploaded to npm. **Missing files = broken package for co
     "ios",
     "android",
     "cpp",
-    "nitrogen/generated",
-    "nitro.json"
+    "nitrogen",
+    "nitro.json",
+    "*.podspec"
   ]
 }
 ```
 
 Critical files that must be included:
-- `nitrogen/generated` — Native glue code; consumers need this for builds
+- `nitrogen/` — Generated native glue and autolinking files; consumers need these for builds
 - `nitro.json` — Required for autolinking to work
-- Podspec — Required for iOS CocoaPods integration. Include it directly if it lives at package root, or include `ios/` if the podspec lives under `ios/`.
+- `*.podspec` — Required for iOS CocoaPods integration. Prefer a root podspec named after `ios.iosModuleName`, for example `NitroMath.podspec` with `s.name = "NitroMath"`.
 - `android/` — Android source files and `CMakeLists.txt`
 - `ios/` — Swift/ObjC source files
 - `cpp/` — C++ implementation files (if using C++)
@@ -117,7 +119,7 @@ Ensure `lib/` is populated before packing.
 npm pack --dry-run
 ```
 
-Check the output — every file listed in step 2 must appear. If `nitro.json` or `nitrogen/generated` are missing, consumers' builds will fail.
+Check the output — every file listed in step 2 must appear. If `nitro.json`, `nitrogen/`, or `*.podspec` are missing, consumers' builds will fail.
 
 ### 6. Publish
 
@@ -163,8 +165,9 @@ npm publish --access public
     "ios",
     "android",
     "cpp",
-    "nitrogen/generated",
-    "nitro.json"
+    "nitrogen",
+    "nitro.json",
+    "*.podspec"
   ],
   "peerDependencies": {
     "react": "*",
@@ -187,10 +190,10 @@ babel.config.js
 
 ## Common Pitfalls
 
-- **Missing `nitrogen/generated` in `files`** — Consumers' native builds will fail because the generated C++ glue code is absent
+- **Missing `nitrogen` in `files`** — Consumers' native builds will fail because the generated C++ glue and autolinking files are absent
 - **Missing `nitro.json` in `files`** — Autolinking won't work for consumers; they'll get "native module not found" errors
 - **Publishing before building** — `lib/` must be populated before publishing; build first
-- **Missing podspec in `files`** — iOS consumers won't be able to run `pod install`. If the podspec is under `ios/`, including `ios` covers it.
+- **Missing `*.podspec` in `files`** — iOS consumers won't be able to run `pod install`. The VisionCamera-style pattern is a root podspec, not one hidden under `ios/`.
 - **Incorrect `types` path** — Points to a file that doesn't exist after build
 
 ## Related Skills

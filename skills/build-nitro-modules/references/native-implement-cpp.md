@@ -141,7 +141,7 @@ Add the implementation file to `android/CMakeLists.txt`:
 
 ```cmake
 add_library(
-  ReactNativeMath
+  NitroMath
   SHARED
   ../nitrogen/generated/shared/c++/HybridMathSpec.cpp
   ../cpp/HybridMath.cpp   # ← add this

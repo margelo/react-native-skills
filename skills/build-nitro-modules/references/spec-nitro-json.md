@@ -15,11 +15,11 @@ Covers Step 5: updating `nitro.json` with all required fields for Nitrogen codeg
   "$schema": "https://nitro.margelo.com/nitro.schema.json",
   "cxxNamespace": ["math"],
   "ios": {
-    "iosModuleName": "ReactNativeMath"
+    "iosModuleName": "NitroMath"
   },
   "android": {
     "androidNamespace": ["math"],
-    "androidCxxLibName": "ReactNativeMath"
+    "androidCxxLibName": "NitroMath"
   },
   "autolinking": {
     "Math": {
@@ -67,25 +67,25 @@ Must match the CocoaPod's podspec name exactly:
 
 ```json
 "ios": {
-  "iosModuleName": "ReactNativeMath"
+  "iosModuleName": "NitroMath"
 }
 ```
 
-Check `ios/ReactNativeMath.podspec` — the `s.name` field must match.
+Check `NitroMath.podspec` at package root — the filename, `s.name`, and `ios.iosModuleName` should match.
 
 ### 3. Set Android configuration
 
 ```json
 "android": {
   "androidNamespace": ["math"],
-  "androidCxxLibName": "ReactNativeMath"
+  "androidCxxLibName": "NitroMath"
 }
 ```
 
 - `androidNamespace`: Kotlin package suffix appended to `com.margelo.nitro`
   - `["math"]` → package `com.margelo.nitro.math`
 - `androidCxxLibName`: Name of the native C++ library loaded via JNI
-  - Must match the library name in `android/CMakeLists.txt`: `add_library(ReactNativeMath SHARED ...)`
+  - Must match the library name in `android/CMakeLists.txt`: `add_library(NitroMath SHARED ...)`
 
 ### 4. Configure `autolinking`
 
@@ -173,11 +173,11 @@ Rules:
   "$schema": "https://nitro.margelo.com/nitro.schema.json",
   "cxxNamespace": ["math"],
   "ios": {
-    "iosModuleName": "ReactNativeMath"
+    "iosModuleName": "NitroMath"
   },
   "android": {
     "androidNamespace": ["math"],
-    "androidCxxLibName": "ReactNativeMath"
+    "androidCxxLibName": "NitroMath"
   },
   "autolinking": {
     "Math": {
@@ -197,11 +197,11 @@ Rules:
   "$schema": "https://nitro.margelo.com/nitro.schema.json",
   "cxxNamespace": ["math"],
   "ios": {
-    "iosModuleName": "ReactNativeMath"
+    "iosModuleName": "NitroMath"
   },
   "android": {
     "androidNamespace": ["math"],
-    "androidCxxLibName": "ReactNativeMath"
+    "androidCxxLibName": "NitroMath"
   },
   "autolinking": {
     "Math": {
