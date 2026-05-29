@@ -160,6 +160,7 @@ Reference these guidelines when:
 - Configuring Android Gradle paths for a monorepo structure
 - Debugging autolinking failures or missing generated files
 - Preparing a Nitro module package for npm publishing
+- Setting up one-command releases with `release-it` and `bun release`
 
 ## Priority-Ordered Guidelines
 
@@ -177,7 +178,7 @@ Reference these guidelines when:
 | 8 | Example app setup *(if requested)* | HIGH | [example-app-setup.md][example-app-setup] |
 | 9 | Android Gradle paths *(if example app)* | HIGH | [example-android-config.md][example-android-config] |
 | 10 | Metro + install + test *(if example app)* | HIGH | [example-metro-install.md][example-metro-install] |
-| 11 | npm publish prep | MEDIUM | [spec-package-publish.md][spec-package-publish] |
+| 11 | npm publish and release prep | MEDIUM | [spec-package-publish.md][spec-package-publish] |
 | 12 | VisionCamera-style full library patterns | MEDIUM | [vision-camera-golden-standard.md][vision-camera-golden-standard] |
 
 ## Quick Reference
@@ -255,7 +256,7 @@ Run: `bun example android`, `bun example ios`, `bun specs`
 | [example-app-setup.md][example-app-setup] | RN CLI example app init, workspace wiring, version alignment |
 | [example-android-config.md][example-android-config] | `settings.gradle` and `build.gradle` monorepo path fixes |
 | [example-metro-install.md][example-metro-install] | Metro watchFolders, library install, App.tsx usage, test runs |
-| [spec-package-publish.md][spec-package-publish] | `package.json` author, `files` field, npm publish readiness |
+| [spec-package-publish.md][spec-package-publish] | `package.json` author, `files` field, npm publish readiness, and `release-it` setup |
 | [vision-camera-golden-standard.md][vision-camera-golden-standard] | Package layout, API layering, Nitro object modeling, and publishing patterns inspired by VisionCamera |
 
 ## Problem → Skill Mapping
@@ -276,6 +277,7 @@ Run: `bun example android`, `bun example ios`, `bun specs`
 | Metro can't resolve library | [example-metro-install.md][example-metro-install] | Add `watchFolders` to `metro.config.js` |
 | Version mismatch between example and package | [example-app-setup.md][example-app-setup] | Align `react-native` versions across workspaces |
 | Package missing files on npm | [spec-package-publish.md][spec-package-publish] | Fix `files` field in `package.json` |
+| Need one-command releases | [spec-package-publish.md][spec-package-publish] | Configure `release-it` behind `bun release` |
 | Need a full-featured library structure | [vision-camera-golden-standard.md][vision-camera-golden-standard] | Use the VisionCamera-inspired package, API, hooks, views, and Nitro object model |
 
 [setup-monorepo-init]: references/setup-monorepo-init.md
