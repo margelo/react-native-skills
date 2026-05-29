@@ -121,18 +121,24 @@ export type { Math }
 
 ## Code Examples
 
-### Module with properties and callbacks
+### Module with properties and listener callbacks
 
 ```typescript
 import { type HybridObject, NitroModules } from 'react-native-nitro-modules'
+
+interface ListenerSubscription {
+  remove: () => void
+}
 
 interface Camera extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
   // Properties
   readonly isRecording: boolean
   zoom: number
 
-  // Callbacks
-  onFrameCaptured: ((frame: ArrayBuffer) => void) | undefined
+  // Listener callbacks
+  addOnFrameCapturedListener(
+    listener: (frame: ArrayBuffer) => void,
+  ): ListenerSubscription
 
   // Async methods
   startRecording(): Promise<void>

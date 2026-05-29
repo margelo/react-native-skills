@@ -182,7 +182,7 @@ func round(value: Double, decimals: Double?) -> Double {
 ```swift
 func divide(a: Double, b: Double) throws -> Double {
   guard b != 0 else {
-    throw NSError(domain: "Math", code: 1, userInfo: [NSLocalizedDescriptionKey: "Division by zero!"])
+    throw RuntimeError("Division by zero!")
   }
   return a / b
 }
