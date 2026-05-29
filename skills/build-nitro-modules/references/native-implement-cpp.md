@@ -10,12 +10,7 @@ Covers Steps 8–9 (C++ path): creating the C++ implementation class that inheri
 
 ## Quick Pattern
 
-**Incorrect** — modifying generated files:
-```cpp
-// nitrogen/generated/shared/c++/HybridMathSpec.hpp ← NEVER EDIT
-```
-
-**Correct** — implementing in a separate file:
+Implement in a separate file that inherits from the generated spec:
 ```cpp
 // cpp/HybridMath.hpp
 #pragma once
@@ -204,7 +199,6 @@ void HybridMath::compute(double input, std::function<void(double)> onResult) {
 
 - **Wrong namespace** — The namespace must match `cxxNamespace` in `nitro.json` (e.g. `margelo::nitro::math`)
 - **Forgetting `override`** — All virtual method implementations need `override`
-- **Modifying generated spec** — Never edit `nitrogen/generated/` files
 - **Using `float` instead of `double`** — Nitro uses `double` for all `number` types
 - **Using `std::future<T>`** — Nitro does not use `std::future`; always use `std::shared_ptr<Promise<T>>` with `Promise<T>::async(...)`
 - **Missing `TAG` member** — Required for `HybridObject(TAG)` constructor call

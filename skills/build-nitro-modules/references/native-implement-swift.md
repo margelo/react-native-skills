@@ -44,7 +44,7 @@ final class HybridMath: HybridMathSpec {
 ### 1. Locate the generated spec
 
 ```
-nitrogen/generated/ios/swift/HybridMathSpec.swift   ← generated protocol/base spec, DO NOT EDIT
+nitrogen/generated/ios/swift/HybridMathSpec.swift   ← generated protocol/base spec
 ```
 
 ### 2. Create the implementation file
