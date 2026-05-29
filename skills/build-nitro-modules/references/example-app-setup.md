@@ -12,9 +12,9 @@ Covers Steps 11–13: creating the React Native example app with RN CLI, adding 
 
 ```bash
 # Create example app (from monorepo root)
-npx @react-native-community/cli@latest init --skip-install MathExample
+bunx @react-native-community/cli@latest init --skip-install MathExample
 
-# Move to apps/example/ for a larger monorepo, or example/ for a shallower layout
+# Move to apps/example/ when multiple examples are needed or likely, or example/ for a shallower layout
 mkdir -p apps
 mv MathExample apps/example
 # Alternative: mv MathExample example
@@ -41,23 +41,24 @@ bun install
 Run from the **monorepo root**:
 
 ```bash
-npx @react-native-community/cli@latest init --skip-install MathExample
+bunx @react-native-community/cli@latest init --skip-install MathExample
 ```
 
 - Use `--skip-install` to avoid installing into the wrong directory
+- Prefer `bunx`; fall back to `npx` only if the React Native CLI does not run correctly through Bun
 - Name the app based on the library (e.g. `MathExample`, `CameraExample`)
 - See [RN CLI docs](https://github.com/react-native-community/cli/blob/main/docs/commands.md#init) for additional options
 
 ### 2. Choose the example app location
 
-The scaffold creates a folder named `MathExample`. For larger monorepos, use the VisionCamera-style `apps/example` layout:
+The scaffold creates a folder named `MathExample`. Prefer the VisionCamera-style `apps/example` layout when multiple examples are needed or likely, including optional native dependencies, feature variants, or separate integration demos:
 
 ```bash
 mkdir -p apps
 mv MathExample apps/example
 ```
 
-For simpler libraries, a shallower `example/` app is also valid and can keep more React Native generated config working out of the box:
+For intentionally small single-example libraries, a shallower `example/` app is also valid and can keep more React Native generated config working out of the box:
 
 ```bash
 mv MathExample example
@@ -77,6 +78,8 @@ Choose one layout. The larger monorepo layout looks like:
 │       └── package.json
 └── package.json          ← root workspace
 ```
+
+Keep the app close to the official React Native template. Prefer generated config, official APIs, and template-supported extension points. Avoid custom Metro, Gradle, Podfile, native project, or postinstall plumbing unless the chosen repo layout truly requires it; if it does, make the smallest targeted change and look for the root cause before adding another workaround.
 
 ### 3. Add the example app to root workspaces
 

@@ -23,6 +23,26 @@ Use `api-design` first when shaping the public TypeScript, JavaScript, React, or
 
 If the user is building a JS-only React or React Native library, do not apply this skill unless Nitro, HybridObjects, native modules, codegen, C++/Swift/Kotlin bindings, or `react-native-nitro-modules` are part of the task.
 
+## Repository Defaults
+
+Use these defaults when creating or reorganizing a Nitro Module repo, unless the existing repo or the user explicitly points elsewhere:
+
+- Keep the root clean so `README.md` stays visible in GitHub's file list. The root should mostly be `README.md`, `package.json`, `bun.lock`, `packages/`, one example-app location, optional `docs/`, optional `scripts/`, `config/`, `.github/`, and only config files that tools must discover from the root.
+- Prefer Bun wherever possible: `bun install`, `bun run`, `bun --cwd`, and `bunx` for one-off executables. Fall back to `npx` only when Bun cannot run a tool correctly.
+- Put publishable libraries in `packages/<package-name>/`. Use multiple packages only when they are independently consumed, versioned, or installed.
+- Prefer `apps/<example-name>/` when multiple example apps are needed or likely, including optional native dependencies, feature variants, or separate integration demos. `apps/example` is still a good default even with one app when future examples are plausible. Use top-level `example/` only for small single-example repos where staying close to React Native's generated config is more valuable.
+- Keep example apps as close to the official React Native template as possible. Use official APIs, generated configs, and template-supported extension points before custom setup.
+- Add `docs/` only when docs are meaningful; prefer Fumadocs for a full docs site.
+- Add `scripts/` only for reusable repo automation, not for one-off command notes.
+- Put shared config under `config/` when each tool can reliably reference it, such as TypeScript configs, lint/format configs, `.swift-format`, `.clang-format`, and `.editorconfig`. If a tool or editor requires a root config file, keep the root file minimal and point it at `config/`.
+- Add `.github/workflows/` for CI validation. Include TypeScript/build checks, JS lint/format with Biome or ESLint/Prettier, and native lint jobs as the codebase matures, such as SwiftLint/SwiftFormat, clang-format/clang-tidy, ktlint, or Detekt.
+- Do not add Husky, commitlint, lint-staged, pre-commit hooks, pre-push hooks, or `prepare` scripts that install hooks. Validation belongs in CI; local scripts can exist for manual use but must not block committing or pushing.
+- Avoid patches, `patch-package`, postinstall rewrites, monkeypatching, and hacky workarounds unless there is no reasonable alternative. They create maintenance burden, technical debt, and make the project less approachable for new contributors.
+- Solve problems at the root cause instead of layering workaround code around symptoms. If a build or example app needs ugly manual plumbing, first revisit the package layout, autolinking, official config APIs, or upstream issue instead of normalizing the workaround.
+- Work on a separate branch and open a draft PR early so CI can run while local development continues.
+- Use squash merges to keep `main` history clean.
+- Once the repo is past the initial release or major rewrite phase, keep PRs atomic and decoupled. Do not cram unrelated features or fixes into one branch unless they are tightly connected.
+
 ## Nitro API Design Rules
 
 - Prefer Nitro Modules over TurboModules or handwritten JSI for native module work. Nitro is usually faster and safer because it avoids many raw JSI lifetime, threading, and runtime-destruction hazards. Use raw JSI only when Nitro's Raw JSI Methods are truly required.
@@ -83,7 +103,7 @@ If the user is building a JS-only React or React Native library, do not apply th
 
 1. **Library name** — What should the library be called? (e.g. `react-native-math`)
 2. **Monorepo with `packages/` folder** — Should the library live in `packages/<name>` inside a monorepo? *(Strongly recommended — default: yes)*
-3. **Example app** — Should an example app be created to test the module, and where should it live? *(Recommended — default: yes; `apps/example` for larger monorepos, `example` or a standalone app layout when the generated RN config should stay closer to default)*
+3. **Example app** — Should an example app be created to test the module, and where should it live? *(Recommended — default: yes; `apps/example` when multiple examples are needed or likely, `example` only for a small single-example repo that should stay close to generated RN config)*
 4. **Native languages** — Which platforms and languages?
    - iOS: `swift` (default) or `cpp`
    - Android: `kotlin` (default) or `cpp`
@@ -103,14 +123,16 @@ Then skip directly to [spec-hybrid-object.md][spec-hybrid-object] (write the spe
 ## Typical Build Sequence
 
 ```bash
+# 0. Work on a separate branch; open a draft PR after the first useful commit
+
 # 1. Scaffold
-npx nitrogen@latest init react-native-math
+bunx nitrogen@latest init react-native-math
 
 # 2. Run codegen (from package folder after writing spec + nitro.json)
-cd packages/react-native-math && npx nitrogen
+cd packages/react-native-math && bunx nitrogen
 
 # 3. Create example app
-npx @react-native-community/cli@latest init --skip-install MathExample
+bunx @react-native-community/cli@latest init --skip-install MathExample
 mkdir -p apps && mv MathExample apps/example
 # Alternative: mv MathExample example
 
@@ -133,6 +155,8 @@ Reference these guidelines when:
 - Writing HybridObject TypeScript specs (`*.nitro.ts` files)
 - Running Nitrogen codegen and implementing generated interfaces
 - Setting up a monorepo example app for a Nitro library
+- Choosing repository layout, root cleanliness, shared config placement, and CI shape
+- Establishing branch, draft PR, and squash-merge workflow for a Nitro library
 - Configuring Android Gradle paths for a monorepo structure
 - Debugging autolinking failures or missing generated files
 - Preparing a Nitro module package for npm publishing
@@ -239,6 +263,7 @@ Run: `bun example android`, `bun example ios`, `bun specs`
 | Problem | Reference | Action |
 |---------|-----------|--------|
 | Need to design the public API first | `api-design` + this SKILL.md | Shape the TS/React API, then apply Nitro constraints |
+| Need a recommended repo structure | [setup-monorepo-init.md][setup-monorepo-init] | Use `packages/`, `apps/` or `example/`, optional `docs/`, `scripts/`, `config/`, and `.github/workflows/` |
 | Unsure static module vs instance API | This SKILL.md | Prefer HybridObjects for native state, resources, prewarming, and zero-copy data |
 | Don't know where to start | [setup-monorepo-init.md][setup-monorepo-init] | Scaffold with `nitrogen init` |
 | Spec file syntax error | [spec-hybrid-object.md][spec-hybrid-object] | Fix `*.nitro.ts` interface |

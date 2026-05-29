@@ -1,7 +1,7 @@
 ---
 title: Running Nitrogen and Verifying Generated Code
 impact: HIGH
-tags: nitrogen, codegen, generated, npx, bun, specs, verification, typescript-parser
+tags: nitrogen, codegen, generated, bunx, bun, specs, verification, typescript-parser
 ---
 
 # Skill: Running Nitrogen and Verifying Generated Code
@@ -15,7 +15,7 @@ Generated files under `nitrogen/generated/` are build outputs. Do not manually e
 ```bash
 # From the package folder
 cd packages/react-native-math
-npx nitrogen
+bunx nitrogen
 
 # OR add a root script and run from root:
 # In root package.json: "specs": "bun --cwd packages/react-native-math run specs"
@@ -47,7 +47,7 @@ Nitrogen must be run from the **package root** (where `nitro.json` lives), not f
 ### 2. Run Nitrogen
 
 ```bash
-npx nitrogen
+bunx nitrogen
 ```
 
 Or if the package has a `specs` script in its `package.json`:
@@ -147,8 +147,8 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void*) {
 If no files are generated:
 - Verify the spec file ends in `.nitro.ts` (not `.ts`)
 - Verify the interface name in the spec matches the autolinking key in `nitro.json`
-- Check that you ran `npx nitrogen` from inside the package folder (where `nitro.json` is)
-- Run with verbose output: `npx nitrogen --verbose`
+- Check that you ran `bunx nitrogen` from inside the package folder (where `nitro.json` is)
+- Run with verbose output: `bunx nitrogen --verbose`
 
 ## Older Generated Layout Example
 
@@ -216,7 +216,7 @@ abstract class HybridMathSpec: HybridObject() {
 
 ## Common Pitfalls
 
-- **Running from wrong directory** — Always run `npx nitrogen` from the package root (where `nitro.json` is), not the monorepo root
+- **Running from wrong directory** — Always run `bunx nitrogen` from the package root (where `nitro.json` is), not the monorepo root
 - **Re-run after every spec change** — Generated files go stale the moment you modify the `.nitro.ts` file
 - **Stale generated files** — If you rename an interface, delete old generated files first to avoid conflicts
 

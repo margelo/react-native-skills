@@ -44,7 +44,7 @@ packages/react-native-math/
 └── cpp/
 ```
 
-For apps, use a real RN app. `apps/<name>` is the VisionCamera-style choice for larger monorepos, but a shallower `example/` or standalone example app is valid and can keep more generated React Native config working without path rewrites. Use harness/device tests for native behavior.
+For apps, use a real RN app. Prefer `apps/<name>` when multiple examples are needed or likely, including optional native dependencies or integration variants. A shallower `example/` or standalone example app is valid for intentionally small single-example repos and can keep more generated React Native config working without path rewrites. Use harness/device tests for native behavior.
 
 ## Public API Layers
 

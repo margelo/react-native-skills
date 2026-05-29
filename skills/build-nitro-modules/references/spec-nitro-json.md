@@ -38,7 +38,7 @@ Covers Step 5: updating `nitro.json` with all required fields for Nitrogen codeg
 
 ## When to Use
 
-- After writing the `*.nitro.ts` spec, before running `npx nitrogen`
+- After writing the `*.nitro.ts` spec, before running `bunx nitrogen`
 - When adding new HybridObjects to an existing module
 - When autolinking fails at runtime
 
