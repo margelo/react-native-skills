@@ -49,15 +49,19 @@ Only proceed once all questions are answered.
 
 ### 2. Set up the monorepo structure
 
-The library **must** live in `packages/<name>` inside a monorepo root. This is the standard structure:
+This skill defaults to placing the library in `packages/<name>` inside a workspace root. Nitro does not require this layout, but it keeps the library and generated files isolated:
 
 ```
 <root>/
 ├── packages/
 │   └── react-native-math/     ← library lives here
-├── example/                   ← example app (if requested)
+├── apps/
+│   └── example/               ← VisionCamera-style example app for larger monorepos
+├── example/                   ← alternative shallower example app location
 └── package.json               ← root workspace config
 ```
+
+Choose one example app location, not both. `apps/example` matches larger monorepos such as VisionCamera. A shallower `example/` app or standalone example app can keep more of React Native's generated config working out of the box; use that when the repo does not need an `apps/` workspace.
 
 If a root `package.json` does not exist yet, create one:
 
@@ -67,10 +71,12 @@ If a root `package.json` does not exist yet, create one:
   "private": true,
   "workspaces": [
     "packages/*",
-    "example"
+    "apps/*"
   ]
 }
 ```
+
+For the shallower layout, use `"example"` instead of `"apps/*"` in `workspaces`.
 
 ### 3. Confirm the library name
 
@@ -87,17 +93,18 @@ Run from the monorepo root:
 npx nitrogen@latest init react-native-math
 ```
 
-This creates `packages/react-native-math/` with the full library structure.
+This creates `packages/react-native-math/` when using the monorepo layout. If the user explicitly chose a non-monorepo layout, run the same command from the target library parent and adjust later paths accordingly.
 
 ### 5. Verify the generated folder structure
 
 ```
 packages/react-native-math/
+├── NitroMath.podspec
 ├── android/
 │   ├── src/main/java/com/margelo/nitro/<namespace>/
 │   └── CMakeLists.txt
 ├── ios/
-│   └── ReactNativeMath.podspec
+│   └── HybridMath.swift        ← later implementation
 ├── src/
 │   └── specs/
 │       └── Example.nitro.ts    ← delete this
@@ -117,14 +124,16 @@ In the monorepo root `package.json`:
   "private": true,
   "workspaces": [
     "packages/*",
-    "example"
+    "apps/*"
   ],
   "scripts": {
     "specs": "bun --cwd packages/react-native-math run specs",
-    "example": "bun --cwd example"
+    "example": "bun --cwd apps/example"
   }
 }
 ```
+
+If the example app lives at `example/`, use `"workspaces": ["packages/*", "example"]` and `"example": "bun --cwd example"` instead.
 
 ### 7. Install from root
 
@@ -142,11 +151,11 @@ bun install
   "private": true,
   "workspaces": [
     "packages/*",
-    "example"
+    "apps/*"
   ],
   "scripts": {
     "specs": "bun --cwd packages/react-native-math run specs",
-    "example": "bun --cwd example"
+    "example": "bun --cwd apps/example"
   },
   "devDependencies": {
     "typescript": "^5.0.0"
@@ -161,10 +170,11 @@ bun install
   "name": "react-native-math",
   "version": "0.1.0",
   "description": "A React Native Math module built with Nitro",
-  "main": "lib/commonjs/index.js",
-  "module": "lib/module/index.js",
-  "react-native": "src/index.ts",
-  "types": "lib/typescript/index.d.ts",
+  "main": "lib/index",
+  "module": "lib/index",
+  "react-native": "src/index",
+  "source": "src/index",
+  "types": "lib/index.d.ts",
   "peerDependencies": {
     "react": "*",
     "react-native": "*",

@@ -1,10 +1,10 @@
 ---
 name: build-nitro-modules
-description: Builds React Native Nitro Modules from scratch in a monorepo. Scaffolds with Nitrogen, authors HybridObject TypeScript specs, generates native boilerplate, implements in C++/Swift/Kotlin, wires an example app, and prepares for npm publishing. Use when creating a new Nitro Module, implementing native functionality via HybridObjects, or setting up the nitrogen codegen pipeline.
+description: Builds and designs React Native Nitro Modules with Nitrogen, HybridObject TypeScript specs, generated native implementations, zero-copy and native-state APIs, Swift/Kotlin/C++ bindings, example apps, and testing. Use when creating a Nitro Module, adding or reviewing HybridObjects, designing Nitro-specific public APIs, implementing native functionality, or setting up the nitrogen codegen pipeline. Pair with api-design for general library API shape.
 license: MIT
 metadata:
   author: margelo
-  tags: react-native, nitro-modules, nitrogen, hybrid-object, swift, kotlin, c++, monorepo, native-modules, codegen
+  tags: react-native, nitro-modules, nitrogen, hybrid-object, api-design, swift, kotlin, c++, monorepo, native-modules, codegen
 ---
 
 # Build Nitro Modules
@@ -15,7 +15,61 @@ End-to-end skill for building a React Native Nitro Module: monorepo scaffolding 
 
 Nitro Modules use a codegen pipeline (`nitrogen`) that reads `.nitro.ts` spec files and generates native C++/Swift/Kotlin boilerplate. You then fill in the implementation. This is fundamentally different from old-style turbo modules.
 
-> **NEVER modify any file inside `nitrogen/generated/`.** These files are fully regenerated every time `npx nitrogen` runs — any manual edits will be silently overwritten. Always edit only the `.nitro.ts` spec file, then re-run nitrogen to regenerate.
+Generated files under `nitrogen/generated/` are outputs. Change the `.nitro.ts` spec or native implementation source, then re-run nitrogen instead of manually editing generated files. These files can be committed to git, and many Nitro libraries do commit them, but the repo policy can choose otherwise. They must be included in the npm package so consumers can build the native library.
+
+## Pair With API Design
+
+Use `api-design` first when shaping the public TypeScript, JavaScript, React, or React Native API. This skill adds the Nitro-specific constraints: HybridObject state, generated specs, native resource ownership, zero-copy data, threading, platform implementation, codegen, and real-device validation.
+
+If the user is building a JS-only React or React Native library, do not apply this skill unless Nitro, HybridObjects, native modules, codegen, C++/Swift/Kotlin bindings, or `react-native-nitro-modules` are part of the task.
+
+## Nitro API Design Rules
+
+- Prefer Nitro Modules over TurboModules or handwritten JSI for native module work. Nitro is usually faster and safer because it avoids many raw JSI lifetime, threading, and runtime-destruction hazards. Use raw JSI only when Nitro's Raw JSI Methods are truly required.
+- For larger libraries, prefer one small public factory/entry HybridObject that creates stateful domain objects. Keep the root default-constructible for autolinking, and create objects that need arguments through factory methods.
+- Design around native state when it improves the API. A `HybridObject` can represent a native resource, prewarmed engine, file, image, database, sensor session, stream, or other stateful object instead of forcing everything into static module functions.
+- Use a product/domain noun for the exported JS factory object, not the generated spec type name. For example, export `VisionCamera = createHybridObject<CameraFactory>('CameraFactory')` or `Images = createHybridObject<ImageFactory>('ImageFactory')`. This avoids collisions with `CameraFactory`/`ImageFactory` types without mechanically lowercasing them or adding `Hybrid` prefixes.
+- Use factory HybridObjects for resources that require construction arguments, async setup, I/O, or validation. Example: expose `Files.loadFileFromPath(path): Promise<File>` from a `FileFactory` spec instead of trying to construct `File` directly from JS.
+- Keep HybridObjects focused on one purpose or lifecycle. Avoid giant native objects that own unrelated domains.
+- Autolink only public roots, factories, views, or global utilities that JS must construct directly. Other HybridObjects can be returned from factory methods and do not need their own `nitro.json` autolinking entries.
+- For native extension points, pair a JS-facing base HybridObject spec with a public native protocol/interface. The base spec lets JS pass the object through typed APIs; the native protocol/interface exposes platform-specific handles and behavior for first-party and third-party native code.
+- When accepting an extensible HybridObject from JS, accept the generated base spec type, then cast to the native protocol/interface on the native side and throw a clear error if it does not conform. This keeps JS portable while native integrations stay strongly typed.
+- Use sync methods by default only for fast, in-process work, cheap native object creation, cached metadata, and local transforms. Use `Promise` for permissions, hardware/session setup, I/O, capture/recording, platform async APIs, blocking work, or anything that can take meaningful time.
+- As a rule of thumb, benchmark the method and make it async if it takes longer than roughly 50ms.
+- If a transform has both cheap and potentially heavy paths, consider explicit sync and async twins such as `convertX()` and `convertXAsync()` instead of hiding blocking work behind one ambiguous method.
+- Use properties for cheap observed state or capability, especially readonly capability flags such as `readonly isAccelerometerAvailable: boolean`. Use methods for side effects, expensive work, allocation, mutation, or failure.
+- Prefer typed structs, interfaces, string literal unions, readonly properties, and explicit methods over `AnyMap`, `Record<string, unknown>`, stringly typed commands, or loosely shaped event payloads. Use runtime enums only when callers need runtime enum values.
+- Use structs for meaningful domain shapes, option groups, and same-type parameter clusters. Do not wrap unrelated hot-path values in a struct only to reduce argument count; Nitro eagerly converts structs, so unnecessary wrappers can be slower than explicit parameters.
+- Avoid variants only when a simpler typed model expresses the state. Use variants or discriminated unions when they are the clearest representation, even if they have some runtime overhead.
+- Use `ArrayBuffer` for zero-copy native data access. When receiving an `ArrayBuffer` from JS and using it on another thread, copy it first if it is not owning.
+- Use `Error` in TypeScript specs for real JS Error prototypes instead of custom typed error objects.
+- Use listener functions for repeated events and callbacks, returning a `ListenerSubscription`-style object with `remove()`. Avoid mutable callback properties unless there is a strong reason.
+- Use callback option structs for one-shot operation progress when callbacks belong to one method call, such as capture or recording progress callbacks.
+- Use `setOn...Callback(callback | undefined)` only for single hot-path callbacks owned by an object, where replacing or removing the callback is the natural operation.
+- Use `Sync<(...) => ...>` callbacks only for rare thread-bound hot paths that must synchronously execute on a specific JS runtime or worklet thread.
+- Put ergonomic defaults and convenience shaping in TypeScript when that keeps the native Nitro spec simpler and more explicit. For example, normalize optional options in TS before calling a stricter native method.
+- Preserve React Native's cross-platform abstraction. Do not expose AVFoundation, Android framework, or platform-specific class names in public APIs unless direct low-level access is the point.
+- For Nitro Views, expose the raw `getHostComponent` wrapper plus higher-level React components or hooks when they materially improve ergonomics. Keep them layered over the same native objects and refs.
+- Document Nitro public specs heavily with JSDoc. Include lifecycle, defaults, platform availability, performance costs, disposal requirements, and examples directly on exported interfaces.
+
+## Nitro Native Implementation Rules
+
+- Check minimum requirements before debugging weird build failures: Nitro requires React Native 0.75+, Xcode 16.4+, Swift 5.9+, Android compileSdkVersion 34+, and NDK 27+. Nitro Views require React Native 0.78+ and the New Architecture.
+- Every native HybridObject implementation must implement or inherit from the generated `Hybrid*Spec` for that platform. Never implement a standalone native class and expect Nitro to discover it.
+- Make native implementation classes `final` by default unless inheritance is genuinely required. This is especially true for Swift and Kotlin HybridObjects.
+- Keep top-level native types in separate files. Nest only truly local private helpers.
+- Do not silently swallow errors or unsupported platform behavior. Throw, reject a Promise, or emit through an explicit error callback/listener.
+- Prefer Nitro/runtime errors or language-native exceptions that surface cleanly to JS. Avoid Objective-C-style `NSError` public paths unless the generated API specifically requires it.
+- For Android context access, use `NitroModules.applicationContext` lazily and throw a clear error if it is unavailable.
+- Use `Promise.parallel` for thread-pool work and `Promise.async` for async/coroutine-style work according to the native threading model.
+- Implement `memorySize` for HybridObjects that own native resources or large allocations so the JS VM can collect them under memory pressure.
+- For Nitro Views, implement `prepareForRecycle` when the view owns state that should be reset before reuse.
+- Mix C++ with Swift/Kotlin when it lets shared native logic stay cross-platform while platform HybridObjects provide OS-specific services.
+
+## Nitro Testing Rules
+
+- Prefer behavior tests over type-shape tests. Nitrogen already enforces specs at compile time, so tests should cover real feature behavior, inputs, settings, failure paths, and order-of-execution cases.
+- Use `react-native-harness` when available for end-to-end testing in a real React Native environment. For native-heavy libraries, prefer real-device or CI device-farm coverage for the API surface that depends on hardware or OS behavior.
 
 ## Ask First — Before Doing Anything
 
@@ -29,7 +83,7 @@ Nitro Modules use a codegen pipeline (`nitrogen`) that reads `.nitro.ts` spec fi
 
 1. **Library name** — What should the library be called? (e.g. `react-native-math`)
 2. **Monorepo with `packages/` folder** — Should the library live in `packages/<name>` inside a monorepo? *(Strongly recommended — default: yes)*
-3. **Example app** — Should an example app be created to test the module? *(Recommended — default: yes)*
+3. **Example app** — Should an example app be created to test the module, and where should it live? *(Recommended — default: yes; `apps/example` for larger monorepos, `example` or a standalone app layout when the generated RN config should stay closer to default)*
 4. **Native languages** — Which platforms and languages?
    - iOS: `swift` (default) or `cpp`
    - Android: `kotlin` (default) or `cpp`
@@ -57,10 +111,12 @@ cd packages/react-native-math && npx nitrogen
 
 # 3. Create example app
 npx @react-native-community/cli@latest init --skip-install MathExample
+mkdir -p apps && mv MathExample apps/example
+# Alternative: mv MathExample example
 
 # 4. Install and test
-cd example && bun add ../packages/react-native-math
-bun add react-native-nitro-modules
+cd apps/example && bun add ../../packages/react-native-math
+bun add react-native-nitro-modules@<same-version-as-package>
 bun example android
 bun example ios
 ```
@@ -71,6 +127,9 @@ Full step-by-step references below.
 
 Reference these guidelines when:
 - Creating any new React Native native module using the Nitro framework
+- Checking Nitro minimum platform requirements
+- Designing or reviewing the public API shape of a Nitro-backed library
+- Deciding whether an API should be static, instance-based, sync, async, callback-based, or resource-backed
 - Writing HybridObject TypeScript specs (`*.nitro.ts` files)
 - Running Nitrogen codegen and implementing generated interfaces
 - Setting up a monorepo example app for a Nitro library
@@ -82,6 +141,8 @@ Reference these guidelines when:
 
 | Priority | Category | Impact | Reference |
 |----------|----------|--------|-----------|
+| 0 | General public API shape | CRITICAL | `api-design` |
+| 0 | Nitro API constraints | CRITICAL | This SKILL.md |
 | 1 | Monorepo scaffold | CRITICAL | [setup-monorepo-init.md][setup-monorepo-init] |
 | 2 | HybridObject spec | CRITICAL | [spec-hybrid-object.md][spec-hybrid-object] |
 | 3 | nitro.json autolinking | CRITICAL | [spec-nitro-json.md][spec-nitro-json] |
@@ -93,20 +154,28 @@ Reference these guidelines when:
 | 9 | Android Gradle paths *(if example app)* | HIGH | [example-android-config.md][example-android-config] |
 | 10 | Metro + install + test *(if example app)* | HIGH | [example-metro-install.md][example-metro-install] |
 | 11 | npm publish prep | MEDIUM | [spec-package-publish.md][spec-package-publish] |
+| 12 | VisionCamera-style full library patterns | MEDIUM | [vision-camera-golden-standard.md][vision-camera-golden-standard] |
 
 ## Quick Reference
 
 ### Minimum HybridObject Spec (`src/specs/Math.nitro.ts`)
 
 ```typescript
-import { type HybridObject, NitroModules } from 'react-native-nitro-modules'
+import type { HybridObject } from 'react-native-nitro-modules'
 
-interface Math extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
+export interface Math extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
   add(a: number, b: number): number
 }
+```
 
-const math = NitroModules.createHybridObject<Math>('Math')
-export { math }
+### Minimum Runtime + Type Exports (`src/index.ts`)
+
+```typescript
+import { NitroModules } from 'react-native-nitro-modules'
+import type { Math } from './specs/Math.nitro'
+
+export const math = NitroModules.createHybridObject<Math>('Math')
+export type { Math } from './specs/Math.nitro'
 ```
 
 ### Minimum `nitro.json`
@@ -115,13 +184,22 @@ export { math }
 {
   "$schema": "https://nitro.margelo.com/nitro.schema.json",
   "cxxNamespace": ["math"],
-  "ios": { "iosModuleName": "ReactNativeMath" },
+  "ios": { "iosModuleName": "NitroMath" },
   "android": {
     "androidNamespace": ["math"],
-    "androidCxxLibName": "ReactNativeMath"
+    "androidCxxLibName": "NitroMath"
   },
   "autolinking": {
-    "Math": { "swift": "HybridMath", "kotlin": "HybridMath" }
+    "Math": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridMath"
+      },
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "HybridMath"
+      }
+    }
   }
 }
 ```
@@ -132,7 +210,7 @@ export { math }
 {
   "scripts": {
     "specs": "bun --cwd packages/react-native-math run specs",
-    "example": "bun --cwd example"
+    "example": "bun --cwd apps/example"
   }
 }
 ```
@@ -154,11 +232,14 @@ Run: `bun example android`, `bun example ios`, `bun specs`
 | [example-android-config.md][example-android-config] | `settings.gradle` and `build.gradle` monorepo path fixes |
 | [example-metro-install.md][example-metro-install] | Metro watchFolders, library install, App.tsx usage, test runs |
 | [spec-package-publish.md][spec-package-publish] | `package.json` author, `files` field, npm publish readiness |
+| [vision-camera-golden-standard.md][vision-camera-golden-standard] | Package layout, API layering, Nitro object modeling, and publishing patterns inspired by VisionCamera |
 
 ## Problem → Skill Mapping
 
 | Problem | Reference | Action |
 |---------|-----------|--------|
+| Need to design the public API first | `api-design` + this SKILL.md | Shape the TS/React API, then apply Nitro constraints |
+| Unsure static module vs instance API | This SKILL.md | Prefer HybridObjects for native state, resources, prewarming, and zero-copy data |
 | Don't know where to start | [setup-monorepo-init.md][setup-monorepo-init] | Scaffold with `nitrogen init` |
 | Spec file syntax error | [spec-hybrid-object.md][spec-hybrid-object] | Fix `*.nitro.ts` interface |
 | Autolinking not working | [spec-nitro-json.md][spec-nitro-json] | Check `nitro.json` autolinking block |
@@ -170,6 +251,7 @@ Run: `bun example android`, `bun example ios`, `bun specs`
 | Metro can't resolve library | [example-metro-install.md][example-metro-install] | Add `watchFolders` to `metro.config.js` |
 | Version mismatch between example and package | [example-app-setup.md][example-app-setup] | Align `react-native` versions across workspaces |
 | Package missing files on npm | [spec-package-publish.md][spec-package-publish] | Fix `files` field in `package.json` |
+| Need a full-featured library structure | [vision-camera-golden-standard.md][vision-camera-golden-standard] | Use the VisionCamera-inspired package, API, hooks, views, and Nitro object model |
 
 [setup-monorepo-init]: references/setup-monorepo-init.md
 [spec-hybrid-object]: references/spec-hybrid-object.md
@@ -182,3 +264,4 @@ Run: `bun example android`, `bun example ios`, `bun specs`
 [example-android-config]: references/example-android-config.md
 [example-metro-install]: references/example-metro-install.md
 [spec-package-publish]: references/spec-package-publish.md
+[vision-camera-golden-standard]: references/vision-camera-golden-standard.md

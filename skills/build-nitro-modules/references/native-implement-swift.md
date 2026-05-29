@@ -6,7 +6,7 @@ tags: swift, ios, hybrid-object, native, implementation, NitroModules, protocol,
 
 # Skill: Implementing HybridObjects in Swift
 
-Covers Steps 8–9 (Swift path): creating the Swift implementation class that conforms to the Nitrogen-generated iOS spec protocol.
+Covers Steps 8–9 (Swift path): creating the Swift implementation class that implements the Nitrogen-generated iOS spec protocol/base typealias.
 
 ## Quick Pattern
 
@@ -18,11 +18,11 @@ class HybridMath: NSObject {
 }
 ```
 
-**Correct** — conforming to the generated spec protocol:
+**Correct** — implementing the generated spec:
 ```swift
 import NitroModules
 
-class HybridMath: HybridMathSpec {
+final class HybridMath: HybridMathSpec {
   func add(a: Double, b: Double) throws -> Double { a + b }
 }
 ```
@@ -35,8 +35,8 @@ class HybridMath: HybridMathSpec {
 
 ## Prerequisites
 
-- Nitrogen has generated `HybridMathSpec.swift` in `nitrogen/generated/ios/`
-- `nitro.json` has `"swift": "HybridMath"` in the autolinking block
+- Nitrogen has generated `HybridMathSpec.swift`, usually in `nitrogen/generated/ios/swift/`
+- `nitro.json` has an iOS autolinking entry with `"language": "swift"` and `"implementationClassName": "HybridMath"`
 - `react-native-nitro-modules` is a pod dependency
 
 ## Step-by-Step
@@ -44,7 +44,7 @@ class HybridMath: HybridMathSpec {
 ### 1. Locate the generated spec
 
 ```
-nitrogen/generated/ios/HybridMathSpec.swift   ← generated protocol, DO NOT EDIT
+nitrogen/generated/ios/swift/HybridMathSpec.swift   ← generated protocol/base spec
 ```
 
 ### 2. Create the implementation file
@@ -58,7 +58,7 @@ touch ios/HybridMath.swift
 ```swift
 import NitroModules
 
-class HybridMath: HybridMathSpec {
+final class HybridMath: HybridMathSpec {
 
   // Synchronous methods — most generated methods have `throws`
   func add(a: Double, b: Double) throws -> Double {
@@ -91,11 +91,14 @@ class HybridMath: HybridMathSpec {
 
 ### 4. Add to the podspec
 
-In `ios/ReactNativeMath.podspec`, ensure the `HybridMath.swift` file is included:
+In the package podspec, ensure the implementation file and generated files are included. Current Nitro templates usually do this through `add_nitrogen_files(s)`:
 
 ```ruby
-s.source_files = "ios/**/*.{h,m,mm,swift}", "nitrogen/generated/ios/**/*.{swift}", "cpp/**/*.{hpp,cpp}"
+load 'nitrogen/generated/ios/NitroMath+autolinking.rb'
+add_nitrogen_files(s)
 ```
+
+If the podspec manually lists source files, include `ios/**/*.{h,m,mm,swift}`, `nitrogen/generated/ios/**/*.{h,hpp,cpp,mm,swift}`, and any shared `cpp/**/*.{hpp,cpp}` files.
 
 ### 5. Verify using canonical Swift reference
 
@@ -182,7 +185,7 @@ func round(value: Double, decimals: Double?) -> Double {
 ```swift
 func divide(a: Double, b: Double) throws -> Double {
   guard b != 0 else {
-    throw NSError(domain: "Math", code: 1, userInfo: [NSLocalizedDescriptionKey: "Division by zero!"])
+    throw RuntimeError("Division by zero!")
   }
   return a / b
 }
@@ -213,7 +216,7 @@ var zoom: Double {
 - **`Dictionary<String,T>` vs `[String:T]`** — Both work; `[String:T]` is the idiomatic Swift syntax
 - **`any HybridSpec` not `HybridSpec`** — In modern Swift, protocol types need the `any` keyword
 - **Not including the file in podspec** — Swift files must be in the `source_files` glob in `.podspec`
-- **Using the `override` keyword** — The generated spec is a Swift *protocol*, not a superclass. Conforming methods and properties must NOT use `override` (unlike the Kotlin counterpart, which does). `override` only applies when overriding a superclass member.
+- **Using the `override` keyword** — Swift implementations conform to the generated spec shape; methods and properties declared by the spec must NOT use `override` (unlike the Kotlin counterpart, which does). `override` only applies when overriding a superclass member.
 
 ## Related Skills
 

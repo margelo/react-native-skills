@@ -34,15 +34,15 @@ class HybridMath : HybridMathSpec() {
 
 ## Prerequisites
 
-- Nitrogen has generated `HybridMathSpec.kt` in `nitrogen/generated/android/com/margelo/nitro/<namespace>/`
-- `nitro.json` has `"kotlin": "HybridMath"` in the autolinking block
+- Nitrogen has generated `HybridMathSpec.kt`, usually in `nitrogen/generated/android/kotlin/com/margelo/nitro/<namespace>/`
+- `nitro.json` has an Android autolinking entry with `"language": "kotlin"` and `"implementationClassName": "HybridMath"`
 
 ## Step-by-Step
 
 ### 1. Locate the generated spec
 
 ```
-nitrogen/generated/android/com/margelo/nitro/math/HybridMathSpec.kt
+nitrogen/generated/android/kotlin/com/margelo/nitro/math/HybridMathSpec.kt
 ```
 
 This is the abstract class your implementation must extend. Do not edit it.
@@ -96,7 +96,7 @@ class HybridMath : HybridMathSpec() {
 - `@Keep` — Prevents ProGuard/R8 from removing the class
 - `@DoNotStrip` — Prevents Meta's code stripper from removing it
 
-Without both annotations, the class will be silently removed in release builds and cause `NullPointerException` at runtime.
+`@DoNotStrip` is required when ProGuard/R8 can strip the class. Keep `@Keep` as well to match generated Nitro code and common library implementations.
 
 ### 5. Verify using canonical Kotlin reference
 

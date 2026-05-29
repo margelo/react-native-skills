@@ -10,19 +10,14 @@ Covers Steps 8–9 (C++ path): creating the C++ implementation class that inheri
 
 ## Quick Pattern
 
-**Incorrect** — modifying generated files:
-```cpp
-// nitrogen/generated/shared/HybridMathSpec.hpp ← NEVER EDIT
-```
-
-**Correct** — implementing in a separate file:
+Implement in a separate file that inherits from the generated spec:
 ```cpp
 // cpp/HybridMath.hpp
 #pragma once
 #include "HybridMathSpec.hpp"
 
 namespace margelo::nitro::math {
-  class HybridMath: public HybridMathSpec {
+  class HybridMath final : public HybridMathSpec {
   public:
     HybridMath() : HybridObject(TAG) {}
     double add(double a, double b) override;
@@ -38,7 +33,7 @@ namespace margelo::nitro::math {
 
 ## Prerequisites
 
-- Nitrogen has generated `HybridMathSpec.hpp` in `nitrogen/generated/shared/`
+- Nitrogen has generated `HybridMathSpec.hpp`, usually in `nitrogen/generated/shared/c++/`
 - `nitro.json` has `"all": { "language": "c++", "implementationClassName": "HybridMath" }` in the autolinking block
 
 ## Step-by-Step
@@ -46,7 +41,7 @@ namespace margelo::nitro::math {
 ### 1. Locate the generated spec
 
 ```
-nitrogen/generated/shared/HybridMathSpec.hpp   ← abstract base class
+nitrogen/generated/shared/c++/HybridMathSpec.hpp   ← abstract base class
 ```
 
 ### 2. Create the implementation header
@@ -62,7 +57,7 @@ touch cpp/HybridMath.hpp
 
 namespace margelo::nitro::math {
 
-  class HybridMath: public HybridMathSpec {
+  class HybridMath final : public HybridMathSpec {
   public:
     HybridMath() : HybridObject(TAG) {}
 
@@ -141,12 +136,14 @@ Add the implementation file to `android/CMakeLists.txt`:
 
 ```cmake
 add_library(
-  ReactNativeMath
+  NitroMath
   SHARED
-  ../nitrogen/generated/shared/NitroMathSpecs.cpp
+  ../nitrogen/generated/shared/c++/HybridMathSpec.cpp
   ../cpp/HybridMath.cpp   # ← add this
 )
 ```
+
+Current Nitro projects usually include generated C++ through `nitrogen/generated/android/<ModuleName>+autolinking.cmake`; prefer that generated CMake include when present instead of manually listing each generated source.
 
 ### 5. Verify using canonical type reference
 
@@ -202,7 +199,6 @@ void HybridMath::compute(double input, std::function<void(double)> onResult) {
 
 - **Wrong namespace** — The namespace must match `cxxNamespace` in `nitro.json` (e.g. `margelo::nitro::math`)
 - **Forgetting `override`** — All virtual method implementations need `override`
-- **Modifying generated spec** — Never edit `nitrogen/generated/` files
 - **Using `float` instead of `double`** — Nitro uses `double` for all `number` types
 - **Using `std::future<T>`** — Nitro does not use `std::future`; always use `std::shared_ptr<Promise<T>>` with `Promise<T>::async(...)`
 - **Missing `TAG` member** — Required for `HybridObject(TAG)` constructor call

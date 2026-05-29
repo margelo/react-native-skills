@@ -15,11 +15,11 @@ Covers Step 5: updating `nitro.json` with all required fields for Nitrogen codeg
   "$schema": "https://nitro.margelo.com/nitro.schema.json",
   "cxxNamespace": ["math"],
   "ios": {
-    "iosModuleName": "ReactNativeMath"
+    "iosModuleName": "NitroMath"
   },
   "android": {
     "androidNamespace": ["math"],
-    "androidCxxLibName": "ReactNativeMath"
+    "androidCxxLibName": "NitroMath"
   },
   "autolinking": {
     "Math": {
@@ -67,25 +67,25 @@ Must match the CocoaPod's podspec name exactly:
 
 ```json
 "ios": {
-  "iosModuleName": "ReactNativeMath"
+  "iosModuleName": "NitroMath"
 }
 ```
 
-Check `ios/ReactNativeMath.podspec` — the `s.name` field must match.
+Check `NitroMath.podspec` at package root — the filename, `s.name`, and `ios.iosModuleName` should match.
 
 ### 3. Set Android configuration
 
 ```json
 "android": {
   "androidNamespace": ["math"],
-  "androidCxxLibName": "ReactNativeMath"
+  "androidCxxLibName": "NitroMath"
 }
 ```
 
 - `androidNamespace`: Kotlin package suffix appended to `com.margelo.nitro`
   - `["math"]` → package `com.margelo.nitro.math`
 - `androidCxxLibName`: Name of the native C++ library loaded via JNI
-  - Must match the library name in `android/CMakeLists.txt`: `add_library(ReactNativeMath SHARED ...)`
+  - Must match the library name in `android/CMakeLists.txt`: `add_library(NitroMath SHARED ...)`
 
 ### 4. Configure `autolinking`
 
@@ -124,6 +124,8 @@ Rules:
 - Each entry requires `language` and `implementationClassName`
 - Use `"all"` for a shared C++ implementation; use `"ios"` / `"android"` for platform-specific Swift/Kotlin
 - The native classes must be **default-constructible** (no required constructor arguments)
+- Only autolink objects JS creates directly, such as root factories, public utility singletons, or Hybrid Views. Objects returned from factory methods do not need autolinking entries.
+- For objects that require constructor arguments, async setup, I/O, validation, or ownership of another object, expose a factory method instead of autolinking them directly.
 
 ### 5. Multiple HybridObjects
 
@@ -156,7 +158,7 @@ Rules:
 
 ```json
 {
-  "ignorePaths": ["node_modules", "example"],
+  "ignorePaths": ["**/node_modules"],
   "gitAttributesGeneratedFlag": true
 }
 ```
@@ -173,11 +175,11 @@ Rules:
   "$schema": "https://nitro.margelo.com/nitro.schema.json",
   "cxxNamespace": ["math"],
   "ios": {
-    "iosModuleName": "ReactNativeMath"
+    "iosModuleName": "NitroMath"
   },
   "android": {
     "androidNamespace": ["math"],
-    "androidCxxLibName": "ReactNativeMath"
+    "androidCxxLibName": "NitroMath"
   },
   "autolinking": {
     "Math": {
@@ -197,11 +199,11 @@ Rules:
   "$schema": "https://nitro.margelo.com/nitro.schema.json",
   "cxxNamespace": ["math"],
   "ios": {
-    "iosModuleName": "ReactNativeMath"
+    "iosModuleName": "NitroMath"
   },
   "android": {
     "androidNamespace": ["math"],
-    "androidCxxLibName": "ReactNativeMath"
+    "androidCxxLibName": "NitroMath"
   },
   "autolinking": {
     "Math": {
@@ -215,7 +217,7 @@ Rules:
       }
     }
   },
-  "ignorePaths": ["node_modules", "example"],
+  "ignorePaths": ["**/node_modules"],
   "gitAttributesGeneratedFlag": true
 }
 ```

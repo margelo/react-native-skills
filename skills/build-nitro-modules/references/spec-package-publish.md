@@ -16,15 +16,32 @@ Covers Step 21: updating `package.json` with correct author info, ensuring all r
   "version": "0.1.0",
   "author": "Your Name <your@email.com>",
   "license": "MIT",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "specs": "tsc --noEmit false && nitrogen"
+  },
   "files": [
     "src",
+    "react-native.config.js",
     "lib",
-    "ios",
-    "android",
-    "cpp",
-    "nitrogen/generated",
-    "react-native-math.podspec",
-    "nitro.json"
+    "nitrogen",
+    "android/build.gradle",
+    "android/gradle.properties",
+    "android/fix-prefab.gradle",
+    "android/CMakeLists.txt",
+    "android/src",
+    "ios/**/*.h",
+    "ios/**/*.m",
+    "ios/**/*.mm",
+    "ios/**/*.cpp",
+    "ios/**/*.swift",
+    "cpp/**/*.h",
+    "cpp/**/*.hpp",
+    "cpp/**/*.cpp",
+    "nitro.json",
+    "*.podspec",
+    "README.md"
   ]
 }
 ```
@@ -70,35 +87,49 @@ This controls what gets uploaded to npm. **Missing files = broken package for co
 {
   "files": [
     "src",
+    "react-native.config.js",
     "lib",
-    "ios",
-    "android",
-    "cpp",
-    "nitrogen/generated",
-    "react-native-math.podspec",
-    "nitro.json"
+    "nitrogen",
+    "android/build.gradle",
+    "android/gradle.properties",
+    "android/fix-prefab.gradle",
+    "android/CMakeLists.txt",
+    "android/src",
+    "ios/**/*.h",
+    "ios/**/*.m",
+    "ios/**/*.mm",
+    "ios/**/*.cpp",
+    "ios/**/*.swift",
+    "cpp/**/*.h",
+    "cpp/**/*.hpp",
+    "cpp/**/*.cpp",
+    "nitro.json",
+    "*.podspec",
+    "README.md"
   ]
 }
 ```
 
 Critical files that must be included:
-- `nitrogen/generated` — Native glue code; consumers need this for builds
+- `nitrogen/` — Generated native glue and autolinking files; consumers need these for builds. These files may or may not be committed to git, but they must be published to npm.
 - `nitro.json` — Required for autolinking to work
-- `react-native-math.podspec` — Required for iOS CocoaPods integration
-- `android/` — Android source files and `CMakeLists.txt`
-- `ios/` — Swift/ObjC source files
-- `cpp/` — C++ implementation files (if using C++)
+- `*.podspec` — Required for iOS CocoaPods integration. Prefer a root podspec named after `ios.iosModuleName`, for example `NitroMath.podspec` with `s.name = "NitroMath"`.
+- `android/build.gradle`, `android/gradle.properties`, `android/CMakeLists.txt`, and `android/src` — Android build config and source files
+- `ios/**/*.{h,m,mm,cpp,swift}` — iOS source files
+- `cpp/**/*.{h,hpp,cpp}` — C++ implementation files (if using C++)
 - `lib/` — Compiled TypeScript output (JS + type definitions)
 - `src/` — TypeScript source for consumers who use `react-native` field in package.json
+- `react-native.config.js` — Required if the package customizes React Native autolinking
 
 ### 3. Verify `main`, `module`, and `types` fields
 
 ```json
 {
-  "main": "lib/commonjs/index.js",
-  "module": "lib/module/index.js",
-  "types": "lib/typescript/index.d.ts",
-  "react-native": "src/index.ts"
+  "main": "lib/index",
+  "module": "lib/index",
+  "types": "lib/index.d.ts",
+  "react-native": "src/index",
+  "source": "src/index"
 }
 ```
 
@@ -113,13 +144,15 @@ bun run prepare
 
 Ensure `lib/` is populated before packing.
 
+Run `bun run specs` before publishing whenever `.nitro.ts` files changed so `nitrogen/` is current.
+
 ### 5. Dry run to verify file list
 
 ```bash
 npm pack --dry-run
 ```
 
-Check the output — every file listed in step 2 must appear. If `nitro.json` or `nitrogen/generated` are missing, consumers' builds will fail.
+Check the output — every file listed in step 2 must appear. If `nitro.json`, `nitrogen/`, or `*.podspec` are missing, consumers' builds will fail.
 
 ### 6. Publish
 
@@ -138,11 +171,11 @@ npm publish --access public
   "name": "react-native-math",
   "version": "0.1.0",
   "description": "A fast React Native Math module built with Nitro Modules",
-  "main": "lib/commonjs/index.js",
-  "module": "lib/module/index.js",
-  "types": "lib/typescript/index.d.ts",
-  "react-native": "src/index.ts",
-  "source": "src/index.ts",
+  "main": "lib/index",
+  "module": "lib/index",
+  "types": "lib/index.d.ts",
+  "react-native": "src/index",
+  "source": "src/index",
   "author": "Your Name <your@email.com>",
   "license": "MIT",
   "repository": {
@@ -159,15 +192,32 @@ npm publish --access public
     "ios",
     "android"
   ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "specs": "tsc --noEmit false && nitrogen"
+  },
   "files": [
     "src",
+    "react-native.config.js",
     "lib",
-    "ios",
-    "android",
-    "cpp",
-    "nitrogen/generated",
-    "react-native-math.podspec",
-    "nitro.json"
+    "nitrogen",
+    "android/build.gradle",
+    "android/gradle.properties",
+    "android/fix-prefab.gradle",
+    "android/CMakeLists.txt",
+    "android/src",
+    "ios/**/*.h",
+    "ios/**/*.m",
+    "ios/**/*.mm",
+    "ios/**/*.cpp",
+    "ios/**/*.swift",
+    "cpp/**/*.h",
+    "cpp/**/*.hpp",
+    "cpp/**/*.cpp",
+    "nitro.json",
+    "*.podspec",
+    "README.md"
   ],
   "peerDependencies": {
     "react": "*",
@@ -180,7 +230,7 @@ npm publish --access public
 ### `.npmignore` (optional, to exclude dev files)
 
 ```
-example/
+apps/
 __tests__/
 .github/
 *.test.ts
@@ -190,11 +240,11 @@ babel.config.js
 
 ## Common Pitfalls
 
-- **Missing `nitrogen/generated` in `files`** — Consumers' native builds will fail because the generated C++ glue code is absent
+- **Missing `nitrogen` in `files`** — Consumers' native builds will fail because the generated C++ glue and autolinking files are absent
 - **Missing `nitro.json` in `files`** — Autolinking won't work for consumers; they'll get "native module not found" errors
 - **Publishing before building** — `lib/` must be populated before publishing; build first
-- **Missing `react-native-math.podspec` in `files`** — iOS consumers won't be able to run `pod install`
-- **Incorrect `types` path** — Points to a file that doesn't exist after build
+- **Missing `*.podspec` in `files`** — iOS consumers won't be able to run `pod install`. The VisionCamera-style pattern is a root podspec, not one hidden under `ios/`.
+- **Incorrect `types` path** — Points to a file that doesn't exist after build. VisionCamera-style packages use `lib/index.d.ts` when `build` emits a flat `lib/index`.
 
 ## Related Skills
 
