@@ -11,12 +11,18 @@ Covers Steps 16–20: configuring Metro watchFolders, installing the library in 
 ## Quick Commands
 
 ```bash
-# Configure Metro (edit apps/example/metro.config.js first)
+# Configure Metro if it cannot resolve the package from the chosen example app layout
 
-# Install library in example
+# Install library in the example app.
+# apps/example layout:
 cd apps/example
 bun add ../../packages/react-native-math
 bun add react-native-nitro-modules@<same-version-as-package>
+
+# example/ layout:
+# cd example
+# bun add ../packages/react-native-math
+# bun add react-native-nitro-modules@<same-version-as-package>
 
 # iOS: install pods
 cd ios && pod install && cd ..
@@ -28,14 +34,14 @@ bun example ios
 
 ## When to Use
 
-- After Android Gradle paths are configured
+- After Android Gradle paths are verified or configured
 - When Metro can't resolve the local library package
 - When setting up the example app to test the module
 
 ## Prerequisites
 
-- Example app created and moved to `apps/example/`
-- Android Gradle paths corrected in `settings.gradle` and `build.gradle`
+- Example app created in `apps/example/`, `example/`, or another chosen layout
+- Android Gradle paths verified, or corrected only if the chosen layout requires it
 - Library package is in `packages/<name>`
 
 ## Step-by-Step
@@ -59,6 +65,12 @@ module.exports = mergeConfig(getDefaultConfig(__dirname), config);
 
 Without `watchFolders`, Metro only watches the example app directory and can't find your library in `packages/`.
 
+For a shallower `example/` layout, the monorepo root is one level up instead:
+
+```javascript
+const root = path.resolve(__dirname, '..');
+```
+
 ### 2. Install the library
 
 ```bash
@@ -68,6 +80,13 @@ bun add ../../packages/react-native-math
 
 This creates a symlink from `apps/example/node_modules/react-native-math` to `packages/react-native-math`.
 
+For a shallower `example/` layout, use:
+
+```bash
+cd example
+bun add ../packages/react-native-math
+```
+
 ### 3. Install `react-native-nitro-modules` at a pinned version
 
 The version must match what `packages/react-native-math` uses:
@@ -75,6 +94,7 @@ The version must match what `packages/react-native-math` uses:
 ```bash
 # Check what version the package uses
 cat ../../packages/react-native-math/package.json | grep nitro-modules
+# from example/: cat ../packages/react-native-math/package.json | grep nitro-modules
 
 # Install the same version in example
 bun add react-native-nitro-modules@<same-version-as-package>
@@ -221,5 +241,5 @@ const calculateFib = async () => {
 ## Related Skills
 
 - [example-app-setup.md](example-app-setup.md) — Create the example app first
-- [example-android-config.md](example-android-config.md) — Fix Android Gradle paths first
+- [example-android-config.md](example-android-config.md) — Verify Android Gradle paths, and fix them only when the chosen layout requires it
 - [spec-package-publish.md](spec-package-publish.md) — Final step: prepare for npm publishing

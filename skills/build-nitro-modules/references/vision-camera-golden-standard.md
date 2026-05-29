@@ -44,7 +44,7 @@ packages/react-native-math/
 └── cpp/
 ```
 
-For apps, prefer a real RN app under `apps/<name>` when the repo is a larger monorepo. Use harness/device tests for native behavior.
+For apps, use a real RN app. `apps/<name>` is the VisionCamera-style choice for larger monorepos, but a shallower `example/` or standalone example app is valid and can keep more generated React Native config working without path rewrites. Use harness/device tests for native behavior.
 
 ## Public API Layers
 
