@@ -364,8 +364,9 @@ registerTokenRefresh({
 
 A JSON-body prefetch of `{ "deviceId": "d-1" }` is then replayed as `{ "deviceId": "d-1", "auth": { "token": "ey..." } }`, and a form-data prefetch gains/overwrites a `token` part. Caveats:
 
-- `bodyMappings` only rewrites a body that parses as a JSON object; a non-JSON body is left untouched.
+- `bodyMappings` only rewrites a prefetch that **already has a JSON-object body** — it won't synthesize a body on a GET or form-data request, and a non-JSON body is left untouched.
 - `formDataMappings` only applies to prefetches that already send form-data — it won't turn a JSON/GET request into a multipart one.
+- Mappings are matched per-prefetch by body shape, so a single shared config fans out across a JSON prefetch and a form-data prefetch without cross-contaminating them.
 - For `responseType: 'text'`, the body/form equivalents of `textHeader` are `bodyTextPath` / `formDataTextField`.
 
 ### Putting the token in the URL
