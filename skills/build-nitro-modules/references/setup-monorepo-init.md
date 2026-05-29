@@ -49,7 +49,7 @@ Only proceed once all questions are answered.
 
 ### 2. Set up the monorepo structure
 
-The library **must** live in `packages/<name>` inside a monorepo root. This is the standard structure:
+This skill defaults to placing the library in `packages/<name>` inside a monorepo root. Nitro does not require this layout, but it keeps the library, generated files, and example app isolated:
 
 ```
 <root>/
@@ -87,7 +87,7 @@ Run from the monorepo root:
 npx nitrogen@latest init react-native-math
 ```
 
-This creates `packages/react-native-math/` with the full library structure.
+This creates `packages/react-native-math/` when using the monorepo layout. If the user explicitly chose a non-monorepo layout, run the same command from the target library parent and adjust later paths accordingly.
 
 ### 5. Verify the generated folder structure
 

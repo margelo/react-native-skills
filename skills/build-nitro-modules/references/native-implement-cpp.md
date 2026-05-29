@@ -12,7 +12,7 @@ Covers Steps 8–9 (C++ path): creating the C++ implementation class that inheri
 
 **Incorrect** — modifying generated files:
 ```cpp
-// nitrogen/generated/shared/HybridMathSpec.hpp ← NEVER EDIT
+// nitrogen/generated/shared/c++/HybridMathSpec.hpp ← NEVER EDIT
 ```
 
 **Correct** — implementing in a separate file:
@@ -38,7 +38,7 @@ namespace margelo::nitro::math {
 
 ## Prerequisites
 
-- Nitrogen has generated `HybridMathSpec.hpp` in `nitrogen/generated/shared/`
+- Nitrogen has generated `HybridMathSpec.hpp`, usually in `nitrogen/generated/shared/c++/`
 - `nitro.json` has `"all": { "language": "c++", "implementationClassName": "HybridMath" }` in the autolinking block
 
 ## Step-by-Step
@@ -46,7 +46,7 @@ namespace margelo::nitro::math {
 ### 1. Locate the generated spec
 
 ```
-nitrogen/generated/shared/HybridMathSpec.hpp   ← abstract base class
+nitrogen/generated/shared/c++/HybridMathSpec.hpp   ← abstract base class
 ```
 
 ### 2. Create the implementation header
@@ -143,10 +143,12 @@ Add the implementation file to `android/CMakeLists.txt`:
 add_library(
   ReactNativeMath
   SHARED
-  ../nitrogen/generated/shared/NitroMathSpecs.cpp
+  ../nitrogen/generated/shared/c++/HybridMathSpec.cpp
   ../cpp/HybridMath.cpp   # ← add this
 )
 ```
+
+Current Nitro projects usually include generated C++ through `nitrogen/generated/android/<ModuleName>+autolinking.cmake`; prefer that generated CMake include when present instead of manually listing each generated source.
 
 ### 5. Verify using canonical type reference
 

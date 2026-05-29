@@ -23,7 +23,6 @@ Covers Step 21: updating `package.json` with correct author info, ensuring all r
     "android",
     "cpp",
     "nitrogen/generated",
-    "react-native-math.podspec",
     "nitro.json"
   ]
 }
@@ -75,7 +74,6 @@ This controls what gets uploaded to npm. **Missing files = broken package for co
     "android",
     "cpp",
     "nitrogen/generated",
-    "react-native-math.podspec",
     "nitro.json"
   ]
 }
@@ -84,7 +82,7 @@ This controls what gets uploaded to npm. **Missing files = broken package for co
 Critical files that must be included:
 - `nitrogen/generated` — Native glue code; consumers need this for builds
 - `nitro.json` — Required for autolinking to work
-- `react-native-math.podspec` — Required for iOS CocoaPods integration
+- Podspec — Required for iOS CocoaPods integration. Include it directly if it lives at package root, or include `ios/` if the podspec lives under `ios/`.
 - `android/` — Android source files and `CMakeLists.txt`
 - `ios/` — Swift/ObjC source files
 - `cpp/` — C++ implementation files (if using C++)
@@ -166,7 +164,6 @@ npm publish --access public
     "android",
     "cpp",
     "nitrogen/generated",
-    "react-native-math.podspec",
     "nitro.json"
   ],
   "peerDependencies": {
@@ -193,7 +190,7 @@ babel.config.js
 - **Missing `nitrogen/generated` in `files`** — Consumers' native builds will fail because the generated C++ glue code is absent
 - **Missing `nitro.json` in `files`** — Autolinking won't work for consumers; they'll get "native module not found" errors
 - **Publishing before building** — `lib/` must be populated before publishing; build first
-- **Missing `react-native-math.podspec` in `files`** — iOS consumers won't be able to run `pod install`
+- **Missing podspec in `files`** — iOS consumers won't be able to run `pod install`. If the podspec is under `ios/`, including `ios` covers it.
 - **Incorrect `types` path** — Points to a file that doesn't exist after build
 
 ## Related Skills

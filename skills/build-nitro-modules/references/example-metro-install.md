@@ -211,7 +211,7 @@ const calculateFib = async () => {
 - **Missing `watchFolders`** — Metro won't find the library package; add it to `metro.config.js`
 - **`react-native-nitro-modules` version mismatch** — Install the exact same version in example as in the package
 - **Forgetting `pod install`** — iOS won't pick up new native libraries without running `pod install`
-- **Not testing on a real device / emulator** — Native modules don't work in simulators without native code execution
+- **Only testing JS bundling** — Nitro code needs a native build. Test on an iOS simulator/device or Android emulator/device, not only Metro, web, or a JS-only test runner.
 - **Metro cache stale** — If you change the lib and Metro doesn't pick it up, run `bun example start --reset-cache`
 
 ## Related Skills

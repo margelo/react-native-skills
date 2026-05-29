@@ -30,8 +30,10 @@ If the user is building a JS-only React or React Native library, do not apply th
 - Use factory HybridObjects for resources that require construction arguments, async setup, I/O, or validation. Example: expose `FileFactory.loadFileFromPath(path): Promise<File>` instead of trying to construct `File` directly from JS.
 - Keep HybridObjects focused on one purpose or lifecycle. Avoid giant native objects that own unrelated domains.
 - Use sync methods by default only for fast, in-process work. Use `Promise` for hardware calls, I/O, async platform APIs, blocking work, or anything that can take meaningful time.
+- As a rule of thumb, benchmark the method and make it async if it takes longer than roughly 50ms.
 - Use properties for cheap observed state or capability, especially readonly capability flags such as `readonly isAccelerometerAvailable: boolean`. Use methods for side effects, expensive work, allocation, mutation, or failure.
 - Prefer typed structs, interfaces, literal unions, enums, readonly properties, and explicit methods over `AnyMap`, `Record<string, unknown>`, stringly typed commands, or loosely shaped event payloads.
+- Use structs for meaningful domain shapes, option groups, and same-type parameter clusters. Do not wrap unrelated hot-path values in a struct only to reduce argument count; Nitro eagerly converts structs, so unnecessary wrappers can be slower than explicit parameters.
 - Avoid variants only when a simpler typed model expresses the state. Use variants or discriminated unions when they are the clearest representation, even if they have some runtime overhead.
 - Use `ArrayBuffer` for zero-copy native data access. When receiving an `ArrayBuffer` from JS and using it on another thread, copy it first if it is not owning.
 - Use `Error` in TypeScript specs for real JS Error prototypes instead of custom typed error objects.
@@ -42,6 +44,7 @@ If the user is building a JS-only React or React Native library, do not apply th
 
 ## Nitro Native Implementation Rules
 
+- Check minimum requirements before debugging weird build failures: Nitro requires React Native 0.75+, Xcode 16.4+, Swift 5.9+, Android compileSdkVersion 34+, and NDK 27+. Nitro Views require React Native 0.78+ and the New Architecture.
 - Every native HybridObject implementation must implement or inherit from the generated `Hybrid*Spec` for that platform. Never implement a standalone native class and expect Nitro to discover it.
 - Make native implementation classes `final` by default unless inheritance is genuinely required. This is especially true for Swift and Kotlin HybridObjects.
 - Keep top-level native types in separate files. Nest only truly local private helpers.
@@ -112,6 +115,7 @@ Full step-by-step references below.
 
 Reference these guidelines when:
 - Creating any new React Native native module using the Nitro framework
+- Checking Nitro minimum platform requirements
 - Designing or reviewing the public API shape of a Nitro-backed library
 - Deciding whether an API should be static, instance-based, sync, async, callback-based, or resource-backed
 - Writing HybridObject TypeScript specs (`*.nitro.ts` files)

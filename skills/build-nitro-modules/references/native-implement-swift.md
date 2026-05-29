@@ -35,7 +35,7 @@ final class HybridMath: HybridMathSpec {
 
 ## Prerequisites
 
-- Nitrogen has generated `HybridMathSpec.swift` in `nitrogen/generated/ios/`
+- Nitrogen has generated `HybridMathSpec.swift`, usually in `nitrogen/generated/ios/swift/`
 - `nitro.json` has `"swift": "HybridMath"` in the autolinking block
 - `react-native-nitro-modules` is a pod dependency
 
@@ -44,7 +44,7 @@ final class HybridMath: HybridMathSpec {
 ### 1. Locate the generated spec
 
 ```
-nitrogen/generated/ios/HybridMathSpec.swift   ← generated protocol, DO NOT EDIT
+nitrogen/generated/ios/swift/HybridMathSpec.swift   ← generated protocol/base spec, DO NOT EDIT
 ```
 
 ### 2. Create the implementation file
@@ -91,11 +91,14 @@ final class HybridMath: HybridMathSpec {
 
 ### 4. Add to the podspec
 
-In `ios/ReactNativeMath.podspec`, ensure the `HybridMath.swift` file is included:
+In the package podspec, ensure the implementation file and generated files are included. Current Nitro templates usually do this through `add_nitrogen_files(s)`:
 
 ```ruby
-s.source_files = "ios/**/*.{h,m,mm,swift}", "nitrogen/generated/ios/**/*.{swift}", "cpp/**/*.{hpp,cpp}"
+load 'nitrogen/generated/ios/ReactNativeMath+autolinking.rb'
+add_nitrogen_files(s)
 ```
+
+If the podspec manually lists source files, include `ios/**/*.{h,m,mm,swift}`, `nitrogen/generated/ios/**/*.{h,hpp,cpp,mm,swift}`, and any shared `cpp/**/*.{hpp,cpp}` files.
 
 ### 5. Verify using canonical Swift reference
 
