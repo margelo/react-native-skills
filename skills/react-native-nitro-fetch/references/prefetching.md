@@ -2,7 +2,7 @@
 id: prefetching
 title: Prefetching with nitro-fetch
 scope: react-native-nitro-fetch
-keywords: prefetch, cold start, cache, performance, app launch, prefetchKey, POST, JSON, FormData, multipart, registerPrefetch, first launch, prefetchCacheTtlMs, cache ttl, freshness
+keywords: prefetch, cold start, cache, performance, app launch, prefetchKey, POST, JSON, FormData, multipart, registerPrefetch, first launch, prefetchCacheTtlMs, cache ttl, freshness, token refresh, registerTokenRefresh, bodyMappings, formDataMappings
 ---
 
 # Prefetching with nitro-fetch
@@ -334,12 +334,43 @@ On every subsequent cold start, the native bootstrap will:
 
 1. Read the refresh config from encrypted prefs (`NitroFetchSecureAtRest`).
 2. Call the refresh URL on a background thread.
-3. Map the JSON response into headers (`Authorization: Bearer ey...`).
-4. Merge those headers into every queued prefetch and fire them.
+3. Map the JSON response into headers (`Authorization: Bearer ey...`) and, if configured, into the request body / form-data.
+4. Merge those values into every queued prefetch and fire them.
+
+#### Inject the token into the JSON body or form-data
+
+Headers are the default destination, but the same refresh response can also be written into a prefetch's **JSON body** or a **multipart form-data field**. Add `bodyMappings` / `formDataMappings` alongside `mappings` — each is independent, so one refreshed value can land in a header, the body, and a form field at once. This is the **`fetch`** prefetch path only.
+
+```ts
+registerTokenRefresh({
+  target: 'fetch',
+  url:    'https://api.example.com/oauth/token',
+  method: 'POST',
+  body:   JSON.stringify({ grant_type: 'refresh_token', refresh_token: longLived }),
+  responseType: 'json',
+  mappings: [
+    { jsonPath: 'access_token', header: 'Authorization', valueTemplate: 'Bearer {{value}}' },
+  ],
+  // JSON body: sets a (possibly nested) dot-path key in the prefetch's bodyString
+  bodyMappings: [
+    { jsonPath: 'access_token', bodyPath: 'auth.token' },
+  ],
+  // form-data: replaces (or appends) a part by name
+  formDataMappings: [
+    { jsonPath: 'access_token', field: 'token' },
+  ],
+});
+```
+
+A JSON-body prefetch of `{ "deviceId": "d-1" }` is then replayed as `{ "deviceId": "d-1", "auth": { "token": "ey..." } }`, and a form-data prefetch gains/overwrites a `token` part. Caveats:
+
+- `bodyMappings` only rewrites a body that parses as a JSON object; a non-JSON body is left untouched.
+- `formDataMappings` only applies to prefetches that already send form-data — it won't turn a JSON/GET request into a multipart one.
+- For `responseType: 'text'`, the body/form equivalents of `textHeader` are `bodyTextPath` / `formDataTextField`.
 
 ### Putting the token in the URL
 
-The native auto-prefetcher merges refreshed values into **headers**, not into the URL. The stored URL is replayed verbatim. If your backend requires the token in the URL (e.g. a signed query string), you have two options:
+The native auto-prefetcher merges refreshed values into **headers** (and, via `bodyMappings` / `formDataMappings`, into the JSON body or form-data — see above), but never into the URL. The stored URL is replayed verbatim. If your backend requires the token in the URL (e.g. a signed query string), you have two options:
 
 **Option A — store the URL with the token already in it.** The token will be the one captured at scheduling time. Re-call `prefetchOnAppStart` whenever it rotates:
 
