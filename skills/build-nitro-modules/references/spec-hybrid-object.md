@@ -195,6 +195,75 @@ export interface MediaFactory extends HybridObject<{ ios: 'swift'; android: 'kot
 
 In this pattern, `MediaFactory` is autolinked because JS creates it directly. `VideoOutput` and `Recorder` can be returned from factory methods and usually do not need their own `nitro.json` autolinking entries.
 
+### Native protocol extension points
+
+Use this pattern when third-party native code should extend the library while still passing objects through JS/TS as typed HybridObjects.
+
+Define a small JS-facing base spec that represents what can be passed through JS APIs:
+
+```typescript
+// src/specs/outputs/MediaOutput.nitro.ts
+import type { HybridObject } from 'react-native-nitro-modules'
+
+/**
+ * Base interface for outputs that can be connected to a MediaSession.
+ *
+ * Native implementations can conform to the platform-native
+ * `NativeMediaOutput` protocol/interface to expose their real native handle.
+ */
+export interface MediaOutput extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
+  readonly mediaType: 'video' | 'audio'
+}
+```
+
+Then define a public native protocol/interface that exposes native-only handles and behavior:
+
+```swift
+// ios/Public/NativeMediaOutput.swift
+import AVFoundation
+
+public protocol NativeMediaOutput: AnyObject {
+  associatedtype Output: AVCaptureOutput
+  var output: Output { get }
+  func configure(config: MediaOutputConfiguration)
+}
+```
+
+```kotlin
+// android/src/main/java/com/example/media/public/NativeMediaOutput.kt
+import androidx.camera.core.UseCase
+
+interface NativeMediaOutput {
+  fun createUseCase(config: MediaOutputConfig): UseCase
+}
+```
+
+First-party and third-party outputs conform to both the generated Nitro spec and the native protocol/interface:
+
+```swift
+final class HybridPhotoOutput: HybridMediaOutputSpec, NativeMediaOutput {
+  let mediaType: MediaType = .video
+  let output = AVCapturePhotoOutput()
+
+  func configure(config: MediaOutputConfiguration) {
+    // Apply orientation, mirroring, resolution, or platform-specific settings.
+  }
+}
+```
+
+Native session/controller code should accept the generated base spec from JS, then unwrap it through the native protocol/interface:
+
+```swift
+func addOutput(_ output: any HybridMediaOutputSpec) throws {
+  guard let nativeOutput = output as? any NativeMediaOutput else {
+    throw RuntimeError.error(withMessage: "Output is not a NativeMediaOutput!")
+  }
+  session.addOutput(nativeOutput.output)
+}
+```
+
+This is the same shape VisionCamera uses for `CameraOutput` and `NativeCameraOutput`: JS sees a portable `CameraOutput`, while native code can unwrap an `AVCaptureOutput` on iOS or a CameraX `UseCase` on Android. Keep the native protocol/interface in public source folders, document it, and publish it with the npm package so third-party native modules can conform to it.
+
 ### TypeScript → Native type mapping
 
 | TypeScript | C++ | Kotlin | Swift |

@@ -61,8 +61,21 @@ For apps, use a real RN app. `apps/<name>` is the VisionCamera-style choice for 
 - Capability objects: expose readonly native state and support checks.
 - Lifecycle objects: expose `dispose()`, `isValid`, `memorySize`, and cheap observed state when they own native buffers or resources.
 - Views: use `HybridView<Props, Methods>` specs, `getHostComponent(...)`, and a `hybridRef` bridge for imperative view methods.
+- Native extension points: expose a portable TS base HybridObject spec, then pair it with a public native protocol/interface that can unwrap platform objects. VisionCamera's `CameraOutput` crosses JS/TS, while `NativeCameraOutput` lets native code access `AVCaptureOutput` on iOS or CameraX `UseCase`s on Android.
 
 Autolink only roots, public factories, hybrid views, and global utilities that JS directly creates. Do not autolink every internal object if it is returned by another HybridObject.
+
+## Native Extension Points
+
+Use this when first-party or third-party native modules need to plug into the library:
+
+- Define a JS-facing base spec, such as `CameraOutput`, that extends `HybridObject` and contains only portable API.
+- Define a public native protocol/interface, such as `NativeCameraOutput`, that exposes platform-native handles and lifecycle hooks.
+- Built-in implementations conform to both the generated Nitro spec and the native protocol/interface.
+- Session/controller code accepts the generated base spec from JS, casts to the native protocol/interface, and throws a clear error when the object does not conform.
+- Place native protocols/interfaces in public source folders, for example `ios/Public` and `android/src/main/java/.../public`, and include them in the npm package so external native modules can conform.
+
+This lets an object remain fully typed and passable from JS/TS while native code can still work with AVFoundation, CameraX, or other platform-specific types without exposing those native concepts in the JS API.
 
 ## Sync, Async, And Callbacks
 
