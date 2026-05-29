@@ -111,16 +111,14 @@ After implementing native code, create and export the HybridObject from `src/ind
 import { NitroModules } from 'react-native-nitro-modules'
 import type { Math } from './specs/Math.nitro'
 
-// Runtime value that JS users import and call.
 export const math = NitroModules.createHybridObject<Math>('Math')
-
-// TypeScript-only spec interface for annotations and advanced consumers.
-export type { Math }
+export type { Math } from './specs/Math.nitro'
 ```
 
 **Rules:**
 - Always export the runtime HybridObject value from normal TypeScript, such as `export const math = ...`. This is the value app code uses at runtime.
-- Re-export the `.nitro.ts` interface with `export type` only as an additional type export. It does not replace the runtime value export.
+- Define the spec type in the `.nitro.ts` file with `export interface Math ...`.
+- If consumers should import the spec type from the package root, re-export it from `index.ts` with `export type { Math } from './specs/Math.nitro'`. This is only an additional type export; it does not replace the runtime value export.
 - The string `'Math'` in `createHybridObject<Math>('Math')` must exactly match the key in `nitro.json`'s `autolinking` block
 - Prefer naming native classes with the `Hybrid` prefix: `HybridMath`
 - Keep both the interface name and the autolinking key the same (e.g. `Math` = `'Math'`)

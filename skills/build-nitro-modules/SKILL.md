@@ -171,11 +171,8 @@ export interface Math extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> 
 import { NitroModules } from 'react-native-nitro-modules'
 import type { Math } from './specs/Math.nitro'
 
-// Runtime value that JS users import and call.
 export const math = NitroModules.createHybridObject<Math>('Math')
-
-// TypeScript-only spec interface for annotations and advanced consumers.
-export type { Math }
+export type { Math } from './specs/Math.nitro'
 ```
 
 ### Minimum `nitro.json`
