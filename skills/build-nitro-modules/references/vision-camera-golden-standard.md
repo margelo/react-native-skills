@@ -85,7 +85,7 @@ This lets an object remain fully typed and passable from JS/TS while native code
 - Use sync methods for cheap local native object construction, metadata queries, coordinate transforms, and same-thread operations.
 - Use `Promise` for permissions, session creation, configuration, start/stop, capture, recording, platform async APIs, I/O, and heavy transforms.
 - Provide sync and async variants only when both are genuinely useful, for example a blocking conversion and an async conversion.
-- Use `addOn...Listener(...): ListenerSubscription` for repeated events.
+- Use `addOn...Listener(...): ListenerSubscription` for repeated events. The subscription owns cleanup through `remove(): void`; do not expose numeric listener IDs or `removeListener(listenerId)` APIs.
 - Use callback structs for one-shot operation progress callbacks, such as capture or recording callbacks.
 - Use `setOn...Callback(callback | undefined)` for a single replaceable hot-path callback owned by an output object.
 - Use `Sync<(...) => ...>` only for thread-bound hot paths where JS must run synchronously on a specific runtime or worklet thread.

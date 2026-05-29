@@ -124,6 +124,7 @@ export type { Math } from './specs/Math.nitro'
 - Keep both the interface name and the autolinking key the same (e.g. `Math` = `'Math'`)
 - For larger libraries, create one autolinked factory/root object and return other stateful HybridObjects from factory methods instead of autolinking every object.
 - Add JSDoc to public spec interfaces, methods, options, callbacks, and important properties.
+- Listener methods must return a subscription object with `remove(): void`. Do not expose numeric listener IDs or `removeListener(listenerId)` methods.
 
 ## Code Examples
 
@@ -133,7 +134,7 @@ export type { Math } from './specs/Math.nitro'
 import type { HybridObject } from 'react-native-nitro-modules'
 
 export interface ListenerSubscription {
-  remove: () => void
+  remove(): void
 }
 
 export interface Camera extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
