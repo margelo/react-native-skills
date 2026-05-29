@@ -161,7 +161,7 @@ export { camera }
 | `boolean` | `bool` | `Boolean` | `Bool` |
 | `bigint` | `int64_t` / `uint64_t` | `Long` / `ULong` | `Int64` / `UInt64` |
 | `T[]` | `std::vector<T>` | `Array<T>` | `[T]` |
-| `Promise<T>` | `std::future<T>` | `Promise<T>` | `Promise<T>` |
+| `Promise<T>` | `std::shared_ptr<Promise<T>>` | `Promise<T>` | `Promise<T>` |
 | `T \| undefined` | `std::optional<T>` | `T?` | `T?` |
 | `(x: T) => void` | `std::function<void(T)>` | `(T) -> Unit` | `(T) -> Void` |
 | `ArrayBuffer` | `std::shared_ptr<ArrayBuffer>` | `ArrayBuffer` | `ArrayBuffer` |

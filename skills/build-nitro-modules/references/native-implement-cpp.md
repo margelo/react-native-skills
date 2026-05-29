@@ -22,7 +22,7 @@ Covers Steps 8–9 (C++ path): creating the C++ implementation class that inheri
 #include "HybridMathSpec.hpp"
 
 namespace margelo::nitro::math {
-  class HybridMath: public HybridMathSpec {
+  class HybridMath final : public HybridMathSpec {
   public:
     HybridMath() : HybridObject(TAG) {}
     double add(double a, double b) override;
@@ -62,7 +62,7 @@ touch cpp/HybridMath.hpp
 
 namespace margelo::nitro::math {
 
-  class HybridMath: public HybridMathSpec {
+  class HybridMath final : public HybridMathSpec {
   public:
     HybridMath() : HybridObject(TAG) {}
 

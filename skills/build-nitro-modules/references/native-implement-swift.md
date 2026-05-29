@@ -6,7 +6,7 @@ tags: swift, ios, hybrid-object, native, implementation, NitroModules, protocol,
 
 # Skill: Implementing HybridObjects in Swift
 
-Covers Steps 8–9 (Swift path): creating the Swift implementation class that conforms to the Nitrogen-generated iOS spec protocol.
+Covers Steps 8–9 (Swift path): creating the Swift implementation class that implements the Nitrogen-generated iOS spec protocol/base typealias.
 
 ## Quick Pattern
 
@@ -18,11 +18,11 @@ class HybridMath: NSObject {
 }
 ```
 
-**Correct** — conforming to the generated spec protocol:
+**Correct** — implementing the generated spec:
 ```swift
 import NitroModules
 
-class HybridMath: HybridMathSpec {
+final class HybridMath: HybridMathSpec {
   func add(a: Double, b: Double) throws -> Double { a + b }
 }
 ```
@@ -58,7 +58,7 @@ touch ios/HybridMath.swift
 ```swift
 import NitroModules
 
-class HybridMath: HybridMathSpec {
+final class HybridMath: HybridMathSpec {
 
   // Synchronous methods — most generated methods have `throws`
   func add(a: Double, b: Double) throws -> Double {
@@ -213,7 +213,7 @@ var zoom: Double {
 - **`Dictionary<String,T>` vs `[String:T]`** — Both work; `[String:T]` is the idiomatic Swift syntax
 - **`any HybridSpec` not `HybridSpec`** — In modern Swift, protocol types need the `any` keyword
 - **Not including the file in podspec** — Swift files must be in the `source_files` glob in `.podspec`
-- **Using the `override` keyword** — The generated spec is a Swift *protocol*, not a superclass. Conforming methods and properties must NOT use `override` (unlike the Kotlin counterpart, which does). `override` only applies when overriding a superclass member.
+- **Using the `override` keyword** — Swift implementations conform to the generated spec shape; methods and properties declared by the spec must NOT use `override` (unlike the Kotlin counterpart, which does). `override` only applies when overriding a superclass member.
 
 ## Related Skills
 
