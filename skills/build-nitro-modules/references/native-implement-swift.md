@@ -191,6 +191,14 @@ func divide(a: Double, b: Double) throws -> Double {
 }
 ```
 
+### Validating configuration
+
+Validate invalid values and required behavior early, but do not reject optional cross-platform preferences only because iOS ignores them. If the operation still does its core job, ignore or degrade the preference and report support through the public capabilities or resolved state.
+
+Examples:
+- Throw when a requested flash mode cannot work because the device has no flash.
+- Do not throw only because a quality, guidance UI, high-frame-rate, auto-zoom, or region preference is unsupported, unless the API documents that field as a hard requirement.
+
 ### Properties with side effects
 
 ```swift
