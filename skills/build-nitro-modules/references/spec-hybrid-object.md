@@ -126,8 +126,8 @@ export type { Math } from './specs/Math.nitro'
 - Keep both the interface name and the autolinking key the same (e.g. `Math` = `'Math'`)
 - For larger libraries, create one autolinked factory/root object and return other stateful HybridObjects from factory methods instead of autolinking every object.
 - If creating a returned object requires setup, I/O, permission checks, or validation that can fail, make the factory method async and return a ready object. Do not expose `prepare()`/`initialize()` methods that callers must remember before normal use.
-- Add JSDoc to every exported spec interface, type alias, string-literal union, callback, options struct, event struct, HybridObject, and public property. Type-level comments should describe the domain meaning and link to a related type or member with `{@linkcode ...}` or `@see`, for example `Represents the format of a {@linkcode Barcode}.` and `@see {@linkcode Barcode.format}`.
-- Listener methods must return a flat subscription object with `remove(): void`. Do not make the subscription a HybridObject unless it has meaningful native state beyond cleanup. Do not expose numeric listener IDs or `removeListener(listenerId)` methods.
+- Add JSDoc to every exported spec interface, type alias, string-literal union, callback, options struct, event struct, HybridObject, and public property. Type-level comments must describe domain meaning and link to a real related type or member with `{@linkcode ...}` or `@see`, for example `Represents the format of a {@linkcode Barcode}.` and `@see {@linkcode Barcode.format}`. Do not invent link targets.
+- Listener methods must return a flat subscription object with `remove(): void`. Do not make the subscription a HybridObject unless it exposes native state beyond cleanup. Do not expose numeric listener IDs or `removeListener(listenerId)` methods.
 
 ## Code Examples
 
@@ -197,7 +197,7 @@ export interface MediaFactory extends HybridObject<{ ios: 'swift'; android: 'kot
 }
 ```
 
-In this pattern, `MediaFactory` is autolinked because JS creates it directly. `VideoOutput` and `Recorder` can be returned from factory methods and usually do not need their own `nitro.json` autolinking entries.
+In this pattern, `MediaFactory` is autolinked because JS creates it directly. Do not add `nitro.json` autolinking entries for `VideoOutput` or `Recorder` unless JS creates them directly.
 
 If constructing `VideoOutput` needs native setup or can fail, make the factory async instead: `createVideoOutput(options: VideoOutputOptions): Promise<VideoOutput>`. The returned object should already be usable.
 
@@ -212,7 +212,7 @@ export const Media =
   NitroModules.createHybridObject<MediaFactory>('MediaFactory')
 ```
 
-The autolinking key remains `MediaFactory` because it matches the generated spec and `nitro.json`. The JS export can be more ergonomic and should not mechanically become `mediaFactory`, `MediaFactory`, or `HybridMediaFactory`. Use names like `VisionCamera`, `Images`, `Media`, or another product/domain noun that reads well at call sites.
+The autolinking key remains `MediaFactory` because it matches the generated spec and `nitro.json`. The JS export should not mechanically become `mediaFactory`, `MediaFactory`, or `HybridMediaFactory`. Use a product/domain noun such as `VisionCamera`, `Images`, or `Media`.
 
 ### Native protocol extension points
 

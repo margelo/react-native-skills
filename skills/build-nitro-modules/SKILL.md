@@ -25,60 +25,46 @@ Let `api-design` own general public API rules and API freshness checks. In this 
 
 If the user is building a JS-only React or React Native library, do not apply this skill unless Nitro, HybridObjects, native modules, codegen, C++/Swift/Kotlin bindings, or `react-native-nitro-modules` are part of the task.
 
-## Repository Defaults
+## Repo and Release References
 
-Use these defaults when creating or reorganizing a Nitro Module repo, unless the existing repo or the user explicitly points elsewhere:
+Load [repo-structure-and-workflow.md][repo-structure-and-workflow] only when creating a repo, reorganizing layout, adding examples/docs/CI, or changing workflow policy.
 
-- Keep the root clean so `README.md` stays visible in GitHub's file list. The root should mostly be `README.md`, `package.json`, `bun.lock`, `packages/`, one example-app location, optional `docs/`, optional `scripts/`, `config/`, `.github/`, and only config files that tools must discover from the root.
-- Prefer Bun wherever possible: `bun install`, `bun run`, `bun --cwd`, and `bunx` for one-off executables. Fall back to `npx` only when Bun cannot run a tool correctly.
-- Put publishable libraries in `packages/<package-name>/`. Use multiple packages only when they are independently consumed, versioned, or installed.
-- Prefer `apps/<example-name>/` when multiple example apps are needed or likely, including optional native dependencies, feature variants, or separate integration demos. `apps/example` is still a good default even with one app when future examples are plausible. Use top-level `example/` only for small single-example repos where staying close to React Native's generated config is more valuable.
-- Keep example apps as close to the official React Native template as possible. Use official APIs, generated configs, and template-supported extension points before custom setup.
-- Add `docs/` only when docs are meaningful; prefer Fumadocs for a full docs site.
-- Add `scripts/` only for reusable repo automation, not for one-off command notes.
-- Put shared config under `config/` when each tool can reliably reference it, such as TypeScript configs, lint/format configs, `.swift-format`, `.clang-format`, and `.editorconfig`. If a tool or editor requires a root config file, keep the root file minimal and point it at `config/`.
-- Add `.github/workflows/` for CI validation. Include TypeScript/build checks, JS lint/format with Biome or ESLint/Prettier, and native lint jobs as the codebase matures, such as SwiftLint/SwiftFormat, clang-format/clang-tidy, ktlint, or Detekt.
-- Do not add Husky, commitlint, lint-staged, pre-commit hooks, pre-push hooks, or `prepare` scripts that install hooks. Validation belongs in CI; local scripts can exist for manual use but must not block committing or pushing.
-- Avoid patches, `patch-package`, postinstall rewrites, monkeypatching, and hacky workarounds unless there is no reasonable alternative. They create maintenance burden, technical debt, and make the project less approachable for new contributors.
-- Solve problems at the root cause instead of layering workaround code around symptoms. If a build or example app needs ugly manual plumbing, first revisit the package layout, autolinking, official config APIs, or upstream issue instead of normalizing the workaround.
-- Work on a separate branch and open a draft PR early so CI can run while local development continues.
-- Use squash merges to keep `main` history clean.
-- Once the repo is past the initial release or major rewrite phase, keep PRs atomic and decoupled. Do not cram unrelated features or fixes into one branch unless they are tightly connected.
+Load [release-it-publishing.md][release-it-publishing] only when setting up or reviewing `bun release` / `release-it`.
 
 ## Nitro API Design Rules
 
-- Prefer Nitro Modules over TurboModules or handwritten JSI for native module work. Nitro is usually faster and safer because it avoids many raw JSI lifetime, threading, and runtime-destruction hazards. Use raw JSI only when Nitro's Raw JSI Methods are truly required.
+- Use Nitro Modules for native module work. Use TurboModules or handwritten JSI only when Nitro cannot express the required API or runtime behavior.
 - For larger libraries, prefer one small public factory/entry HybridObject that creates stateful domain objects. Keep the root default-constructible for autolinking, and create objects that need arguments through factory methods.
 - Design around native state when it improves the API. A `HybridObject` can represent a native resource, prewarmed engine, file, image, database, sensor session, stream, or other stateful object instead of forcing everything into static module functions.
 - Do not create stateful HybridObjects that are unusable until the caller remembers to call `prepare()`, `initialize()`, or a similar setup method. If native setup is required, make the factory method async and resolve with a ready object, such as `createCameraSession(...): Promise<CameraSession>`.
 - Use a product/domain noun for the exported JS factory object, not the generated spec type name. For example, export `VisionCamera = createHybridObject<CameraFactory>('CameraFactory')` or `Images = createHybridObject<ImageFactory>('ImageFactory')`. This avoids collisions with `CameraFactory`/`ImageFactory` types without mechanically lowercasing them or adding `Hybrid` prefixes.
 - Use factory HybridObjects for resources that require construction arguments, async setup, I/O, or validation. Example: expose `Files.loadFileFromPath(path): Promise<File>` from a `FileFactory` spec instead of trying to construct `File` directly from JS.
-- Keep HybridObjects focused on one purpose or lifecycle. Avoid giant native objects that own unrelated domains.
-- Nitro specs and package entry points already provide namespace. Do not mechanically prefix every common type with the module name; prefer focused domain names and reserve prefixes for concepts that would otherwise be vague.
+- Keep each HybridObject scoped to one purpose or lifecycle. Avoid native objects that own unrelated domains.
+- Nitro specs and package entry points already provide namespace. Do not mechanically prefix every common type with the module name; use prefixes only when the unprefixed name is ambiguous at package-root import sites.
 - Split large specs and type surfaces into focused files under `src/specs/` or nearby type folders, then import and re-export them from the package root. Prefer one `.nitro.ts` spec per major HybridObject or domain instead of a single file containing every option, result, event, and helper type.
-- Use HybridObject inheritance when it makes the domain clearer. Prefer a base object with shared properties plus specialized child HybridObjects over one flat struct with many optional sub-values. Put shared properties such as IDs, bounds, raw values, formats, and value types on the base object instead of repeating them on every subtype.
+- Use HybridObject inheritance for shared native state plus specialized result shapes. Put shared properties such as IDs, bounds, raw values, formats, and value types on the base object instead of repeating them on every subtype.
 - Autolink only public roots, factories, views, or global utilities that JS must construct directly. Other HybridObjects can be returned from factory methods and do not need their own `nitro.json` autolinking entries.
 - For native extension points, pair a JS-facing base HybridObject spec with a public native protocol/interface. The base spec lets JS pass the object through typed APIs; the native protocol/interface exposes platform-specific handles and behavior for first-party and third-party native code.
 - When accepting an extensible HybridObject from JS, accept the generated base spec type, then cast to the native protocol/interface on the native side and throw a clear error if it does not conform. This keeps JS portable while native integrations stay strongly typed.
-- Use sync methods by default only for fast, in-process work, cheap native object creation, cached metadata, and local transforms. Use `Promise` for permissions, hardware/session setup, I/O, capture/recording, platform async APIs, blocking work, or anything that can take meaningful time.
+- Use sync methods only for fast in-process work, cheap native object creation, cached metadata, and local transforms. Use `Promise` for permissions, hardware/session setup, I/O, capture/recording, platform async APIs, blocking work, or work that may cross a thread or process boundary.
 - As a rule of thumb, benchmark the method and make it async if it takes longer than roughly 50ms.
 - If a transform has both cheap and potentially heavy paths, consider explicit sync and async twins such as `convertX()` and `convertXAsync()` instead of hiding blocking work behind one ambiguous method.
 - Use properties for cheap observed state or capability, especially readonly capability flags such as `readonly isAccelerometerAvailable: boolean`. Writable properties must be cheap, synchronous, and unlikely to fail; use async setter methods for native negotiation, hardware state, I/O, allocation, or failure. Use methods for side effects, expensive work, allocation, mutation, or failure.
 - Prefer typed structs, interfaces, string literal unions, readonly properties, and explicit methods over `AnyMap`, `Record<string, unknown>`, stringly typed commands, or loosely shaped event payloads. Use runtime enums only when callers need runtime enum values.
-- Use structs for meaningful domain shapes, option groups, and same-type parameter clusters. Do not wrap unrelated hot-path values in a struct only to reduce argument count; Nitro eagerly converts structs, so unnecessary wrappers can be slower than explicit parameters.
+- Use structs for domain shapes, option groups, and same-type parameter clusters. Do not wrap unrelated hot-path values in a struct only to reduce argument count; Nitro eagerly converts structs, so unnecessary wrappers can be slower than explicit parameters.
 - Do not model high-volume native results, parsed payloads, images, buffers, or objects with many optional expensive fields as flat structs. Nitro structs are eagerly converted, so prefer stateful HybridObjects with lazy properties or methods for data the caller may never read.
-- Avoid variants only when a simpler typed model expresses the state. Use variants or discriminated unions when they are the clearest representation, even if they have some runtime overhead.
+- Use variants or discriminated unions for real result variants. Do not use variants when a single interface or literal union expresses the state.
 - Use `ArrayBuffer` for small or truly zero-copy native data access. For large media, photos, scans, model outputs, or byte payloads, return a HybridObject and expose lazy methods such as `toArrayBuffer()`, `toBase64()`, or `saveToTemporaryFile()` instead of eagerly converting bytes into JS.
 - Keep raw native state behind HybridObjects when conversion cost matters. For example, a native barcode/photo/result object can expose `rawValue`, `bounds`, `format`, or byte data lazily instead of converting every field for every detection.
 - Use `Error` in TypeScript specs for real JS Error prototypes instead of custom typed error objects.
-- Use listener functions for repeated events and callbacks, returning a flat `ListenerSubscription` interface with an idempotent `remove(): void`. Do not make this subscription a HybridObject unless it has real native state beyond cleanup. Never expose `listenerId` handles or `removeListener(listenerId)` APIs; the subscription object should be the single source of truth and perform native cleanup itself.
+- Use listener functions for repeated events and callbacks, returning a flat `ListenerSubscription` interface with an idempotent `remove(): void`. Do not make this subscription a HybridObject unless it exposes native state beyond cleanup. Never expose `listenerId` handles or `removeListener(listenerId)` APIs; the subscription object owns native cleanup.
 - Use callback option structs for one-shot operation progress when callbacks belong to one method call, such as capture or recording progress callbacks.
 - Use `setOn...Callback(callback | undefined)` only for single hot-path callbacks owned by an object, where replacing or removing the callback is the natural operation.
 - Use `Sync<(...) => ...>` callbacks only for rare thread-bound hot paths that must synchronously execute on a specific JS runtime or worklet thread.
-- Put ergonomic defaults and convenience shaping in TypeScript when that keeps the native Nitro spec simpler and more explicit. For example, normalize optional options in TS before calling a stricter native method.
+- Put defaults and convenience shaping in TypeScript when it removes optional branches from the native spec. For example, normalize optional options in TS before calling a stricter native method.
 - Preserve React Native's cross-platform abstraction. Do not expose AVFoundation, Android framework, or platform-specific class names in public APIs unless direct low-level access is the point.
-- For Nitro Views, expose the raw `getHostComponent` wrapper plus higher-level React components or hooks when they materially improve ergonomics. Keep them layered over the same native objects and refs.
-- Document Nitro public specs heavily with JSDoc. Every exported spec interface, type alias, string-literal union, callback, options struct, event struct, and HybridObject must have type-level JSDoc, and every public property must have property-level JSDoc. Explain domain meaning and link related APIs with `{@linkcode ...}` or `@see`, such as `Represents the format of a {@linkcode Barcode}.` and `@see {@linkcode Barcode.format}`. Include lifecycle, defaults, platform availability, performance costs, disposal requirements, and examples where they affect caller behavior.
+- For Nitro Views, expose the raw `getHostComponent` wrapper. Add React components or hooks only when they remove repeated setup code while staying layered over the same native objects and refs.
+- Document Nitro public specs with JSDoc. Every exported spec interface, type alias, string-literal union, callback, options struct, event struct, and HybridObject must have type-level JSDoc, and every public property must have property-level JSDoc. Explain domain meaning and link real related APIs with `{@linkcode ...}` or `@see`, such as `Represents the format of a {@linkcode Barcode}.` and `@see {@linkcode Barcode.format}`. Do not invent link targets. Include lifecycle, defaults, platform availability, performance costs, disposal requirements, and examples only when they affect caller behavior.
 
 ## Nitro Native Implementation Rules
 

@@ -50,12 +50,12 @@ For apps, use a real RN app. Prefer `apps/<name>` when multiple examples are nee
 
 - Export one runtime root factory object, created from the autolinked root HybridObject.
 - Name the runtime factory export as a product/domain object, not as the spec type. VisionCamera uses `VisionCamera = createHybridObject<CameraFactory>('CameraFactory')`; Nitro Image uses `Images = createHybridObject<ImageFactory>('ImageFactory')`.
-- Keep the generated spec/interface name descriptive, usually `SomethingFactory`, and keep the `createHybridObject(...)` key matching `nitro.json`. Only the JS value export gets the more ergonomic product/domain name.
+- Keep the generated spec/interface name descriptive, such as `CameraFactory`, and keep the `createHybridObject(...)` key matching `nitro.json`. Only the JS value export gets the product/domain name.
 - Export all public specs and common types from `src/index.ts` so users can type advanced integrations.
 - Keep specs and public types split by domain. Prefer focused files under `src/specs/common-types/`, `src/specs/outputs/`, `src/specs/instances/`, and similar folders over one large file that contains every option, result, and helper type.
 - Layer hooks and React components over the imperative core; do not make hooks the only API.
 - Put domain defaults and convenience in hooks/utilities, while keeping Nitro specs explicit.
-- Provide native host components for low-level control, then wrap them in higher-level React components when composition improves ergonomics.
+- Provide native host components for low-level control. Add higher-level React components only when they remove repeated setup code.
 
 ## HybridObject Modeling
 
@@ -88,7 +88,7 @@ This lets an object remain fully typed and passable from JS/TS while native code
 - Use sync methods for cheap local native object construction, metadata queries, coordinate transforms, and same-thread operations.
 - Use `Promise` for permissions, session creation, configuration, start/stop, capture, recording, platform async APIs, I/O, and heavy transforms.
 - Provide sync and async variants only when both are genuinely useful, for example a blocking conversion and an async conversion.
-- Use `addOn...Listener(...): ListenerSubscription` for repeated events. The subscription owns cleanup through `remove(): void`, should usually be a flat interface rather than a HybridObject, and must not expose numeric listener IDs or `removeListener(listenerId)` APIs.
+- Use `addOn...Listener(...): ListenerSubscription` for repeated events. The subscription owns cleanup through `remove(): void`, should be a flat interface unless it exposes native state beyond cleanup, and must not expose numeric listener IDs or `removeListener(listenerId)` APIs.
 - Use callback structs for one-shot operation progress callbacks, such as capture or recording callbacks.
 - Use `setOn...Callback(callback | undefined)` for a single replaceable hot-path callback owned by an output object.
 - Use `Sync<(...) => ...>` only for thread-bound hot paths where JS must run synchronously on a specific runtime or worklet thread.
@@ -102,7 +102,7 @@ This lets an object remain fully typed and passable from JS/TS while native code
 - Use optional fields for defaults. Use `undefined` as "not provided"; reserve `null` for explicit "none".
 - Use structural presets with `as const satisfies Record<string, Type>` for common values while allowing user-defined values.
 - Use `Error` for JS-facing errors in callback and listener signatures.
-- Heavily document exported specs, hooks, components, and constants with JSDoc. Every exported type-level declaration and every public property should have JSDoc. Explain domain semantics and link related APIs with `{@linkcode ...}` or `@see`, such as `Represents the format of a {@linkcode Barcode}.` and `@see {@linkcode Barcode.format}`; avoid filler comments like "normalized for JavaScript" or implementation details like "lazy" unless they affect caller behavior. Include `@default`, `@throws`, `@platform`, `@example`, `@see`, and performance/lifecycle notes where relevant.
+- Document exported specs, hooks, components, and constants with JSDoc. Every exported type-level declaration and every public property must have JSDoc. Explain domain semantics and link real related APIs with `{@linkcode ...}` or `@see`, such as `Represents the format of a {@linkcode Barcode}.` and `@see {@linkcode Barcode.format}`; avoid filler comments like "normalized for JavaScript" or implementation details like "lazy" unless they affect caller behavior. Do not invent link targets. Include `@default`, `@throws`, `@platform`, `@example`, `@see`, and performance/lifecycle notes only when they affect caller behavior.
 
 ## Publishing Pattern
 
