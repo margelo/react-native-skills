@@ -25,60 +25,37 @@ Let `api-design` own general public API rules and API freshness checks. In this 
 
 If the user is building a JS-only React or React Native library, do not apply this skill unless Nitro, HybridObjects, native modules, codegen, C++/Swift/Kotlin bindings, or `react-native-nitro-modules` are part of the task.
 
-## Repository Defaults
+## Repo and Release References
 
-Use these defaults when creating or reorganizing a Nitro Module repo, unless the existing repo or the user explicitly points elsewhere:
+Load [repo-structure-and-workflow.md][repo-structure-and-workflow] only when creating a repo, reorganizing layout, adding examples/docs/CI, or changing workflow policy.
 
-- Keep the root clean so `README.md` stays visible in GitHub's file list. The root should mostly be `README.md`, `package.json`, `bun.lock`, `packages/`, one example-app location, optional `docs/`, optional `scripts/`, `config/`, `.github/`, and only config files that tools must discover from the root.
-- Prefer Bun wherever possible: `bun install`, `bun run`, `bun --cwd`, and `bunx` for one-off executables. Fall back to `npx` only when Bun cannot run a tool correctly.
-- Put publishable libraries in `packages/<package-name>/`. Use multiple packages only when they are independently consumed, versioned, or installed.
-- Prefer `apps/<example-name>/` when multiple example apps are needed or likely, including optional native dependencies, feature variants, or separate integration demos. `apps/example` is still a good default even with one app when future examples are plausible. Use top-level `example/` only for small single-example repos where staying close to React Native's generated config is more valuable.
-- Keep example apps as close to the official React Native template as possible. Use official APIs, generated configs, and template-supported extension points before custom setup.
-- Add `docs/` only when docs are meaningful; prefer Fumadocs for a full docs site.
-- Add `scripts/` only for reusable repo automation, not for one-off command notes.
-- Put shared config under `config/` when each tool can reliably reference it, such as TypeScript configs, lint/format configs, `.swift-format`, `.clang-format`, and `.editorconfig`. If a tool or editor requires a root config file, keep the root file minimal and point it at `config/`.
-- Add `.github/workflows/` for CI validation. Include TypeScript/build checks, JS lint/format with Biome or ESLint/Prettier, and native lint jobs as the codebase matures, such as SwiftLint/SwiftFormat, clang-format/clang-tidy, ktlint, or Detekt.
-- Do not add Husky, commitlint, lint-staged, pre-commit hooks, pre-push hooks, or `prepare` scripts that install hooks. Validation belongs in CI; local scripts can exist for manual use but must not block committing or pushing.
-- Avoid patches, `patch-package`, postinstall rewrites, monkeypatching, and hacky workarounds unless there is no reasonable alternative. They create maintenance burden, technical debt, and make the project less approachable for new contributors.
-- Solve problems at the root cause instead of layering workaround code around symptoms. If a build or example app needs ugly manual plumbing, first revisit the package layout, autolinking, official config APIs, or upstream issue instead of normalizing the workaround.
-- Work on a separate branch and open a draft PR early so CI can run while local development continues.
-- Use squash merges to keep `main` history clean.
-- Once the repo is past the initial release or major rewrite phase, keep PRs atomic and decoupled. Do not cram unrelated features or fixes into one branch unless they are tightly connected.
+Load [release-it-publishing.md][release-it-publishing] only when setting up or reviewing `bun release` / `release-it`.
 
 ## Nitro API Design Rules
 
-- Prefer Nitro Modules over TurboModules or handwritten JSI for native module work. Nitro is usually faster and safer because it avoids many raw JSI lifetime, threading, and runtime-destruction hazards. Use raw JSI only when Nitro's Raw JSI Methods are truly required.
-- For larger libraries, prefer one small public factory/entry HybridObject that creates stateful domain objects. Keep the root default-constructible for autolinking, and create objects that need arguments through factory methods.
-- Design around native state when it improves the API. A `HybridObject` can represent a native resource, prewarmed engine, file, image, database, sensor session, stream, or other stateful object instead of forcing everything into static module functions.
-- Do not create stateful HybridObjects that are unusable until the caller remembers to call `prepare()`, `initialize()`, or a similar setup method. If native setup is required, make the factory method async and resolve with a ready object, such as `createCameraSession(...): Promise<CameraSession>`.
+- Prefer Nitro Modules over TurboModules or handwritten JSI for native module work. Nitro is usually faster and safer because it avoids many raw JSI lifetime, threading, and runtime-destruction hazards. Use raw JSI only when Nitro's Raw JSI Methods are required.
+- Keep the root HybridObject default-constructible for autolinking. Create argument-dependent objects through factory methods.
+- Use HybridObjects for native state: native resources, prewarmed engines, files, images, databases, sensor sessions, streams, and other stateful objects.
+- If native setup is required, make the factory method async and resolve with a ready HybridObject, such as `createCameraSession(...): Promise<CameraSession>`.
 - Use a product/domain noun for the exported JS factory object, not the generated spec type name. For example, export `VisionCamera = createHybridObject<CameraFactory>('CameraFactory')` or `Images = createHybridObject<ImageFactory>('ImageFactory')`. This avoids collisions with `CameraFactory`/`ImageFactory` types without mechanically lowercasing them or adding `Hybrid` prefixes.
-- Use factory HybridObjects for resources that require construction arguments, async setup, I/O, or validation. Example: expose `Files.loadFileFromPath(path): Promise<File>` from a `FileFactory` spec instead of trying to construct `File` directly from JS.
-- Keep HybridObjects focused on one purpose or lifecycle. Avoid giant native objects that own unrelated domains.
-- Nitro specs and package entry points already provide namespace. Do not mechanically prefix every common type with the module name; prefer focused domain names and reserve prefixes for concepts that would otherwise be vague.
-- Split large specs and type surfaces into focused files under `src/specs/` or nearby type folders, then import and re-export them from the package root. Prefer one `.nitro.ts` spec per major HybridObject or domain instead of a single file containing every option, result, event, and helper type.
-- Use HybridObject inheritance when it makes the domain clearer. Prefer a base object with shared properties plus specialized child HybridObjects over one flat struct with many optional sub-values. Put shared properties such as IDs, bounds, raw values, formats, and value types on the base object instead of repeating them on every subtype.
+- Keep each HybridObject scoped to one purpose or lifecycle.
+- Treat HybridObjects as primary API objects. Each primary HybridObject gets its own `.nitro.ts` file.
+- Keep an inheritance family in one `.nitro.ts` file only when the file is named after the base HybridObject and child HybridObjects add few or no members, such as `ScannedCode`, `ScannedBarcode`, and `ScannedQRCode` in `ScannedCode.nitro.ts`.
+- Put enums, literal unions, structs, option interfaces, event interfaces, callback types, and helper types in their own `.ts` files under focused folders such as `src/specs/common-types/`, `src/specs/barcodes/`, or another domain folder. Import them into `.nitro.ts` specs and re-export public types from `src/index.ts`.
+- Group multiple helper types in one file only when they form one tightly coupled logical construct, such as `DynamicRange` plus the exact literal unions that define it.
+- Use HybridObject inheritance for shared native state plus specialized result shapes. Put shared properties such as IDs, bounds, raw values, formats, and value types on the base object instead of repeating them on every subtype.
 - Autolink only public roots, factories, views, or global utilities that JS must construct directly. Other HybridObjects can be returned from factory methods and do not need their own `nitro.json` autolinking entries.
 - For native extension points, pair a JS-facing base HybridObject spec with a public native protocol/interface. The base spec lets JS pass the object through typed APIs; the native protocol/interface exposes platform-specific handles and behavior for first-party and third-party native code.
 - When accepting an extensible HybridObject from JS, accept the generated base spec type, then cast to the native protocol/interface on the native side and throw a clear error if it does not conform. This keeps JS portable while native integrations stay strongly typed.
-- Use sync methods by default only for fast, in-process work, cheap native object creation, cached metadata, and local transforms. Use `Promise` for permissions, hardware/session setup, I/O, capture/recording, platform async APIs, blocking work, or anything that can take meaningful time.
-- As a rule of thumb, benchmark the method and make it async if it takes longer than roughly 50ms.
-- If a transform has both cheap and potentially heavy paths, consider explicit sync and async twins such as `convertX()` and `convertXAsync()` instead of hiding blocking work behind one ambiguous method.
-- Use properties for cheap observed state or capability, especially readonly capability flags such as `readonly isAccelerometerAvailable: boolean`. Writable properties must be cheap, synchronous, and unlikely to fail; use async setter methods for native negotiation, hardware state, I/O, allocation, or failure. Use methods for side effects, expensive work, allocation, mutation, or failure.
-- Prefer typed structs, interfaces, string literal unions, readonly properties, and explicit methods over `AnyMap`, `Record<string, unknown>`, stringly typed commands, or loosely shaped event payloads. Use runtime enums only when callers need runtime enum values.
-- Use structs for meaningful domain shapes, option groups, and same-type parameter clusters. Do not wrap unrelated hot-path values in a struct only to reduce argument count; Nitro eagerly converts structs, so unnecessary wrappers can be slower than explicit parameters.
+- Use Nitro structs for domain shapes, option groups, and same-type parameter clusters. Do not wrap unrelated hot-path values in a struct only to reduce argument count; Nitro eagerly converts structs, so unnecessary wrappers can be slower than explicit parameters.
 - Do not model high-volume native results, parsed payloads, images, buffers, or objects with many optional expensive fields as flat structs. Nitro structs are eagerly converted, so prefer stateful HybridObjects with lazy properties or methods for data the caller may never read.
-- Avoid variants only when a simpler typed model expresses the state. Use variants or discriminated unions when they are the clearest representation, even if they have some runtime overhead.
 - Use `ArrayBuffer` for small or truly zero-copy native data access. For large media, photos, scans, model outputs, or byte payloads, return a HybridObject and expose lazy methods such as `toArrayBuffer()`, `toBase64()`, or `saveToTemporaryFile()` instead of eagerly converting bytes into JS.
 - Keep raw native state behind HybridObjects when conversion cost matters. For example, a native barcode/photo/result object can expose `rawValue`, `bounds`, `format`, or byte data lazily instead of converting every field for every detection.
-- Use `Error` in TypeScript specs for real JS Error prototypes instead of custom typed error objects.
-- Use listener functions for repeated events and callbacks, returning a flat `ListenerSubscription` interface with an idempotent `remove(): void`. Do not make this subscription a HybridObject unless it has real native state beyond cleanup. Never expose `listenerId` handles or `removeListener(listenerId)` APIs; the subscription object should be the single source of truth and perform native cleanup itself.
-- Use callback option structs for one-shot operation progress when callbacks belong to one method call, such as capture or recording progress callbacks.
+- Listener subscriptions should be flat structs, not HybridObjects, unless they expose native state beyond cleanup.
 - Use `setOn...Callback(callback | undefined)` only for single hot-path callbacks owned by an object, where replacing or removing the callback is the natural operation.
 - Use `Sync<(...) => ...>` callbacks only for rare thread-bound hot paths that must synchronously execute on a specific JS runtime or worklet thread.
-- Put ergonomic defaults and convenience shaping in TypeScript when that keeps the native Nitro spec simpler and more explicit. For example, normalize optional options in TS before calling a stricter native method.
-- Preserve React Native's cross-platform abstraction. Do not expose AVFoundation, Android framework, or platform-specific class names in public APIs unless direct low-level access is the point.
-- For Nitro Views, expose the raw `getHostComponent` wrapper plus higher-level React components or hooks when they materially improve ergonomics. Keep them layered over the same native objects and refs.
-- Document Nitro public specs heavily with JSDoc. Every exported spec interface, type alias, string-literal union, callback, options struct, event struct, and HybridObject must have type-level JSDoc, and every public property must have property-level JSDoc. Explain domain meaning and link related APIs with `{@linkcode ...}` or `@see`, such as `Represents the format of a {@linkcode Barcode}.` and `@see {@linkcode Barcode.format}`. Include lifecycle, defaults, platform availability, performance costs, disposal requirements, and examples where they affect caller behavior.
+- For Nitro Views, expose the raw `getHostComponent` wrapper. Add React components or hooks only when they remove repeated setup code while staying layered over the same native objects and refs.
+- Follow `api-design` for naming, platform abstraction, sync/async boundaries, listener cleanup, errors, variants, TypeScript facades, and JSDoc contracts.
 
 ## Nitro Native Implementation Rules
 
@@ -177,18 +154,20 @@ Reference these guidelines when:
 |----------|----------|--------|-----------|
 | 0 | General public API shape | CRITICAL | `api-design` |
 | 0 | Nitro API constraints | CRITICAL | This SKILL.md |
-| 1 | Monorepo scaffold | CRITICAL | [setup-monorepo-init.md][setup-monorepo-init] |
-| 2 | HybridObject spec | CRITICAL | [spec-hybrid-object.md][spec-hybrid-object] |
-| 3 | nitro.json autolinking | CRITICAL | [spec-nitro-json.md][spec-nitro-json] |
-| 4 | Nitrogen codegen | HIGH | [native-nitrogen-codegen.md][native-nitrogen-codegen] |
-| 5 | C++ implementation | HIGH | [native-implement-cpp.md][native-implement-cpp] |
-| 6 | Kotlin implementation | HIGH | [native-implement-kotlin.md][native-implement-kotlin] |
-| 7 | Swift implementation | HIGH | [native-implement-swift.md][native-implement-swift] |
-| 8 | Example app setup *(if requested)* | HIGH | [example-app-setup.md][example-app-setup] |
-| 9 | Android Gradle paths *(if example app)* | HIGH | [example-android-config.md][example-android-config] |
-| 10 | Metro + install + test *(if example app)* | HIGH | [example-metro-install.md][example-metro-install] |
-| 11 | npm publish and release prep | MEDIUM | [spec-package-publish.md][spec-package-publish] |
-| 12 | VisionCamera-style full library patterns | MEDIUM | [vision-camera-golden-standard.md][vision-camera-golden-standard] |
+| 1 | Repo structure and workflow | HIGH | [repo-structure-and-workflow.md][repo-structure-and-workflow] |
+| 2 | Nitrogen scaffold | CRITICAL | [setup-monorepo-init.md][setup-monorepo-init] |
+| 3 | HybridObject spec | CRITICAL | [spec-hybrid-object.md][spec-hybrid-object] |
+| 4 | nitro.json autolinking | CRITICAL | [spec-nitro-json.md][spec-nitro-json] |
+| 5 | Nitrogen codegen | HIGH | [native-nitrogen-codegen.md][native-nitrogen-codegen] |
+| 6 | C++ implementation | HIGH | [native-implement-cpp.md][native-implement-cpp] |
+| 7 | Kotlin implementation | HIGH | [native-implement-kotlin.md][native-implement-kotlin] |
+| 8 | Swift implementation | HIGH | [native-implement-swift.md][native-implement-swift] |
+| 9 | Example app setup *(if requested)* | HIGH | [example-app-setup.md][example-app-setup] |
+| 10 | Android Gradle paths *(if example app)* | HIGH | [example-android-config.md][example-android-config] |
+| 11 | Metro + install + test *(if example app)* | HIGH | [example-metro-install.md][example-metro-install] |
+| 12 | npm publish readiness | MEDIUM | [spec-package-publish.md][spec-package-publish] |
+| 13 | release-it publishing | MEDIUM | [release-it-publishing.md][release-it-publishing] |
+| 14 | VisionCamera-style full library patterns | MEDIUM | [vision-camera-golden-standard.md][vision-camera-golden-standard] |
 
 ## Quick Reference
 
@@ -255,7 +234,8 @@ Run: `bun example android`, `bun example ios`, `bun specs`
 
 | File | Description |
 |------|-------------|
-| [setup-monorepo-init.md][setup-monorepo-init] | Monorepo workspace structure and `nitrogen init` scaffold |
+| [repo-structure-and-workflow.md][repo-structure-and-workflow] | Root layout, packages/apps/docs/config/scripts, CI, branch, draft PR, and squash-merge workflow |
+| [setup-monorepo-init.md][setup-monorepo-init] | Collecting scaffold inputs and running `nitrogen init` |
 | [spec-hybrid-object.md][spec-hybrid-object] | Writing `*.nitro.ts` specs and exporting HybridObjects |
 | [spec-nitro-json.md][spec-nitro-json] | `nitro.json` all fields, autolinking, namespace configuration |
 | [native-nitrogen-codegen.md][native-nitrogen-codegen] | Running Nitrogen and verifying generated files |
@@ -265,7 +245,8 @@ Run: `bun example android`, `bun example ios`, `bun specs`
 | [example-app-setup.md][example-app-setup] | RN CLI example app init, workspace wiring, version alignment |
 | [example-android-config.md][example-android-config] | `settings.gradle` and `build.gradle` monorepo path fixes |
 | [example-metro-install.md][example-metro-install] | Metro watchFolders, library install, App.tsx usage, test runs |
-| [spec-package-publish.md][spec-package-publish] | `package.json` author, `files` field, npm publish readiness, and `release-it` setup |
+| [spec-package-publish.md][spec-package-publish] | `package.json` author, `files` field, and npm publish readiness |
+| [release-it-publishing.md][release-it-publishing] | One-command releases with `release-it` and `bun release` |
 | [vision-camera-golden-standard.md][vision-camera-golden-standard] | Package layout, API layering, Nitro object modeling, and publishing patterns inspired by VisionCamera |
 
 ## Problem → Skill Mapping
@@ -274,7 +255,7 @@ Run: `bun example android`, `bun example ios`, `bun specs`
 |---------|-----------|--------|
 | Need to design the public API first | `api-design` + this SKILL.md | Shape the TS/React API, then apply Nitro constraints |
 | Need latest general APIs | `api-design` | Check official docs, release notes, source repos, package metadata, or `llms-full.txt` before deciding |
-| Need a recommended repo structure | [setup-monorepo-init.md][setup-monorepo-init] | Use `packages/`, `apps/` or `example/`, optional `docs/`, `scripts/`, `config/`, and `.github/workflows/` |
+| Need a recommended repo structure | [repo-structure-and-workflow.md][repo-structure-and-workflow] | Use `packages/`, `apps/` or `example/`, optional `docs/`, `scripts/`, `config/`, and `.github/workflows/` |
 | Unsure static module vs instance API | This SKILL.md | Prefer HybridObjects for native state, resources, prewarming, and zero-copy data |
 | Don't know where to start | [setup-monorepo-init.md][setup-monorepo-init] | Scaffold with `nitrogen init` |
 | Spec file syntax error | [spec-hybrid-object.md][spec-hybrid-object] | Fix `*.nitro.ts` interface |
@@ -287,9 +268,10 @@ Run: `bun example android`, `bun example ios`, `bun specs`
 | Metro can't resolve library | [example-metro-install.md][example-metro-install] | Add `watchFolders` to `metro.config.js` |
 | Version mismatch between example and package | [example-app-setup.md][example-app-setup] | Align `react-native` versions across workspaces |
 | Package missing files on npm | [spec-package-publish.md][spec-package-publish] | Fix `files` field in `package.json` |
-| Need one-command releases | [spec-package-publish.md][spec-package-publish] | Configure `release-it` behind `bun release` |
+| Need one-command releases | [release-it-publishing.md][release-it-publishing] | Configure `release-it` behind `bun release` |
 | Need a full-featured library structure | [vision-camera-golden-standard.md][vision-camera-golden-standard] | Use the VisionCamera-inspired package, API, hooks, views, and Nitro object model |
 
+[repo-structure-and-workflow]: references/repo-structure-and-workflow.md
 [setup-monorepo-init]: references/setup-monorepo-init.md
 [spec-hybrid-object]: references/spec-hybrid-object.md
 [spec-nitro-json]: references/spec-nitro-json.md
@@ -301,4 +283,5 @@ Run: `bun example android`, `bun example ios`, `bun specs`
 [example-android-config]: references/example-android-config.md
 [example-metro-install]: references/example-metro-install.md
 [spec-package-publish]: references/spec-package-publish.md
+[release-it-publishing]: references/release-it-publishing.md
 [vision-camera-golden-standard]: references/vision-camera-golden-standard.md
