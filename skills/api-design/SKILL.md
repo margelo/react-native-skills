@@ -69,7 +69,7 @@ Before choosing public API shape, dependency APIs, platform capabilities, or imp
 
 - Use sync APIs only when results are immediate, deterministic, and cheap.
 - Use `Promise` for one-shot async work. Use listener APIs, streams, or observable stores for repeated events.
-- Use sync methods only for fast in-process work, cheap object creation, cached metadata, and local transforms. Use `Promise` for permissions, hardware/session setup, I/O, capture/recording, platform async APIs, blocking work, or work that may cross a thread or process boundary.
+- Use sync methods only for fast in-process work, cheap object creation, cached metadata, and local transforms. Use `Promise` for permissions, hardware/session setup, I/O, capture/recording, platform async APIs, blocking work, native APIs that are async already, or work that may cross a thread or process boundary.
 - Benchmark ambiguous APIs. Make the method async when normal use can block visible UI work, waits on another thread/process, or has unpredictable runtime.
 - If a transform has both cheap and potentially heavy paths, expose explicit sync and async methods such as `convertX()` and `convertXAsync()` instead of hiding blocking work behind one ambiguous method.
 - Use explicit listener methods with cleanup instead of writable callback properties: `addListener(listener): Subscription`, not `onEvent?: (...) => void`.
