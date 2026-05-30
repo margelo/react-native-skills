@@ -95,14 +95,9 @@ This lets an object remain fully typed and passable from JS/TS while native code
 
 ## Type And Documentation Style
 
-- Use `interface` for structs/options and public object shapes.
-- Avoid mechanically prefixing every public type with the module name. Use the package and folder structure as namespace, and reserve prefixes for names that would otherwise be unclear.
-- Use string literal unions for domain values; avoid TypeScript runtime `enum`s unless a runtime value is required.
-- Use `readonly` for observed native state and mutable properties only for cheap, synchronous direct configuration knobs. Use async methods for settings that can fail or require native negotiation.
-- Use optional fields for defaults. Use `undefined` as "not provided"; reserve `null` for explicit "none".
-- Use structural presets with `as const satisfies Record<string, Type>` for common values while allowing user-defined values.
-- Use `Error` for JS-facing errors in callback and listener signatures.
-- Document exported specs, hooks, components, and constants with JSDoc. Every exported type-level declaration and every public property must have JSDoc. Explain domain semantics and link real related APIs with `{@linkcode ...}` or `@see`, such as `Represents the format of a {@linkcode Barcode}.` and `@see {@linkcode Barcode.format}`; avoid filler comments like "normalized for JavaScript" or implementation details like "lazy" unless they affect caller behavior. Do not invent link targets. Include `@default`, `@throws`, `@platform`, `@example`, `@see`, and performance/lifecycle notes only when they affect caller behavior.
+- Follow `api-design` for exported type shape, naming, string literal unions, optional fields, writable properties, errors, and JSDoc.
+- Keep Nitro specs explicit. Put defaults, presets, and convenience adapters in hooks or utilities when that avoids optional native branches.
+- Use package and folder structure as namespace. Add prefixes only when the unprefixed type name is ambiguous at package-root import sites.
 
 ## Publishing Pattern
 

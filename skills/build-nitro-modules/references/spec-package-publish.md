@@ -1,12 +1,12 @@
 ---
-title: Preparing the Package for npm Publishing and Releases
+title: Preparing the Package for npm Publishing
 impact: MEDIUM
-tags: package.json, npm, publish, release-it, files, author, metadata, npm-pack, podspec, changelog, github-release
+tags: package.json, npm, publish, files, author, metadata, npm-pack, podspec
 ---
 
-# Skill: Preparing the Package for npm Publishing and Releases
+# Skill: Preparing the Package for npm Publishing
 
-Covers publish metadata, npm package contents, and one-command releases with `release-it`.
+Covers publish metadata and npm package contents.
 
 ## Quick Config
 
@@ -19,8 +19,7 @@ Covers publish metadata, npm package contents, and one-command releases with `re
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsc",
-    "specs": "tsc --noEmit false && nitrogen",
-    "release": "release-it"
+    "specs": "tsc --noEmit false && nitrogen"
   },
   "files": [
     "src",
@@ -52,14 +51,12 @@ Covers publish metadata, npm package contents, and one-command releases with `re
 - Before publishing to npm for the first time
 - When consumers report missing files after installing the package
 - When `nitro.json` autolinking fails for consumers of the published package
-- When setting up `bun release` so maintainers can publish with one command
 
 ## Prerequisites
 
 - Module builds and tests pass
 - Example app runs on both Android and iOS
 - `lib/` directory exists (run the build step first)
-- `release-it` is installed and configured before the first public release
 
 ## Step-by-Step
 
@@ -157,121 +154,13 @@ npm pack --dry-run
 
 Check the output — every file listed in step 2 must appear. If `nitro.json`, `nitrogen/`, or `*.podspec` are missing, consumers' builds will fail.
 
-### 6. Configure one-command releases with release-it
-
-All releasable Nitro repos should expose one command:
+### 6. Publish
 
 ```bash
-bun release
+npm publish
 ```
 
-Use `release-it` for this. For a single-package repo, the package can run `release-it` directly and own npm publishing:
-
-```json
-{
-  "scripts": {
-    "release": "release-it"
-  },
-  "devDependencies": {
-    "@release-it/conventional-changelog": "^11.0.0",
-    "release-it": "^20.0.0"
-  },
-  "release-it": {
-    "npm": {
-      "publish": true
-    },
-    "github": {
-      "release": true
-    },
-    "plugins": {
-      "@release-it/conventional-changelog": {
-        "preset": "conventionalcommits"
-      }
-    }
-  }
-}
-```
-
-For a monorepo with multiple npm packages, release from the root with `bun release`, but keep responsibilities split:
-
-- Each package has its own `"release": "release-it"` script and package-level `release-it` config with `"npm.publish": true`, `"git": false`, and `"github.release": false`.
-- The root `"release": "./scripts/release.sh"` script runs each package release one after another, then runs root `release-it`.
-- Root `release-it` owns the version bump commit, tag, changelog, and GitHub release, with `"npm.publish": false`.
-- Root `release-it.git.requireCleanWorkingDir` must be `false`; after the first package publishes and bumps files, later package releases and root lockfile updates would otherwise fail the clean-working-tree check.
-- After the root version bump, refresh and stage lockfiles before the release commit. Run `bun install` for `bun.lock`, and run the example app's bundle/pod install so `Podfile.lock` is current. Otherwise the next `bun install` or `pod install` produces avoidable uncommitted diffs.
-
-Root script pattern:
-
-```bash
-#!/bin/bash
-set -e
-
-for pkg in packages/*; do
-  [ -d "$pkg" ] || continue
-  (cd "$pkg" && bun release "$@")
-done
-
-bun run release-it "$@"
-```
-
-Root release config shape:
-
-```json
-{
-  "scripts": {
-    "release": "./scripts/release.sh"
-  },
-  "devDependencies": {
-    "@release-it/bumper": "^7.0.0",
-    "@release-it/conventional-changelog": "^11.0.0",
-    "release-it": "^20.0.0"
-  },
-  "release-it": {
-    "npm": {
-      "publish": false
-    },
-    "git": {
-      "commitMessage": "chore: release ${version}",
-      "tagName": "v${version}",
-      "requireCleanWorkingDir": false
-    },
-    "github": {
-      "release": true
-    },
-    "hooks": {
-      "before:release": "bun install && bun run build && bun specs",
-      "after:bump": "bun install && git add bun.lock && bun example bundle-install && bun example pods && git add example/ios/Podfile.lock"
-    },
-    "plugins": {
-      "@release-it/bumper": {
-        "out": [
-          {
-            "file": "packages/react-native-math/package.json",
-            "path": "version"
-          },
-          {
-            "file": "example/package.json",
-            "path": "version"
-          }
-        ]
-      },
-      "@release-it/conventional-changelog": {
-        "preset": "conventionalcommits"
-      }
-    }
-  }
-}
-```
-
-Adapt the lockfile hook to the chosen example layout, such as `apps/example/ios/Podfile.lock` instead of `example/ios/Podfile.lock`. If pod installs are expensive or conditional, put the lockfile refresh in a small `scripts/try-install-lockfiles.sh` helper and call it from `after:bump`.
-
-### 7. Publish
-
-```bash
-bun release
-```
-
-Do not ask maintainers to remember separate npm publish, tag, changelog, and GitHub release commands. Package npm releases should happen first; the root Git commit, tag, changelog, and GitHub release happen afterward.
+For one-command release automation, use [release-it-publishing.md](release-it-publishing.md).
 
 ## Code Examples
 
@@ -306,8 +195,7 @@ Do not ask maintainers to remember separate npm publish, tag, changelog, and Git
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsc",
-    "specs": "tsc --noEmit false && nitrogen",
-    "release": "release-it"
+    "specs": "tsc --noEmit false && nitrogen"
   },
   "files": [
     "src",
@@ -355,13 +243,11 @@ babel.config.js
 - **Missing `nitrogen` in `files`** — Consumers' native builds will fail because the generated C++ glue and autolinking files are absent
 - **Missing `nitro.json` in `files`** — Autolinking won't work for consumers; they'll get "native module not found" errors
 - **Publishing before building** — `lib/` must be populated before publishing; build first
-- **No one-command release** — Always alias releases to `bun release`; do not leave maintainers with separate publish, tag, changelog, and GitHub release steps
-- **Root clean-working-tree checks in monorepos** — Set root `release-it.git.requireCleanWorkingDir` to `false` when package releases run before the root release commit
-- **Stale lockfiles after version bumps** — Refresh and stage `bun.lock` and the example app's `Podfile.lock` before root `release-it` creates the release commit
 - **Missing `*.podspec` in `files`** — iOS consumers won't be able to run `pod install`. The VisionCamera-style pattern is a root podspec, not one hidden under `ios/`.
 - **Incorrect `types` path** — Points to a file that doesn't exist after build. VisionCamera-style packages use `lib/index.d.ts` when `build` emits a flat `lib/index`.
 
 ## Related Skills
 
-- [setup-monorepo-init.md](setup-monorepo-init.md) — Review the original scaffold structure
+- [setup-monorepo-init.md](setup-monorepo-init.md) — Review the Nitrogen scaffold
 - [spec-nitro-json.md](spec-nitro-json.md) — Ensure `nitro.json` is complete before publishing
+- [release-it-publishing.md](release-it-publishing.md) — Configure `bun release` with `release-it`
