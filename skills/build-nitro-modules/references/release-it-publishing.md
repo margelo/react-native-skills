@@ -16,7 +16,7 @@ Use `release-it`. Do not require maintainers to remember separate npm publish, t
 
 ## Single Package
 
-For a single-package repo, the package can run `release-it` directly and own npm publishing:
+For a single-package repo where the root package is the publishable package, the package can run `release-it` directly and own npm publishing:
 
 ```json
 {
@@ -45,13 +45,13 @@ For a single-package repo, the package can run `release-it` directly and own npm
 
 ## Multiple Packages
 
-For multiple npm packages, release from the root with `bun release`:
+For workspaces, release from the root with `bun release`. Use this pattern for multiple publishable packages, and also for one publishable package inside `packages/` when the root needs to version examples, changelogs, tags, GitHub releases, or lockfiles:
 
 - Each package has `"release": "release-it"` and package-level `release-it` config with `"npm.publish": true`, `"git": false`, and `"github.release": false`.
 - The root `"release": "./scripts/release.sh"` script runs each package release sequentially, then runs root `release-it`.
 - Root `release-it` owns the version bump commit, tag, changelog, and GitHub release, with `"npm.publish": false`.
 - Root `release-it.git.requireCleanWorkingDir` must be `false`; package releases and lockfile updates create diffs before the root release commit.
-- After the root version bump, refresh and stage lockfiles before the release commit. Run `bun install` for `bun.lock`, and run the example app's bundle/pod install so `Podfile.lock` is current.
+- After the root version bump and before the release commit, refresh and stage lockfiles. Run `bun install` for `bun.lock`, and run the example app's bundle/pod install so `Podfile.lock` is current. Use the `release-it` hook that runs in that window for the repo, such as `after:bump` or `before:git`.
 
 Root script pattern:
 
@@ -122,5 +122,5 @@ Adapt the lockfile hook to the actual example layout, such as `example/ios/Podfi
 
 - **No `bun release` alias** — Releases must use one command.
 - **Root clean-working-tree checks in monorepos** — Set root `release-it.git.requireCleanWorkingDir` to `false` when package releases run before the root release commit.
-- **Stale lockfiles after version bumps** — Refresh and stage `bun.lock` and the example app's `Podfile.lock` before root `release-it` creates the release commit.
+- **Stale lockfiles after version bumps** — Refresh and stage `bun.lock` and the example app's `Podfile.lock` after the root bump and before root `release-it` creates the release commit.
 - **Mixed responsibilities** — Package release configs publish npm packages. Root release config creates the git commit, tag, changelog, and GitHub release.

@@ -53,7 +53,8 @@ For apps, use a real RN app. Prefer `apps/<name>` when multiple examples are nee
 - Keep the generated spec/interface name descriptive, such as `CameraFactory`, and keep the `createHybridObject(...)` key matching `nitro.json`. Only the JS value export gets the product/domain name.
 - Export all public specs and common types from `src/index.ts` so users can type advanced integrations.
 - Give each primary HybridObject its own `.nitro.ts` file. Keep an inheritance family in one `.nitro.ts` file only when the file is named after the base HybridObject and child HybridObjects add few or no members.
-- Put enums, literal unions, structs, option interfaces, event interfaces, callback types, and helper types in focused `.ts` files under folders such as `src/specs/common-types/`, `src/specs/outputs/`, `src/specs/instances/`, or a domain-specific folder. Import them into `.nitro.ts` specs and re-export public types from `src/index.ts`.
+- Put named codegen types in focused `.ts` files: string-literal unions/enums, structs/interfaces, option objects, event objects, callback option structs, and helper types. Nitro needs names for generated native structs and enum-like values. Import them into `.nitro.ts` specs and re-export public types from `src/index.ts`.
+- Inline simple function callbacks in method signatures. Do not create one-off aliases such as `ItemsChangedListener` or `ScannerErrorListener` unless the function type is reused as a public concept across multiple APIs.
 - Group multiple helper types in one file only when they form one tightly coupled logical construct, such as a public interface plus the exact literal unions that define it.
 - Layer hooks and React components over the imperative core; do not make hooks the only API.
 - Put domain defaults and convenience in hooks/utilities, while keeping Nitro specs explicit.
@@ -75,6 +76,8 @@ One JS-facing HybridObject spec can have multiple first-party native implementat
 
 Objects returned from factories should be ready for normal use. If construction requires async native setup or validation, make the factory method return `Promise<Thing>` instead of exposing a separate `prepareThing()` step on the returned object.
 
+Treat cross-platform configuration as capability negotiation, not a platform-specific validator. Reject invalid values and required behavior that cannot be delivered. Do not reject optional preferences such as quality, guidance UI, high-frame-rate hints, auto-zoom, or region tuning when the feature can still perform its core job without them. Expose capabilities or resolved state when callers need to know what actually applied.
+
 Mix C++ and Swift/Kotlin HybridObjects in the same library. Use C++ for hot/shared pipelines such as frame processors, OpenCV, ML, image/audio processing, compression, or storage engines, while Swift/Kotlin HybridObjects own camera/session APIs, permissions, platform paths, file writes, or OS integration. C++ can accept a Swift/Kotlin-implemented HybridObject and call its generated C++ spec API; the public spec is the boundary.
 
 ## Native Extension Points
@@ -95,8 +98,9 @@ This lets an object remain fully typed and passable from JS/TS while native code
 - Use sync methods for cheap local native object construction, metadata queries, coordinate transforms, and same-thread operations.
 - Use `Promise` for permissions, session creation, configuration, start/stop, capture, recording, platform async APIs, I/O, and heavy transforms.
 - Provide sync and async variants only when both are genuinely useful, for example a blocking conversion and an async conversion.
-- Use `addOn...Listener(...): ListenerSubscription` for repeated events. The subscription owns cleanup through `remove(): void`, should be a flat interface unless it exposes native state beyond cleanup, and must not expose numeric listener IDs or `removeListener(listenerId)` APIs.
-- Use callback structs for one-shot operation progress callbacks, such as capture or recording callbacks.
+- Inline simple listener callbacks in method signatures, for example `addErrorListener(listener: (error: Error) => void): ListenerSubscription`.
+- Use `addOn...Listener(...): ListenerSubscription` for repeated events. The subscription owns cleanup through a `remove: () => void` function field, should be a flat interface unless it exposes native state beyond cleanup, and must not expose numeric listener IDs or `removeListener(listenerId)` APIs. Call sites still use `subscription.remove()`.
+- Use named option structs for one-shot operations that bundle progress callbacks, such as capture or recording options.
 - Use `setOn...Callback(callback | undefined)` for a single replaceable hot-path callback owned by an output object.
 - Use `Sync<(...) => ...>` only for thread-bound hot paths where JS must run synchronously on a specific runtime or worklet thread.
 

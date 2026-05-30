@@ -40,6 +40,7 @@ Before choosing public API shape, dependency APIs, platform capabilities, or imp
 - Do not expose ambient facts the caller already knows, such as a `platform` field that only repeats `Platform.OS`, unless the API can return data produced by a different platform than the current runtime.
 - Do not freeze today's platform support matrix into the type shape. Prefer runtime capability fields such as `availableTextTypes: []` or `supportedFormats: []` over separate platform-specific types or static exclusions. This lets newer native capabilities become available without redesigning the JS API.
 - Prefer one unified options object. Avoid `ios`/`android` option bags and platform-prefixed methods unless the concepts are genuinely platform-only and cannot be described as a cross-platform capability or no-op.
+- Classify configuration fields as either requirements or preferences. Throw when a requirement cannot be met. Treat preferences as best-effort when the feature can still perform its core job, such as quality, guidance UI, high-frame-rate tracking, auto-zoom, or a wider scan area. Document best-effort fields and expose capabilities or resolved configuration when callers need to know what was applied.
 - Do not return half-initialized objects that require a separate `prepare()`, `initialize()`, or `load()` call before normal use. If setup is required, make the factory async and resolve with a ready object. Keep lifecycle methods for real repeatable transitions such as `start()`/`stop()`, not construction readiness.
 - For larger libraries, expose one small public root or factory that creates stateful domain objects. Keep object construction, async setup, I/O, and validation behind factory methods instead of forcing callers through static functions or half-ready instances.
 - Return `undefined` only for normal domain absence, and document exactly when it occurs. Do not use optional returns as an unstated error path; throw or reject when an operation fails.
@@ -69,10 +70,11 @@ Before choosing public API shape, dependency APIs, platform capabilities, or imp
 - Use sync APIs only when results are immediate, deterministic, and cheap.
 - Use `Promise` for one-shot async work. Use listener APIs, streams, or observable stores for repeated events.
 - Use sync methods only for fast in-process work, cheap object creation, cached metadata, and local transforms. Use `Promise` for permissions, hardware/session setup, I/O, capture/recording, platform async APIs, blocking work, or work that may cross a thread or process boundary.
-- Benchmark ambiguous APIs. Make the method async if it takes longer than roughly 50ms in normal use.
+- Benchmark ambiguous APIs. Make the method async when normal use can block visible UI work, waits on another thread/process, or has unpredictable runtime.
 - If a transform has both cheap and potentially heavy paths, expose explicit sync and async methods such as `convertX()` and `convertXAsync()` instead of hiding blocking work behind one ambiguous method.
 - Use explicit listener methods with cleanup instead of writable callback properties: `addListener(listener): Subscription`, not `onEvent?: (...) => void`.
-- Listener registration must return the cleanup handle. Avoid `addListener(...): number` plus `removeListener(listenerId: number)` because caller-managed IDs are easy to leak, hard to type safely, and force hidden global/static listener tables. Prefer a flat subscription object with an idempotent `remove(): void` method that owns the native or internal cleanup.
+- Inline simple listener callback parameters in method signatures. Export a named callback type only when users import it directly, the same function contract is reused across multiple APIs, or the callback has a real domain meaning beyond being a listener function.
+- Listener registration must return the cleanup handle. Avoid `addListener(...): number` plus `removeListener(listenerId: number)` because caller-managed IDs are easy to leak, hard to type safely, and force hidden global/static listener tables. Prefer a flat subscription object with an idempotent `remove` function that owns the native or internal cleanup.
 - Use callback option objects for one-shot operation progress when callbacks belong to one method call, such as capture or upload progress callbacks.
 - Do not expose native-side bookkeeping as the event contract unless it is the feature. Prefer simple observations and let JS derive app-specific diffs or state when that is cheap and clearer.
 - In React or React Native libraries, provide hooks on top of a stable imperative API when the value should drive UI. Use the appropriate React primitive, such as `useEffect` for subscriptions or `useSyncExternalStore` for external state.
@@ -84,7 +86,9 @@ Before choosing public API shape, dependency APIs, platform capabilities, or imp
 
 - Never silently swallow user-reachable errors. Do not just return, log, or no-op. Throw, reject, or emit through a dedicated error listener.
 - Use real JavaScript `Error` objects for failures and error events, not custom `{ code, message }` structs, unless the API is deliberately serializing errors across a boundary that cannot preserve prototypes.
-- Unsupported capabilities or platforms should throw specific errors. Name the missing capability, invalid value, valid range, or platform restriction.
+- Unsupported required capabilities or invalid inputs should throw specific errors. Name the missing capability, invalid value, valid range, or platform restriction.
+- Do not throw only because one platform ignores an optional preference that another platform supports. If ignoring it does not break the user's requested outcome, degrade gracefully and let capability/resolved-state APIs show whether it took effect.
+- Throw when ignoring an option would violate the user's intent, safety, privacy, or visible correctness. For example, a required flash mode should fail on hardware without flash; a best-effort quality hint can fall back.
 - Mention an alternative in the error message when a real alternative exists.
 - Static assertions or fatal errors are only for impossible internal states, not for states reachable from JS user code.
 - For React Native, design cross-platform concepts instead of mirroring iOS and Android APIs 1:1. Avoid leaking native class names or framework details unless that low-level access is the feature.
@@ -104,7 +108,8 @@ Before choosing public API shape, dependency APIs, platform capabilities, or imp
 
 ## Documentation Contracts
 
-- Treat exported TypeScript as product documentation. Add JSDoc to every exported type-level declaration, including interfaces, type aliases, string-literal unions, runtime enums, classes, HybridObjects, callbacks, option objects, event objects, hooks, components, and public constants.
+- Treat exported TypeScript as product documentation. Add JSDoc to every exported declaration users import, including interfaces, type aliases, string-literal unions, runtime enums, classes, HybridObjects, option objects, event objects, hooks, components, and public constants.
+- Do not create exported callback aliases only to attach JSDoc. Inline simple callback parameters and document the method or parameter that accepts them. Export and document a callback type only when it is intentionally part of the public API.
 - Use JSDoc for semantics, lifecycle, platform behavior, defaults, and performance costs that types cannot express.
 - Keep JSDoc user-facing. Do not mention native class names, framework implementation details, or current platform limitations unless the caller must know them to use the API correctly.
 - Write JSDoc that explains the domain meaning, not the fact that the API is JavaScript. Avoid empty comments such as "normalized for JavaScript"; prefer concrete semantics such as "Represents the format of a barcode" or "Represents the content type of a scanned text value."

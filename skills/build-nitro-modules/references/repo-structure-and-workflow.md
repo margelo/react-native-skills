@@ -39,7 +39,7 @@ Use this when creating a new repo, reorganizing a repo, adding examples/docs/CI,
 - Prefer Bun commands: `bun install`, `bun run`, `bun --cwd`, and `bunx`. Use `npx` only when Bun cannot run the tool.
 - Add `.github/workflows/` for CI validation. Start with TypeScript/build checks, then add JS/native lint jobs when the codebase is mature enough to justify them.
 - Do not add Husky, commitlint, lint-staged, pre-commit hooks, pre-push hooks, or `prepare` scripts that install hooks. Validation belongs in CI.
-- Avoid `patch-package`, postinstall rewrites, monkeypatching, and workaround layers. Fix package layout, autolinking, generated config, official extension points, or upstream issues first.
+- Avoid `patch-package`, postinstall rewrites, monkeypatching, and workaround layers. Fix package layout, autolinking, generated config, official extension points, or upstream issues first. If a patch is unavoidable, keep it narrow, link the upstream issue or PR, and remove it once the root cause is fixed.
 - Work on a separate branch and open a draft PR early so CI can run while local work continues.
 - Use squash merges for `main`.
 - After initial release or after major rewrites settle, keep PRs atomic unless changes are tightly coupled.
@@ -90,5 +90,5 @@ Start with:
 - **Root pollution** — Move config into `config/` when tools support it.
 - **Two example locations** — Use either `apps/example` or `example/`, not both.
 - **Hook frameworks** — Do not add commit/push hooks; use CI.
-- **Patch layers** — Avoid patches and postinstall rewrites; fix the root cause.
+- **Patch layers** — Avoid patches and postinstall rewrites; when temporary patches are unavoidable, track the upstream fix and keep the patch isolated.
 - **Late PRs** — Open a draft PR early so CI runs while implementation continues.

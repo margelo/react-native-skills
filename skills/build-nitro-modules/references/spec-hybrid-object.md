@@ -24,13 +24,21 @@ import type { HybridObject } from 'react-native-nitro-modules'
 
 /**
  * Performs fast native math operations.
+ *
+ * @see {@linkcode Math.add}
  */
 export interface Math extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
   /**
    * Adds two numbers synchronously.
    */
   add(a: number, b: number): number
+  /**
+   * Subtracts the second number from the first.
+   */
   subtract(a: number, b: number): number
+  /**
+   * Multiplies two numbers asynchronously.
+   */
   multiply(a: number, b: number): Promise<number>
 }
 ```
@@ -71,7 +79,8 @@ For non-trivial modules, split specs and shared types into focused files instead
 File boundary rules:
 - Each primary HybridObject gets its own `.nitro.ts` file.
 - Keep an inheritance family in one `.nitro.ts` file only when the file is named after the base HybridObject and child HybridObjects add few or no members.
-- Put enums, literal unions, structs, option interfaces, event interfaces, callback types, and helper types in their own `.ts` files under focused folders such as `src/specs/common-types/`, `src/specs/barcodes/`, or another domain folder.
+- Put named codegen types in their own `.ts` files: string-literal unions/enums, structs/interfaces, option objects, event objects, callback option structs, and helper types. Nitro needs names for generated native structs and enum-like values.
+- Inline simple function callbacks in method signatures. Do not create one-off aliases such as `ItemsChangedListener` or `ScannerErrorListener` unless the function type is reused as a public concept across multiple APIs.
 - Import helper types into `.nitro.ts` specs instead of defining them inline.
 - Re-export public spec types and helper types from `src/index.ts`.
 - Group multiple helper types in one file only when they form one tightly coupled logical construct and are rarely imported independently.
@@ -166,8 +175,10 @@ export type { Math } from './specs/Math.nitro'
 - For larger libraries, create one autolinked factory/root object and return other stateful HybridObjects from factory methods instead of autolinking every object.
 - Do not put a HybridObject and all related enums, options, results, events, and helper structs in one `.nitro.ts` file. Split them into focused files and import them.
 - If creating a returned object requires setup, I/O, permission checks, or validation that can fail, make the factory method async and return a ready object. Do not expose `prepare()`/`initialize()` methods that callers must remember before normal use.
-- Add JSDoc to every exported spec interface, type alias, string-literal union, callback, options struct, event struct, HybridObject, and public property. Type-level comments must describe domain meaning and link to a real related type or member with `{@linkcode ...}` or `@see`, for example `Represents the format of a {@linkcode Barcode}.` and `@see {@linkcode Barcode.format}`. Do not invent link targets.
-- Listener methods must return a flat subscription object with `remove(): void`. Do not make the subscription a HybridObject unless it exposes native state beyond cleanup. Do not expose numeric listener IDs or `removeListener(listenerId)` methods.
+- Model cross-platform options as requirements or best-effort preferences. Required behavior may throw when unsupported; optional preferences should degrade when the feature can still perform its core job. Surface support through capabilities or resolved configuration instead of forcing app code into `Platform.OS` branches.
+- Add JSDoc to every exported spec interface, type alias, string-literal union, options struct, event struct, HybridObject, and public property. Type-level comments must describe domain meaning and link to a real related type or member with `{@linkcode ...}` or `@see`, for example `Represents the format of a {@linkcode Barcode}.` and `@see {@linkcode Barcode.format}`. Do not invent link targets.
+- Do not create exported callback aliases only to attach JSDoc. For listener methods, inline the callback type and document the listener method or parameter.
+- Listener methods must return a flat subscription object with `remove: () => void`. Do not make the subscription a HybridObject unless it exposes native state beyond cleanup. Do not expose numeric listener IDs or `removeListener(listenerId)` methods. Call sites still use `subscription.remove()`.
 
 ## Code Examples
 
@@ -177,7 +188,10 @@ export type { Math } from './specs/Math.nitro'
 import type { HybridObject } from 'react-native-nitro-modules'
 
 export interface ListenerSubscription {
-  remove(): void
+  /**
+   * Removes the listener owned by this subscription.
+   */
+  remove: () => void
 }
 
 export interface Camera extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {

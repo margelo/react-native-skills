@@ -42,7 +42,8 @@ Load [release-it-publishing.md][release-it-publishing] only when setting up or r
 - Keep each HybridObject scoped to one purpose or lifecycle.
 - Treat HybridObjects as primary API objects. Each primary HybridObject gets its own `.nitro.ts` file.
 - Keep an inheritance family in one `.nitro.ts` file only when the file is named after the base HybridObject and child HybridObjects add few or no members, such as `ScannedCode`, `ScannedBarcode`, and `ScannedQRCode` in `ScannedCode.nitro.ts`.
-- Put enums, literal unions, structs, option interfaces, event interfaces, callback types, and helper types in their own `.ts` files under focused folders such as `src/specs/common-types/`, `src/specs/barcodes/`, or another domain folder. Import them into `.nitro.ts` specs and re-export public types from `src/index.ts`.
+- Put named codegen types in their own `.ts` files: string-literal unions/enums, structs/interfaces, option objects, event objects, callback option structs, and helper types. Nitro needs names for generated native structs and enum-like values. Import them into `.nitro.ts` specs and re-export public types from `src/index.ts`.
+- Inline simple function callbacks in method signatures, for example `addErrorListener(listener: (error: Error) => void): ListenerSubscription`. Do not create one-off aliases such as `ScannerErrorListener` unless the function type is reused as a public concept across multiple APIs.
 - Group multiple helper types in one file only when they form one tightly coupled logical construct, such as `DynamicRange` plus the exact literal unions that define it.
 - Use HybridObject inheritance for shared native state plus specialized result shapes. Put shared properties such as IDs, bounds, raw values, formats, and value types on the base object instead of repeating them on every subtype.
 - Use HybridObject inheritance for heterogeneous native result families. Example: `ScannedItem` owns common state and methods, while `ScannedBarcode`, `ScannedQRCode`, and `ScannedFace` extend it with specialized properties. APIs can return `ScannedItem[]`; JS narrows by a discriminator property, and native code can accept the generated base spec when it only needs common behavior.
@@ -53,7 +54,7 @@ Load [release-it-publishing.md][release-it-publishing] only when setting up or r
 - Do not model high-volume native results, parsed payloads, images, buffers, or objects with many optional expensive fields as flat structs. Nitro structs are eagerly converted, so prefer stateful HybridObjects with lazy properties or methods for data the caller may never read.
 - Use `ArrayBuffer` for small or truly zero-copy native data access. For large media, photos, scans, model outputs, or byte payloads, return a HybridObject and expose lazy methods such as `toArrayBuffer()`, `toBase64()`, or `saveToTemporaryFile()` instead of eagerly converting bytes into JS.
 - Keep raw native state behind HybridObjects when conversion cost matters. For example, a native barcode/photo/result object can expose `rawValue`, `bounds`, `format`, or byte data lazily instead of converting every field for every detection.
-- Listener subscriptions should be flat structs, not HybridObjects, unless they expose native state beyond cleanup.
+- Listener subscriptions should be flat structs with a `remove: () => void` function field, not HybridObjects, unless they expose native state beyond cleanup. Call sites still use `subscription.remove()`.
 - Use `setOn...Callback(callback | undefined)` only for single hot-path callbacks owned by an object, where replacing or removing the callback is the natural operation.
 - Use `Sync<(...) => ...>` callbacks only for rare thread-bound hot paths that must synchronously execute on a specific JS runtime or worklet thread.
 - For Nitro Views, expose the raw `getHostComponent` wrapper. Add React components or hooks only when they remove repeated setup code while staying layered over the same native objects and refs.
@@ -61,11 +62,12 @@ Load [release-it-publishing.md][release-it-publishing] only when setting up or r
 
 ## Nitro Native Implementation Rules
 
-- Check minimum requirements before debugging weird build failures: Nitro requires React Native 0.75+, Xcode 16.4+, Swift 5.9+, Android compileSdkVersion 34+, and NDK 27+. Nitro Views require React Native 0.78+ and the New Architecture.
+- Check Nitro's current minimum requirements before debugging weird build failures. Current Nitro docs list React Native 0.75+, Xcode 16.4+, Swift 5.9+, Android `compileSdkVersion` 34+, and NDK 27+; Nitro Views currently require React Native 0.78+ and the New Architecture.
 - Every native HybridObject implementation must implement or inherit from the generated `Hybrid*Spec` for that platform. Never implement a standalone native class and expect Nitro to discover it.
 - Make native implementation classes `final` by default unless inheritance is genuinely required. This is especially true for Swift and Kotlin HybridObjects.
 - Keep top-level native types in separate files. Nest only truly local private helpers.
-- Do not silently swallow errors or unsupported platform behavior. Throw, reject a Promise, or emit through an explicit error callback/listener.
+- Validate invalid inputs and required unsupported behavior early. Do not reject cross-platform configuration just because the current native backend ignores an optional preference. If the operation still does its core job, ignore or degrade the preference and report support through capabilities or resolved state.
+- Do not silently swallow real failures. Throw, reject a Promise, or emit through an explicit error callback/listener when the requested outcome cannot be delivered.
 - Prefer Nitro/runtime errors or language-native exceptions that surface cleanly to JS. Avoid Objective-C-style `NSError` public paths unless the generated API specifically requires it.
 - For Android context access, use `NitroModules.applicationContext` lazily and throw a clear error if it is unavailable.
 - Use `Promise.parallel` for thread-pool work and `Promise.async` for async/coroutine-style work according to the native threading model.
