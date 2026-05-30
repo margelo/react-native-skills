@@ -98,11 +98,12 @@ Before choosing public API shape, dependency APIs, platform capabilities, or imp
 
 ## Documentation Contracts
 
-- Treat exported TypeScript as product documentation. Add JSDoc to public interfaces, option objects, callbacks, hooks, components, and important constants.
+- Treat exported TypeScript as product documentation. Add JSDoc to every exported type-level declaration, including interfaces, type aliases, string-literal unions, runtime enums, classes, HybridObjects, callbacks, option objects, event objects, hooks, components, and important constants.
 - Prefer precise JSDoc over clever type gymnastics when the user needs semantics, lifecycle, platform behavior, defaults, or performance tradeoffs explained.
 - Keep JSDoc user-facing. Do not mention native class names, framework implementation details, or current platform limitations unless the caller must know them to use the API correctly.
 - Write JSDoc that explains the domain meaning, not the fact that the API is JavaScript. Avoid empty comments such as "normalized for JavaScript"; prefer concrete semantics such as "Represents the format of a barcode" or "Represents the content type of a scanned text value."
-- Document every option and capability property unless it is truly self-explanatory, such as `x` and `y` on a point. Defaults, units, availability, failure behavior, and interaction with related options belong on the property that exposes them.
+- Document every public property, including properties on options, capabilities, results, events, and HybridObjects. Short comments are fine for obvious fields, but defaults, units, availability, failure behavior, and interaction with related options belong on the property that exposes them.
+- Every type-level JSDoc should connect the type to a related API with `{@linkcode ...}` or `@see` when there is any natural relationship. For example: `Represents the format of a {@linkcode Barcode}.` plus `@see {@linkcode Barcode.format}`.
 - For base interfaces or abstract concepts, describe how callers encounter the value and link important concrete variants, for example `Represents a value scanned by {@linkcode DataScanner}. Concrete values include {@linkcode ScannedTextValue} and {@linkcode ScannedBarcodeValue}.`
 - Use `{@linkcode ...}` or `@see` to point to related methods, configuration objects, and capability checks instead of writing vague warnings about not assuming the current OS or platform.
 - Use `@default`, `@throws`, `@platform`, `@example`, `@see`, and `@discussion` where they clarify behavior. Link related APIs with `{@linkcode ...}`.

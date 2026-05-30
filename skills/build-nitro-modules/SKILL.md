@@ -78,7 +78,7 @@ Use these defaults when creating or reorganizing a Nitro Module repo, unless the
 - Put ergonomic defaults and convenience shaping in TypeScript when that keeps the native Nitro spec simpler and more explicit. For example, normalize optional options in TS before calling a stricter native method.
 - Preserve React Native's cross-platform abstraction. Do not expose AVFoundation, Android framework, or platform-specific class names in public APIs unless direct low-level access is the point.
 - For Nitro Views, expose the raw `getHostComponent` wrapper plus higher-level React components or hooks when they materially improve ergonomics. Keep them layered over the same native objects and refs.
-- Document Nitro public specs heavily with JSDoc. Include lifecycle, defaults, platform availability, performance costs, disposal requirements, and examples directly on exported interfaces.
+- Document Nitro public specs heavily with JSDoc. Every exported spec interface, type alias, string-literal union, callback, options struct, event struct, and HybridObject must have type-level JSDoc, and every public property must have property-level JSDoc. Explain domain meaning and link related APIs with `{@linkcode ...}` or `@see`, such as `Represents the format of a {@linkcode Barcode}.` and `@see {@linkcode Barcode.format}`. Include lifecycle, defaults, platform availability, performance costs, disposal requirements, and examples where they affect caller behavior.
 
 ## Nitro Native Implementation Rules
 

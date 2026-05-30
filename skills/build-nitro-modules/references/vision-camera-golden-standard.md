@@ -102,7 +102,7 @@ This lets an object remain fully typed and passable from JS/TS while native code
 - Use optional fields for defaults. Use `undefined` as "not provided"; reserve `null` for explicit "none".
 - Use structural presets with `as const satisfies Record<string, Type>` for common values while allowing user-defined values.
 - Use `Error` for JS-facing errors in callback and listener signatures.
-- Heavily document exported specs, hooks, components, and constants with JSDoc. Explain domain semantics and link related APIs with `{@linkcode ...}` or `@see`; avoid filler comments like "normalized for JavaScript" or implementation details like "lazy" unless they affect caller behavior. Include `@default`, `@throws`, `@platform`, `@example`, `@see`, and performance/lifecycle notes where relevant.
+- Heavily document exported specs, hooks, components, and constants with JSDoc. Every exported type-level declaration and every public property should have JSDoc. Explain domain semantics and link related APIs with `{@linkcode ...}` or `@see`, such as `Represents the format of a {@linkcode Barcode}.` and `@see {@linkcode Barcode.format}`; avoid filler comments like "normalized for JavaScript" or implementation details like "lazy" unless they affect caller behavior. Include `@default`, `@throws`, `@platform`, `@example`, `@see`, and performance/lifecycle notes where relevant.
 
 ## Publishing Pattern
 
