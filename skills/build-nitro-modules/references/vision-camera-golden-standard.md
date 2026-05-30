@@ -52,7 +52,9 @@ For apps, use a real RN app. Prefer `apps/<name>` when multiple examples are nee
 - Name the runtime factory export as a product/domain object, not as the spec type. VisionCamera uses `VisionCamera = createHybridObject<CameraFactory>('CameraFactory')`; Nitro Image uses `Images = createHybridObject<ImageFactory>('ImageFactory')`.
 - Keep the generated spec/interface name descriptive, such as `CameraFactory`, and keep the `createHybridObject(...)` key matching `nitro.json`. Only the JS value export gets the product/domain name.
 - Export all public specs and common types from `src/index.ts` so users can type advanced integrations.
-- Keep specs and public types split by domain. Prefer focused files under `src/specs/common-types/`, `src/specs/outputs/`, `src/specs/instances/`, and similar folders over one large file that contains every option, result, and helper type.
+- Give each primary HybridObject its own `.nitro.ts` file. Keep an inheritance family in one `.nitro.ts` file only when the file is named after the base HybridObject and child HybridObjects add few or no members.
+- Put enums, literal unions, structs, option interfaces, event interfaces, callback types, and helper types in focused `.ts` files under folders such as `src/specs/common-types/`, `src/specs/outputs/`, `src/specs/instances/`, or a domain-specific folder. Import them into `.nitro.ts` specs and re-export public types from `src/index.ts`.
+- Group multiple helper types in one file only when they form one tightly coupled logical construct, such as a public interface plus the exact literal unions that define it.
 - Layer hooks and React components over the imperative core; do not make hooks the only API.
 - Put domain defaults and convenience in hooks/utilities, while keeping Nitro specs explicit.
 - Provide native host components for low-level control. Add higher-level React components only when they remove repeated setup code.

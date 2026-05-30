@@ -46,8 +46,9 @@ Before choosing public API shape, dependency APIs, platform capabilities, or imp
 
 ## Public API Organization
 
-- Split large public surfaces into focused files or modules and re-export them from a clear package entry point. A single 600-line type/spec file is a code smell when the types can be grouped by domain, such as barcode formats, scanned values, configuration, capabilities, and subscriptions.
-- Co-locate tightly related types, but avoid catch-all files that force users and maintainers to scroll through unrelated concepts.
+- Split public surfaces into focused files or modules and re-export them from a clear package entry point. Do not create catch-all files that contain a feature's main object plus every enum, option, result, event, and helper type.
+- Default to one exported public type per file. Group multiple exported types in one file only when they form one tightly coupled logical construct and are rarely imported independently, such as a `DynamicRange` type plus the exact literal unions that define it.
+- A 600-line type/spec file is not acceptable when the types can be split by concept, such as barcode formats, scanned values, configuration, capabilities, and subscriptions.
 - Put shared fields and methods on a base interface or class. Subtypes should add only the members that are specific to that subtype, not repeat fields such as `format`, `valueType`, `id`, or `bounds` across every concrete variant.
 - Keep performance and implementation strategy out of the public shape unless it changes how the caller should use the API. For example, the API may expose an explicit conversion method, but names and docs should not advertise internal details like "lazy", "lightweight", or "normalized" unless that behavior is directly observable.
 

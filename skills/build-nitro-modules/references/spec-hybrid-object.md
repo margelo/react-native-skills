@@ -66,7 +66,15 @@ Name it after the module's domain: `Math.nitro.ts`, `Camera.nitro.ts`, `Crypto.n
 touch packages/react-native-math/src/specs/Math.nitro.ts
 ```
 
-For non-trivial modules, split specs and shared types into focused files instead of one large catch-all file. Keep one `.nitro.ts` file per major HybridObject or domain, put common structs/unions in folders such as `src/specs/common-types/`, and re-export public types from `src/index.ts`.
+For non-trivial modules, split specs and shared types into focused files instead of one large catch-all file.
+
+File boundary rules:
+- Each primary HybridObject gets its own `.nitro.ts` file.
+- Keep an inheritance family in one `.nitro.ts` file only when the file is named after the base HybridObject and child HybridObjects add few or no members.
+- Put enums, literal unions, structs, option interfaces, event interfaces, callback types, and helper types in their own `.ts` files under focused folders such as `src/specs/common-types/`, `src/specs/barcodes/`, or another domain folder.
+- Import helper types into `.nitro.ts` specs instead of defining them inline.
+- Re-export public spec types and helper types from `src/index.ts`.
+- Group multiple helper types in one file only when they form one tightly coupled logical construct and are rarely imported independently.
 
 ### 3. Write the interface
 
@@ -125,6 +133,7 @@ export type { Math } from './specs/Math.nitro'
 - Prefer naming native classes with the `Hybrid` prefix: `HybridMath`
 - Keep both the interface name and the autolinking key the same (e.g. `Math` = `'Math'`)
 - For larger libraries, create one autolinked factory/root object and return other stateful HybridObjects from factory methods instead of autolinking every object.
+- Do not put a HybridObject and all related enums, options, results, events, and helper structs in one `.nitro.ts` file. Split them into focused files and import them.
 - If creating a returned object requires setup, I/O, permission checks, or validation that can fail, make the factory method async and return a ready object. Do not expose `prepare()`/`initialize()` methods that callers must remember before normal use.
 - Add JSDoc to every exported spec interface, type alias, string-literal union, callback, options struct, event struct, HybridObject, and public property. Type-level comments must describe domain meaning and link to a real related type or member with `{@linkcode ...}` or `@see`, for example `Represents the format of a {@linkcode Barcode}.` and `@see {@linkcode Barcode.format}`. Do not invent link targets.
 - Listener methods must return a flat subscription object with `remove(): void`. Do not make the subscription a HybridObject unless it exposes native state beyond cleanup. Do not expose numeric listener IDs or `removeListener(listenerId)` methods.
