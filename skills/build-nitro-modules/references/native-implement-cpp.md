@@ -30,11 +30,37 @@ namespace margelo::nitro::math {
 - When the spec uses `{ ios: 'cpp'; android: 'cpp' }` (shared C++ implementation)
 - When implementing platform-agnostic logic that runs on both iOS and Android
 - When performance or code-sharing across platforms is critical
+- When C++ code needs to call the public generated spec API of a Swift/Kotlin-implemented HybridObject passed in from TypeScript
 
 ## Prerequisites
 
 - Nitrogen has generated `HybridMathSpec.hpp`, usually in `nitrogen/generated/shared/c++/`
 - `nitro.json` has `"all": { "language": "c++", "implementationClassName": "HybridMath" }` in the autolinking block
+
+## Mixed-Language Object Graphs
+
+C++ HybridObjects can accept HybridObjects implemented in Swift/Kotlin and call their generated C++ spec API. This lets C++ engines use platform services without hand-written Swift/JNI bridges.
+
+Example spec shape:
+
+```typescript
+export interface PlatformContext
+  extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
+  getTemporaryDirectory(): string
+  writeFile(content: ArrayBuffer, path: string): Promise<void>
+}
+
+export interface StorageFactory
+  extends HybridObject<{ ios: 'c++'; android: 'c++' }> {
+  createStorage(context: PlatformContext): Storage
+}
+```
+
+The generated C++ signature for `createStorage(...)` receives the generated C++ spec type for `PlatformContext`. C++ can call public methods like `getTemporaryDirectory()` and `writeFile(...)`; it cannot access private Swift/Kotlin implementation fields.
+
+Use this for C++ OpenCV/frame processing, storage engines, ML/image/audio pipelines, or compression code that needs platform file paths, permissions, OS handles, or persistence implemented in Swift/Kotlin.
+
+Do not assume Swift/Kotlin can directly consume C++-implemented HybridObjects unless current Nitrogen support has been verified for that direction.
 
 ## Step-by-Step
 

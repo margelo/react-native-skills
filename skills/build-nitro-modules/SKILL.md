@@ -71,7 +71,9 @@ Load [release-it-publishing.md][release-it-publishing] only when setting up or r
 - Use `Promise.parallel` for thread-pool work and `Promise.async` for async/coroutine-style work according to the native threading model.
 - Implement `memorySize` for HybridObjects that own native resources or large allocations so the JS VM can collect them under memory pressure.
 - For Nitro Views, implement `prepareForRecycle` when the view owns state that should be reset before reuse.
-- Mix C++ with Swift/Kotlin when it lets shared native logic stay cross-platform while platform HybridObjects provide OS-specific services.
+- Mix C++ HybridObjects with Swift/Kotlin HybridObjects in one library. Use C++ for shared or hot code, such as OpenCV/frame processing/storage engines, and Swift/Kotlin for platform services, permissions, file paths, camera/session APIs, and OS integration.
+- C++ HybridObjects can accept Swift/Kotlin-implemented HybridObjects and call their generated C++ spec API. Example: a C++ `StorageFactory` can accept a Swift/Kotlin `PlatformContext` and call `getTemporaryDirectory()` or `writeFile(...)` through the generated C++ interface. C++ can access only the public spec API, not private Swift/Kotlin fields.
+- Do not rely on Swift/Kotlin calling into C++-implemented HybridObjects unless current Nitrogen support has been verified for that direction.
 
 ## Nitro Testing Rules
 

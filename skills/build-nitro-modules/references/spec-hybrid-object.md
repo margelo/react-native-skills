@@ -112,6 +112,37 @@ For C++ only (both platforms): `HybridObject<{ ios: 'c++'; android: 'c++' }>`
 
 > **Note:** Both the `.nitro.ts` spec and `nitro.json` autolinking use `"c++"`. In `nitro.json`, the C++ autolinking entry uses `"all": { "language": "c++", "implementationClassName": "HybridMath" }`.
 
+### Mixed C++ and platform HybridObjects
+
+A single Nitro library can mix C++ HybridObjects and platform-language HybridObjects. Use this when most code should be Swift/Kotlin but one subsystem needs shared C++, or when C++ needs platform services through a typed object.
+
+```typescript
+import type { HybridObject } from 'react-native-nitro-modules'
+
+export interface Storage
+  extends HybridObject<{ ios: 'c++'; android: 'c++' }> {}
+
+export interface PlatformContext
+  extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
+  getTemporaryDirectory(): string
+  writeFile(content: ArrayBuffer, path: string): Promise<void>
+}
+
+export interface StorageFactory
+  extends HybridObject<{ ios: 'c++'; android: 'c++' }> {
+  createStorage(context: PlatformContext): Storage
+}
+```
+
+In this pattern, `StorageFactory` is implemented in C++ and can call the generated C++ spec API for `PlatformContext`, even though `PlatformContext` is implemented in Swift/Kotlin. C++ sees public generated methods such as `getTemporaryDirectory()` and `writeFile(...)`; it cannot access private Swift/Kotlin implementation fields.
+
+Use this for patterns such as:
+- C++ frame processors using OpenCV while camera/session control stays in Swift/Kotlin.
+- C++ storage, ML, image, audio, or compression engines that need platform paths, files, permissions, or OS handles from Swift/Kotlin objects.
+- Cross-platform C++ pipelines where platform HybridObjects inject OS-specific services.
+
+Do not assume the inverse direction is available. Before designing Swift/Kotlin code that directly consumes C++-implemented HybridObjects, verify current Nitrogen support.
+
 ### 5. Export the HybridObject (Step 10)
 
 After implementing native code, create and export the HybridObject from `src/index.ts`:

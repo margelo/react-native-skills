@@ -75,6 +75,8 @@ One JS-facing HybridObject spec can have multiple first-party native implementat
 
 Objects returned from factories should be ready for normal use. If construction requires async native setup or validation, make the factory method return `Promise<Thing>` instead of exposing a separate `prepareThing()` step on the returned object.
 
+Mix C++ and Swift/Kotlin HybridObjects in the same library. Use C++ for hot/shared pipelines such as frame processors, OpenCV, ML, image/audio processing, compression, or storage engines, while Swift/Kotlin HybridObjects own camera/session APIs, permissions, platform paths, file writes, or OS integration. C++ can accept a Swift/Kotlin-implemented HybridObject and call its generated C++ spec API; the public spec is the boundary.
+
 ## Native Extension Points
 
 Use this when first-party or third-party native modules need to plug into the library:
