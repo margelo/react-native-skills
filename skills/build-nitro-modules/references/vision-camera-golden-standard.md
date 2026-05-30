@@ -65,10 +65,13 @@ For apps, use a real RN app. Prefer `apps/<name>` when multiple examples are nee
 - Resource objects: returned from factory methods, such as sessions, controllers, outputs, recorders, devices, frames, and renderers.
 - Capability objects: expose readonly native state and support checks.
 - Lifecycle objects: expose `dispose()`, `isValid`, `memorySize`, and cheap observed state when they own native buffers or resources.
+- Result families: use a base HybridObject for shared native state and child HybridObjects for specialized data, such as `ScannedItem` with `ScannedBarcode`, `ScannedQRCode`, and `ScannedFace`.
 - Views: use `HybridView<Props, Methods>` specs, `getHostComponent(...)`, and a `hybridRef` bridge for imperative view methods.
 - Native extension points: expose a portable TS base HybridObject spec, then pair it with a public native protocol/interface that can unwrap platform objects. VisionCamera's `CameraOutput` crosses JS/TS, while `NativeCameraOutput` lets native code access `AVCaptureOutput` on iOS or CameraX `UseCase`s on Android.
 
 Autolink only roots, public factories, hybrid views, and global utilities that JS directly creates. Do not autolink every internal object if it is returned by another HybridObject.
+
+One JS-facing HybridObject spec can have multiple first-party native implementations. Use this when backend strategy differs but the TypeScript contract stays identical, such as a `CameraVideoOutput` implemented with either a movie-file output or a video-data-output plus asset writer. Factory methods select the native implementation and return the shared spec type.
 
 Objects returned from factories should be ready for normal use. If construction requires async native setup or validation, make the factory method return `Promise<Thing>` instead of exposing a separate `prepareThing()` step on the returned object.
 

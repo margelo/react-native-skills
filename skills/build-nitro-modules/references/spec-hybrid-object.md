@@ -208,7 +208,60 @@ export interface MediaFactory extends HybridObject<{ ios: 'swift'; android: 'kot
 
 In this pattern, `MediaFactory` is autolinked because JS creates it directly. Do not add `nitro.json` autolinking entries for `VideoOutput` or `Recorder` unless JS creates them directly.
 
+### Multiple native implementations for one spec
+
+Use one JS-facing HybridObject spec when multiple native backends should behave the same from TypeScript. Implement the generated spec in multiple native classes, choose the concrete class in a factory, and return the shared spec type.
+
+Example: `CameraVideoOutput` can be backed by `HybridMovieFileVideoOutput` using a platform movie-file output or by `HybridAssetWriterVideoOutput` using a video data output plus asset writer. Both native classes implement the generated `HybridCameraVideoOutputSpec`, and JS only sees `CameraVideoOutput`.
+
+Rules:
+- Keep backend class names native-only unless callers must choose a backend explicitly.
+- Return the shared spec type from factory methods, such as `createVideoOutput(...): Promise<CameraVideoOutput>`.
+- Add one `nitro.json` autolinking entry only for HybridObjects JS creates directly. Do not autolink every concrete backend returned by a factory.
+- If native session code needs backend-specific handles, pair the JS-facing spec with a native protocol/interface and make each concrete implementation conform to both.
+
 If constructing `VideoOutput` needs native setup or can fail, make the factory async instead: `createVideoOutput(options: VideoOutputOptions): Promise<VideoOutput>`. The returned object should already be usable.
+
+### HybridObject inheritance for result families
+
+Use HybridObject inheritance when a feature returns heterogeneous native objects that share identity, lifecycle, coordinates, timestamps, raw native handles, or common methods.
+
+```typescript
+import type { HybridObject } from 'react-native-nitro-modules'
+import type { Bounds } from '../common-types/Bounds'
+import type { BarcodeFormat } from '../barcodes/BarcodeFormat'
+
+export type ScannedItemType = 'barcode' | 'qr-code' | 'face'
+
+export interface ScannedItem
+  extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
+  readonly id: string
+  readonly type: ScannedItemType
+  readonly bounds: Bounds
+}
+
+export interface ScannedBarcode extends ScannedItem {
+  readonly format: BarcodeFormat
+  readonly rawValue: string
+}
+
+export interface ScannedQRCode extends ScannedBarcode {
+  readonly url?: string
+}
+
+export interface ScannedFace extends ScannedItem {
+  readonly trackingId?: number
+}
+```
+
+Rules:
+- Put common properties and methods on the base HybridObject.
+- Put subtype-only properties and methods on child HybridObjects.
+- Return the base type for heterogeneous collections, such as `ScannedItem[]`.
+- Add a discriminator property such as `type` so JS can narrow to the child type.
+- Use this instead of one flat struct with every subtype field optional.
+- Native code can accept the generated base spec when it needs common behavior, or the generated child spec when it needs subtype behavior.
+- Keep thin inheritance families in the base `.nitro.ts` file. Move child HybridObjects to their own `.nitro.ts` file when they gain substantial API surface.
 
 Export the factory under a product/domain object name rather than the spec type name:
 
