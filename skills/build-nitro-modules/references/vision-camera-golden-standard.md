@@ -52,6 +52,7 @@ For apps, use a real RN app. Prefer `apps/<name>` when multiple examples are nee
 - Name the runtime factory export as a product/domain object, not as the spec type. VisionCamera uses `VisionCamera = createHybridObject<CameraFactory>('CameraFactory')`; Nitro Image uses `Images = createHybridObject<ImageFactory>('ImageFactory')`.
 - Keep the generated spec/interface name descriptive, usually `SomethingFactory`, and keep the `createHybridObject(...)` key matching `nitro.json`. Only the JS value export gets the more ergonomic product/domain name.
 - Export all public specs and common types from `src/index.ts` so users can type advanced integrations.
+- Keep specs and public types split by domain. Prefer focused files under `src/specs/common-types/`, `src/specs/outputs/`, `src/specs/instances/`, and similar folders over one large file that contains every option, result, and helper type.
 - Layer hooks and React components over the imperative core; do not make hooks the only API.
 - Put domain defaults and convenience in hooks/utilities, while keeping Nitro specs explicit.
 - Provide native host components for low-level control, then wrap them in higher-level React components when composition improves ergonomics.
@@ -66,6 +67,8 @@ For apps, use a real RN app. Prefer `apps/<name>` when multiple examples are nee
 - Native extension points: expose a portable TS base HybridObject spec, then pair it with a public native protocol/interface that can unwrap platform objects. VisionCamera's `CameraOutput` crosses JS/TS, while `NativeCameraOutput` lets native code access `AVCaptureOutput` on iOS or CameraX `UseCase`s on Android.
 
 Autolink only roots, public factories, hybrid views, and global utilities that JS directly creates. Do not autolink every internal object if it is returned by another HybridObject.
+
+Objects returned from factories should be ready for normal use. If construction requires async native setup or validation, make the factory method return `Promise<Thing>` instead of exposing a separate `prepareThing()` step on the returned object.
 
 ## Native Extension Points
 
@@ -85,7 +88,7 @@ This lets an object remain fully typed and passable from JS/TS while native code
 - Use sync methods for cheap local native object construction, metadata queries, coordinate transforms, and same-thread operations.
 - Use `Promise` for permissions, session creation, configuration, start/stop, capture, recording, platform async APIs, I/O, and heavy transforms.
 - Provide sync and async variants only when both are genuinely useful, for example a blocking conversion and an async conversion.
-- Use `addOn...Listener(...): ListenerSubscription` for repeated events. The subscription owns cleanup through `remove(): void`; do not expose numeric listener IDs or `removeListener(listenerId)` APIs.
+- Use `addOn...Listener(...): ListenerSubscription` for repeated events. The subscription owns cleanup through `remove(): void`, should usually be a flat interface rather than a HybridObject, and must not expose numeric listener IDs or `removeListener(listenerId)` APIs.
 - Use callback structs for one-shot operation progress callbacks, such as capture or recording callbacks.
 - Use `setOn...Callback(callback | undefined)` for a single replaceable hot-path callback owned by an output object.
 - Use `Sync<(...) => ...>` only for thread-bound hot paths where JS must run synchronously on a specific runtime or worklet thread.
@@ -93,12 +96,13 @@ This lets an object remain fully typed and passable from JS/TS while native code
 ## Type And Documentation Style
 
 - Use `interface` for structs/options and public object shapes.
+- Avoid mechanically prefixing every public type with the module name. Use the package and folder structure as namespace, and reserve prefixes for names that would otherwise be unclear.
 - Use string literal unions for domain values; avoid TypeScript runtime `enum`s unless a runtime value is required.
-- Use `readonly` for observed native state and mutable properties only for direct configuration knobs.
+- Use `readonly` for observed native state and mutable properties only for cheap, synchronous direct configuration knobs. Use async methods for settings that can fail or require native negotiation.
 - Use optional fields for defaults. Use `undefined` as "not provided"; reserve `null` for explicit "none".
 - Use structural presets with `as const satisfies Record<string, Type>` for common values while allowing user-defined values.
 - Use `Error` for JS-facing errors in callback and listener signatures.
-- Heavily document exported specs, hooks, components, and constants with JSDoc. Include `@default`, `@throws`, `@platform`, `@example`, `@see`, and performance/lifecycle notes where relevant.
+- Heavily document exported specs, hooks, components, and constants with JSDoc. Explain domain semantics and link related APIs with `{@linkcode ...}` or `@see`; avoid filler comments like "normalized for JavaScript" or implementation details like "lazy" unless they affect caller behavior. Include `@default`, `@throws`, `@platform`, `@example`, `@see`, and performance/lifecycle notes where relevant.
 
 ## Publishing Pattern
 

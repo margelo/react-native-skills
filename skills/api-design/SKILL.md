@@ -40,6 +40,15 @@ Before choosing public API shape, dependency APIs, platform capabilities, or imp
 - Do not expose ambient facts the caller already knows, such as a `platform` field that only repeats `Platform.OS`, unless the API can return data produced by a different platform than the current runtime.
 - Do not freeze today's platform support matrix into the type shape. Prefer runtime capability fields such as `availableTextTypes: []` or `supportedFormats: []` over separate platform-specific types or static exclusions. This lets newer native capabilities become available without redesigning the JS API.
 - Prefer one unified options object. Avoid `ios`/`android` option bags and platform-prefixed methods unless the concepts are genuinely platform-only and cannot be described as a cross-platform capability or no-op.
+- Do not return half-initialized objects that require a separate `prepare()`, `initialize()`, or `load()` call before normal use. If setup is required, make the factory async and resolve with a ready object. Keep lifecycle methods for real repeatable transitions such as `start()`/`stop()`, not construction readiness.
+- Return `undefined` only for normal domain absence, and document exactly when it occurs. Do not use optional returns as an unstated error path; throw or reject when an operation fails.
+
+## Public API Organization
+
+- Split large public surfaces into focused files or modules and re-export them from a clear package entry point. A single 600-line type/spec file is a code smell when the types can be grouped by domain, such as barcode formats, scanned values, configuration, capabilities, and subscriptions.
+- Co-locate tightly related types, but avoid catch-all files that force users and maintainers to scroll through unrelated concepts.
+- Put shared fields and methods on a base interface or class. Subtypes should add only the members that are specific to that subtype, not repeat fields such as `format`, `valueType`, `id`, or `bounds` across every concrete variant.
+- Keep performance and implementation strategy out of the public shape unless it changes how the caller should use the API. For example, the API may expose an explicit conversion method, but names and docs should not advertise internal details like "lazy", "lightweight", or "normalized" unless that behavior is directly observable.
 
 ## Names and Members
 
@@ -48,7 +57,9 @@ Before choosing public API shape, dependency APIs, platform capabilities, or imp
 - Use properties for cheap observed state or capability. Prefer `readonly isAccelerometerAvailable: boolean` over `accelerometerAvailable()`.
 - Use methods for side effects, expensive work, allocation, mutation, async boundaries, or operations that can fail.
 - Make units explicit in names: `timeoutMs`, `byteSize`, `maxRetries`, `createdAt`.
+- Avoid mechanically prefixing every exported type with the package, module, or feature name. Imports and package namespaces already provide context, and callers can alias names when needed. Use prefixes only when they disambiguate an otherwise vague concept; prefer domain names like `CameraPermissionStatus`, `ScannedResultSource`, `Point`, or `Rect` over repeating `DataScanner` on every type.
 - Use `readonly` for public state the caller observes but does not set. Use mutable properties only when assigning the property is itself the intended command.
+- Writable properties must be cheap, synchronous, and unlikely to fail. If setting a value needs native negotiation, permissions, I/O, allocation, validation that can fail, or meaningful time, expose an explicit async method such as `setZoomFactor(zoomFactor): Promise<void>`.
 - For public string literal unions, prefer lowercase kebab-case values such as `manual-input` over camelCase values such as `manualInput`.
 
 ## Async, Events, and React
@@ -90,5 +101,9 @@ Before choosing public API shape, dependency APIs, platform capabilities, or imp
 - Treat exported TypeScript as product documentation. Add JSDoc to public interfaces, option objects, callbacks, hooks, components, and important constants.
 - Prefer precise JSDoc over clever type gymnastics when the user needs semantics, lifecycle, platform behavior, defaults, or performance tradeoffs explained.
 - Keep JSDoc user-facing. Do not mention native class names, framework implementation details, or current platform limitations unless the caller must know them to use the API correctly.
+- Write JSDoc that explains the domain meaning, not the fact that the API is JavaScript. Avoid empty comments such as "normalized for JavaScript"; prefer concrete semantics such as "Represents the format of a barcode" or "Represents the content type of a scanned text value."
+- Document every option and capability property unless it is truly self-explanatory, such as `x` and `y` on a point. Defaults, units, availability, failure behavior, and interaction with related options belong on the property that exposes them.
+- For base interfaces or abstract concepts, describe how callers encounter the value and link important concrete variants, for example `Represents a value scanned by {@linkcode DataScanner}. Concrete values include {@linkcode ScannedTextValue} and {@linkcode ScannedBarcodeValue}.`
+- Use `{@linkcode ...}` or `@see` to point to related methods, configuration objects, and capability checks instead of writing vague warnings about not assuming the current OS or platform.
 - Use `@default`, `@throws`, `@platform`, `@example`, `@see`, and `@discussion` where they clarify behavior. Link related APIs with `{@linkcode ...}`.
 - Document resource ownership and cleanup explicitly. If a returned object must be disposed, say when and why.

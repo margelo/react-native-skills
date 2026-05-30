@@ -66,6 +66,8 @@ Name it after the module's domain: `Math.nitro.ts`, `Camera.nitro.ts`, `Crypto.n
 touch packages/react-native-math/src/specs/Math.nitro.ts
 ```
 
+For non-trivial modules, split specs and shared types into focused files instead of one large catch-all file. Keep one `.nitro.ts` file per major HybridObject or domain, put common structs/unions in folders such as `src/specs/common-types/`, and re-export public types from `src/index.ts`.
+
 ### 3. Write the interface
 
 ```typescript
@@ -123,8 +125,9 @@ export type { Math } from './specs/Math.nitro'
 - Prefer naming native classes with the `Hybrid` prefix: `HybridMath`
 - Keep both the interface name and the autolinking key the same (e.g. `Math` = `'Math'`)
 - For larger libraries, create one autolinked factory/root object and return other stateful HybridObjects from factory methods instead of autolinking every object.
+- If creating a returned object requires setup, I/O, permission checks, or validation that can fail, make the factory method async and return a ready object. Do not expose `prepare()`/`initialize()` methods that callers must remember before normal use.
 - Add JSDoc to public spec interfaces, methods, options, callbacks, and important properties.
-- Listener methods must return a subscription object with `remove(): void`. Do not expose numeric listener IDs or `removeListener(listenerId)` methods.
+- Listener methods must return a flat subscription object with `remove(): void`. Do not make the subscription a HybridObject unless it has meaningful native state beyond cleanup. Do not expose numeric listener IDs or `removeListener(listenerId)` methods.
 
 ## Code Examples
 
@@ -195,6 +198,8 @@ export interface MediaFactory extends HybridObject<{ ios: 'swift'; android: 'kot
 ```
 
 In this pattern, `MediaFactory` is autolinked because JS creates it directly. `VideoOutput` and `Recorder` can be returned from factory methods and usually do not need their own `nitro.json` autolinking entries.
+
+If constructing `VideoOutput` needs native setup or can fail, make the factory async instead: `createVideoOutput(options: VideoOutputOptions): Promise<VideoOutput>`. The returned object should already be usable.
 
 Export the factory under a product/domain object name rather than the spec type name:
 
