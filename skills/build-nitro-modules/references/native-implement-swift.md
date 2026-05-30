@@ -20,6 +20,7 @@ class HybridMath: NSObject {
 
 **Correct** — implementing the generated spec:
 ```swift
+import Foundation
 import NitroModules
 
 final class HybridMath: HybridMathSpec {
@@ -56,9 +57,11 @@ touch ios/HybridMath.swift
 ### 3. Write the implementation class
 
 ```swift
+import Foundation
 import NitroModules
 
 final class HybridMath: HybridMathSpec {
+  private static let queue = DispatchQueue(label: "com.margelo.math")
 
   // Synchronous methods — most generated methods have `throws`
   func add(a: Double, b: Double) throws -> Double {
@@ -71,13 +74,17 @@ final class HybridMath: HybridMathSpec {
 
   // Async method returning Promise — also has `throws`
   func calculateFibonacci(n: Double) throws -> Promise<Double> {
-    return Promise.async {
+    return Promise.parallel(Self.queue) {
       if n <= 1 { return n }
-      var a = 0.0, b = 1.0
+
+      var previous = 0.0
+      var current = 1.0
       for _ in 2...Int(n) {
-        let temp = a + b; a = b; b = temp
+        let next = previous + current
+        previous = current
+        current = next
       }
-      return b
+      return current
     }
   }
 
@@ -117,7 +124,7 @@ For any type uncertainty, consult the canonical Swift test implementation:
 | `bigint` (signed) | `Int64` | |
 | `bigint` (unsigned) | `UInt64` | |
 | `T[]` | `[T]` | e.g. `[Double]`, `[String]`, `[Person]` |
-| `Promise<T>` | `Promise<T>` | `Promise.async { }`, `.async { }`, or `Promise.resolved(withResult:)` |
+| `Promise<T>` | `Promise<T>` | `Promise.parallel(queue) { }`, `Promise.async { }`, `Promise.resolved(withResult:)`, or manual `Promise()` |
 | `Promise<void>` | `Promise<Void>` | Swift `Void`, not `Unit` |
 | `T \| undefined` | `T?` | Swift optional |
 | `T \| U` | `Variant_T_U` | Generated type, e.g. `Variant_String_Double` |
@@ -132,15 +139,36 @@ For any type uncertainty, consult the canonical Swift test implementation:
 
 ### Async with Promise
 
+Use `Promise.parallel(queue)` for DispatchQueue-based work. This fits most AVFoundation and session-style APIs because you can keep all native state mutations on one queue.
+
 ```swift
-// Promise.async — async work with await support
+private static let cameraQueue = DispatchQueue(label: "com.margelo.camera.session")
+
 func calculateFibonacciAsync(value: Double) throws -> Promise<Int64> {
-  return Promise.async { return try self.calculateFibonacciSync(value: value) }
+  return Promise.parallel(Self.cameraQueue) {
+    return try self.calculateFibonacciSync(value: value)
+  }
+}
+```
+
+Use `Promise.async` when you are intentionally wrapping Swift `async`/`await` or an API that naturally runs through `Task`.
+
+```swift
+func loadRemoteImage(url: URL) throws -> Promise<Data> {
+  return Promise.async {
+    let request = URLRequest(url: url)
+    let result = try await URLSession.shared.data(for: request)
+    return result.0
+  }
 }
 
 // Promise<Void> — void async (Swift uses Void not Unit)
 func wait(seconds: Double) throws -> Promise<Void> {
-  return Promise.async { try await Task.sleep(nanoseconds: UInt64(seconds) * 1_000_000_000) }
+  return Promise.async {
+    let secondsUInt64 = UInt64(seconds)
+    let nanoseconds = secondsUInt64 * 1_000_000_000
+    try await Task.sleep(nanoseconds: nanoseconds)
+  }
 }
 
 // Promise.resolved — instant resolution with a value
@@ -158,6 +186,16 @@ func promiseThatResolvesToUndefined() throws -> Promise<Double?> {
   return Promise.resolved(withResult: nil)
 }
 ```
+
+### Threading and state
+
+HybridObject methods and property access can be called synchronously from JS, including from multiple JS runtimes such as worklets. Do not model HybridObject implementations as Swift `actor`s by default; actors make sync generated methods awkward and can hide where serialization happens.
+
+Prefer one of these patterns:
+- Keep cheap readonly state synchronous.
+- Put mutable native/session state behind a private serial `DispatchQueue`, and run mutating or fallible operations through `Promise.parallel(queue)`.
+- Make operations async when they must serialize, wait for hardware/session state, or cross queues.
+- Add `NSLock` or another lock only after shared mutable state is proven to be accessed concurrently and a queue-owned design is not a better fit.
 
 ### Using callbacks
 
@@ -181,6 +219,8 @@ func round(value: Double, decimals: Double?) -> Double {
 ```
 
 ### Throwing errors
+
+Use `guard` for state/input validation. Throw `RuntimeError` for user-reachable failures. Do not expose `NSError` paths unless a generated API or Apple callback forces it, and convert those errors before they cross into JS.
 
 ```swift
 func divide(a: Double, b: Double) throws -> Double {
@@ -213,6 +253,24 @@ var zoom: Double {
 }
 ```
 
+Writable properties are synchronous JS calls. Keep setters cheap and unlikely to fail. If applying a value requires queue hops, AVFoundation negotiation, permissions, allocation, or can fail, expose a method that returns `Promise<Void>` instead.
+
+### Swift style and organization
+
+- Make HybridObject implementation classes `final` unless inheritance is genuinely required.
+- Use Swift types such as `String`, `[String: T]`, arrays, structs, and typed Foundation values. Avoid Objective-C bridge types such as `NSString`, `NSDictionary`, `NSArray`, and `NSObject` inheritance unless an Apple API requires them.
+- Put reusable conversions, Apple framework helpers, and small protocol conveniences in Swift extensions under `ios/Extensions/`, such as `ios/Extensions/AVFoundation/AVCaptureDevice+withLock.swift`.
+- Keep implementation files focused. Move delegates, extension helpers, converters, and native protocols into separate files instead of growing one large HybridObject file.
+- Break complex expressions into named intermediate values. Avoid inline chains that allocate, convert units, and call another API in one expression.
+- Pass named constants or variables into API calls instead of building values inline when the expression has meaningful steps.
+
+```swift
+let radians = angleDegrees * .pi / 180.0
+let rotatedPoint = point.rotated(by: radians)
+let projectedPoint = projection.project(rotatedPoint)
+renderer.render(point: projectedPoint)
+```
+
 ## Common Pitfalls
 
 - **Forgetting `import NitroModules`** — The spec protocol won't be found without this import
@@ -220,11 +278,14 @@ var zoom: Double {
 - **Method signature mismatch** — Every parameter name and type must exactly match the generated spec
 - **Forgetting `throws` keyword** — Most generated methods have `throws`; check the generated spec to confirm which ones do
 - **`Promise<void>` vs `Promise<Void>`** — Swift uses `Void` (not Kotlin's `Unit`). Always `Promise<Void>`
+- **Using `Promise.async` for DispatchQueue APIs** — Prefer `Promise.parallel(queue)` for AVFoundation/session work. Use `Promise.async` for Swift `async`/`await` or Task-based APIs.
 - **Callbacks without `@escaping`** — Stored/async callbacks must be `@escaping`; the generated spec will tell you
 - **`Dictionary<String,T>` vs `[String:T]`** — Both work; `[String:T]` is the idiomatic Swift syntax
 - **`any HybridSpec` not `HybridSpec`** — In modern Swift, protocol types need the `any` keyword
 - **Not including the file in podspec** — Swift files must be in the `source_files` glob in `.podspec`
 - **Using the `override` keyword** — Swift implementations conform to the generated spec shape; methods and properties declared by the spec must NOT use `override` (unlike the Kotlin counterpart, which does). `override` only applies when overriding a superclass member.
+- **Defaulting HybridObjects to `actor`** — JS-facing methods and properties are synchronous entry points. Prefer queue-owned state and async methods where serialization is needed.
+- **Leaking Objective-C types** — Avoid `NSDictionary`, `NSString`, `NSArray`, and `NSError` in Nitro implementation APIs unless required by an Apple API boundary.
 
 ## Related Skills
 

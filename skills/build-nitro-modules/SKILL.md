@@ -70,7 +70,7 @@ Load [release-it-publishing.md][release-it-publishing] only when setting up or r
 - Do not silently swallow real failures. Throw, reject a Promise, or emit through an explicit error callback/listener when the requested outcome cannot be delivered.
 - Prefer Nitro/runtime errors or language-native exceptions that surface cleanly to JS. Avoid Objective-C-style `NSError` public paths unless the generated API specifically requires it.
 - For Android context access, use `NitroModules.applicationContext` lazily and throw a clear error if it is unavailable.
-- Use `Promise.parallel` for thread-pool work and `Promise.async` for async/coroutine-style work according to the native threading model.
+- Use the native Promise helper that matches the platform threading model. In Swift, prefer `Promise.parallel(queue)` for DispatchQueue-based work such as AVFoundation/session operations, and use `Promise.async` only when wrapping Swift `async`/`await` or Task-based APIs.
 - Implement `memorySize` for HybridObjects that own native resources or large allocations so the JS VM can collect them under memory pressure.
 - For Nitro Views, implement `prepareForRecycle` when the view owns state that should be reset before reuse.
 - Mix C++ HybridObjects with Swift/Kotlin HybridObjects in one library. Use C++ for shared or hot code, such as OpenCV/frame processing/storage engines, and Swift/Kotlin for platform services, permissions, file paths, camera/session APIs, and OS integration.
