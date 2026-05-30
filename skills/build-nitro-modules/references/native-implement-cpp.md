@@ -226,7 +226,7 @@ void HybridMath::compute(double input, std::function<void(double)> onResult) {
 - **Wrong namespace** — The namespace must match `cxxNamespace` in `nitro.json` (e.g. `margelo::nitro::math`)
 - **Forgetting `override`** — All virtual method implementations need `override`
 - **Using `float` instead of `double`** — Nitro uses `double` for all `number` types
-- **Returning `std::future<T>` from spec methods** — Generated async methods return `std::shared_ptr<Promise<T>>`; use `Promise<T>::async(...)` for new async work. Use `Promise<T>::await()` only when native code needs to wait on an existing Nitro promise internally.
+- **Inventing async return types** — Generated async methods return `std::shared_ptr<Promise<T>>`. Copy the generated signature exactly and use `Promise<T>::async(...)`, `Promise<T>::resolved(...)`, `Promise<T>::rejected(...)`, or `Promise<T>::create()` depending on how the native work completes.
 - **Missing `TAG` member** — Required for `HybridObject(TAG)` constructor call
 
 ## Related Skills
