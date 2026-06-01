@@ -59,7 +59,7 @@ const retrieved = storage.getBuffer('someToken') // ArrayBuffer
 ```ts
 const hasKey = storage.contains('user.name')  // boolean
 const keys = storage.getAllKeys()              // string[]
-const removed = storage.remove('user.name')   // boolean (NOTE: was .delete() in V3)
+const removed = storage.remove('user.name')   // boolean (NOTE: was .delete() till V4)
 storage.clearAll()                            // removes all keys
 ```
 
