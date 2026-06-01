@@ -14,8 +14,8 @@ react-native-mmkv V4 is a complete rewrite using Nitro Modules (instead of raw J
 ## Requirements
 
 - **React Native 0.75.0 or higher**
-- **New Architecture / TurboModules enabled**
 - `react-native-nitro-modules` as a peer dependency
+- Works on **both** the New Architecture and the old architecture (Nitro is backwards compatible)
 
 ## Breaking changes
 

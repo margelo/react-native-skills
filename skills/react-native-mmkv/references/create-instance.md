@@ -69,7 +69,7 @@ const wasDeleted = deleteMMKV('my-instance')
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `id` | `string` | `'mmkv.default'` | Unique identifier for this instance. Maps to a file on disk. |
-| `path` | `string` | `$(Documents)/mmkv/` | Custom root directory for the storage file. |
+| `path` | `string` | `undefined` | Custom root directory for the storage file. When unset, MMKV uses `$(Documents)/mmkv/` (or the App Group directory on iOS if configured). |
 | `encryptionKey` | `string` | `undefined` | Encryption key. Enables AES encryption when set. |
 | `encryptionType` | `'AES-128' \| 'AES-256'` | `'AES-128'` | Encryption algorithm. Only used when `encryptionKey` is set. |
 | `mode` | `'single-process' \| 'multi-process'` | `'single-process'` | Set to `'multi-process'` if another process (e.g. a widget or app extension) reads/writes the same instance. |

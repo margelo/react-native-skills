@@ -26,6 +26,8 @@ All hooks accept an optional second argument: a specific MMKV instance. If omitt
 | `useMMKVListener(callback, instance?)` | `void` | Fires callback on any key change |
 | `useMMKVKeys(instance?)` | `string[]` | Reactive list of all keys |
 
+All value-hook setters also accept a **functional update** (like `useState`): `setValue(prev => ...)`.
+
 ## Recipes
 
 ### Basic typed hooks
@@ -39,6 +41,18 @@ function App() {
 
   return <Text>{username} is {age} years old</Text>
 }
+```
+
+### Functional updates
+
+Setters accept a function of the previous value, just like `useState`:
+
+```tsx
+const [age, setAge] = useMMKVNumber('user.age')
+
+const onBirthday = useCallback(() => {
+  setAge((prev) => (prev ?? 0) + 1)
+}, [setAge])
 ```
 
 ### Clearing a key

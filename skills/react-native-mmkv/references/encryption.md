@@ -63,13 +63,14 @@ if (storage.isEncrypted) {
 
 ## Encryption types
 
-| Type | Description |
-|------|-------------|
-| `'AES-128'` | Default. Faster, sufficient for most use cases. |
-| `'AES-256'` | Stronger encryption. Slightly slower. |
+| Type | Max key length | Description |
+|------|----------------|-------------|
+| `'AES-128'` | 16 bytes | Default. Faster, sufficient for most use cases. |
+| `'AES-256'` | 32 bytes | Stronger encryption. Slightly slower. |
 
 ## Gotchas
 
+- **Key length limits.** Encryption keys can be at most **16 bytes** with AES-128 and **32 bytes** with AES-256. Longer keys throw a runtime error when creating the instance or calling `encrypt()`.
 - **Encryption key is not stored by MMKV.** You must provide the same key every time you open the instance. If you lose the key, the data is unrecoverable.
 - **Encrypting affects all references.** If two parts of your code hold references to the same instance (same `id`), encrypting from one affects both.
 - **Encryption ≠ Keychain.** MMKV encryption protects data at rest on disk. If you need to securely store the encryption key itself, use the platform keychain (e.g. `react-native-keychain` or `expo-secure-store`).
