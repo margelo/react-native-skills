@@ -14,8 +14,8 @@ const photoOutput = usePhotoOutput({
 
 const photo = await photoOutput.capturePhoto(
   {
-    flash: 'auto',               // 'on' | 'off' | 'auto'
-    enableAutoRedEyeReduction: true,
+    flashMode: 'auto',           // 'on' | 'off' | 'auto'
+    enableRedEyeReduction: true,
     enableShutterSound: false,
     qualityPrioritization: 'quality', // override the output-level setting per capture
     // location: locationFromReact-native-vision-camera-location
@@ -45,7 +45,7 @@ const photo = await photoOutput.capturePhoto(
 ### File path — if you really need it
 
 ```tsx
-const { filePath } = await photoOutput.capturePhotoToFile({ flash: 'on' }, {})
+const { filePath } = await photoOutput.capturePhotoToFile({ flashMode: 'on' }, {})
 ```
 
 ### `takeSnapshot` — zero-shutter-lag preview grab (Android only)
@@ -100,7 +100,7 @@ const recorder = await videoOutput.createRecorder({
 })
 
 await recorder.startRecording(
-  (path) => console.log('finished:', path),
+  (filePath, reason) => console.log('finished:', filePath, reason), // reason: 'stopped' | 'max-duration-reached' | 'max-file-size-reached'
   (err) => console.error('error:', err),
   () => console.log('paused'),
   () => console.log('resumed'),
@@ -180,7 +180,7 @@ Full control → `CameraController`:
 ```ts
 const point = previewView.createMeteringPoint(viewX, viewY)
 // or normalized directly:
-const point = VisionCamera.createMeteringPoint(0.5, 0.5)
+const point = VisionCamera.createNormalizedMeteringPoint(0.5, 0.5)
 
 await controller.focusTo(point, {
   modes: ['AE', 'AF'],            // default is all three ['AE','AF','AWB']

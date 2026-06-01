@@ -146,8 +146,8 @@ import { CodeScanner } from 'react-native-vision-camera-barcode-scanner'
 
 <CodeScanner
   isActive
-  barcodeFormats={['qr', 'ean-13']}
-  onBarcodeScanned={(barcode) => console.log(barcode.value)}
+  barcodeFormats={['qr-code', 'ean-13']}
+  onBarcodeScanned={(barcodes) => console.log(barcodes[0]?.rawValue)}
   onError={(e) => console.error(e)}
 />
 ```
@@ -158,8 +158,8 @@ import { CodeScanner } from 'react-native-vision-camera-barcode-scanner'
 import { useBarcodeScannerOutput } from 'react-native-vision-camera-barcode-scanner'
 
 const barcodeOutput = useBarcodeScannerOutput({
-  barcodeFormats: ['qr'],
-  onBarcodesScanned: (codes) => {},
+  barcodeFormats: ['qr-code'],
+  onBarcodeScanned: (barcodes) => {},
 })
 
 <Camera outputs={[photoOutput, barcodeOutput]} /* ... */ />
@@ -170,7 +170,7 @@ const barcodeOutput = useBarcodeScannerOutput({
 ```tsx
 import { useBarcodeScanner } from 'react-native-vision-camera-barcode-scanner'
 
-const scanner = useBarcodeScanner({ barcodeFormats: ['qr'] })
+const scanner = useBarcodeScanner({ barcodeFormats: ['qr-code'] })
 const frameOutput = useFrameOutput({
   onFrame(frame) {
     'worklet'
@@ -215,10 +215,10 @@ const loc = useLocation({})
 useEffect(() => { if (!loc.hasPermission) loc.requestPermission() }, [loc.hasPermission])
 
 // Attach to photo:
-const photo = await photoOutput.capturePhoto({ location: loc.location }, {})
+const photo = await photoOutput.capturePhoto({ location: loc.currentLocation }, {})
 
 // Attach to video recorder:
-const recorder = await videoOutput.createRecorder({ location: loc.location })
+const recorder = await videoOutput.createRecorder({ location: loc.currentLocation })
 ```
 
 Adds EXIF GPS tags to JPEGs and location metadata to mp4/mov. Imperative variant: `createLocationManager(...)` + `addOnLocationChangedListener`.

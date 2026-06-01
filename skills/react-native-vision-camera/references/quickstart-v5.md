@@ -88,7 +88,7 @@ export function CameraScreen() {
   if (!hasPermission || device == null) return null
 
   const onShutter = async () => {
-    const photo = await photoOutput.capturePhoto({ flash: 'auto' })
+    const photo = await photoOutput.capturePhoto({ flashMode: 'auto' }, {})
     // Display in-memory without hitting disk:
     const image = await photo.toImageAsync() // from react-native-nitro-image
     // ... render <Image source={image} />
@@ -124,7 +124,7 @@ const photoOutput = usePhotoOutput()
 const record = async () => {
   const recorder = await videoOutput.createRecorder({})
   await recorder.startRecording(
-    (path) => console.log('finished:', path),
+    (filePath, reason) => console.log('finished:', filePath, reason),
     (err) => console.error(err),
   )
   // later...

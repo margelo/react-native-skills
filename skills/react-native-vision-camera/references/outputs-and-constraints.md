@@ -152,10 +152,10 @@ const ok = await isSessionConfigSupported(device, config)
 - `useCameraDevices()` for reactive listings (e.g. UVC plug/unplug).
 - Filter by physical types when you need a simpler pipeline (faster startup):
   ```tsx
-  const device = useCameraDevice('back', { physicalDevices: ['wide-angle-camera'] })
+  const device = useCameraDevice('back', { physicalDevices: ['wide-angle'] })
   ```
   vs. a `'triple'` virtual device that switches across ultra-wide / wide / telephoto.
-- Probe capabilities upfront: `device.getSupportedResolutions('photo')`, `device.supportedFPSRanges`, `device.supportedPixelFormats`, `device.supportsPhotoHDR`, `device.supportsVideoStabilizationMode('cinematic')`, `device.supportsExposureBias`, `device.supportsFocus`, `device.supportsMultiCamSessions`, `device.zoomLensSwitchFactors`.
+- Probe capabilities upfront: `device.getSupportedResolutions('photo')`, `device.supportedFPSRanges`, `device.supportedPixelFormats`, `device.supportsPhotoHDR`, `device.supportsVideoStabilizationMode('cinematic')`, `device.supportsExposureBias`, `device.supportsFocusMetering`, `device.supportsFocusLocking`, `device.supportsMultiCamSessions`, `device.zoomLensSwitchFactors`.
 - External cameras (iPad/Mac/UVC on Android) use `'external'` and emit change notifications: `addOnCameraDevicesChangedListener`.
 
 ## Session lifecycle
@@ -191,7 +191,7 @@ Reconfiguration cost: changing `outputs`, `device`, or `constraints` pauses brie
 
 ## Performance cheatsheet
 
-- Prefer single-physical-device cameras (`'wide-angle-camera'` only) over virtual multi-device cameras when you don't need seamless zoom switching — faster startup.
+- Prefer single-physical-device cameras (`'wide-angle'` only) over virtual multi-device cameras when you don't need seamless zoom switching — faster startup.
 - Disable features you don't need: video HDR, stabilization, unneeded outputs.
 - YUV > RGB for frame output. The native format is YUV; RGB forces conversion per frame.
 - Match FPS and resolution to the consumer. 30fps is sufficient for 99% of recording; 60/120/240 only when the UX demands it.

@@ -11,7 +11,7 @@ V5 is a ground-up Nitro rewrite. Do not try to incrementally upgrade — most su
 | Enable frame processor | `frameProcessor={useFrameProcessor(...)}` | `const frameOutput = useFrameOutput({ onFrame })` then `outputs={[frameOutput]}` |
 | Enable code scanner | `codeScanner={useCodeScanner(...)}` | Separate package `react-native-vision-camera-barcode-scanner` → `const barcodeOutput = useBarcodeScannerOutput(...)` then `outputs={[barcodeOutput]}` OR iOS-only native `useObjectOutput` |
 | Format / resolution / fps / HDR | `useCameraFormat(device, [...])` + `format`, `fps`, `videoHdr`, `photoHdr` props | `constraints={[...]}` prop — priority-ordered, auto-negotiated |
-| Take photo | `await cameraRef.current.takePhoto({ flash: 'on' })` | `await photoOutput.capturePhoto({ flash: 'on' })` — returns in-memory `Photo` |
+| Take photo | `await cameraRef.current.takePhoto({ flash: 'on' })` | `await photoOutput.capturePhoto({ flashMode: 'on' }, {})` — returns in-memory `Photo` |
 | Save photo to file | takePhoto returned a file path already | `await photoOutput.capturePhotoToFile(...)` returns `{ filePath }` |
 | Start recording | `cameraRef.current.startRecording({ onRecordingFinished, onRecordingError })` | `const recorder = await videoOutput.createRecorder({}); await recorder.startRecording(onFinished, onError)` |
 | Stop recording | `cameraRef.current.stopRecording()` | `recorder.stopRecording()` |
@@ -168,7 +168,7 @@ const uri = `file://${file.path}`
 
 // ✅ V5 — in-memory (preferred)
 const photo = await photoOutput.capturePhoto(
-  { flash: 'on' },
+  { flashMode: 'on' },
   {
     onWillBeginCapture: () => {},
     onWillCapturePhoto: () => {},
@@ -179,7 +179,7 @@ const photo = await photoOutput.capturePhoto(
 const image = await photo.toImageAsync() // render with react-native-nitro-image
 
 // ✅ V5 — if you genuinely need a file
-const { filePath } = await photoOutput.capturePhotoToFile({ flash: 'on' }, {})
+const { filePath } = await photoOutput.capturePhotoToFile({ flashMode: 'on' }, {})
 ```
 
 Behavioral changes:
@@ -188,7 +188,7 @@ Behavioral changes:
 - Callbacks that used to fire on the Camera are now passed as a second argument object on every capture call (`onWillBeginCapture`, `onWillCapturePhoto`, `onDidCapturePhoto`, `onPreviewImageAvailable`).
 - Thumbnail preview: in v5, configure `previewImageTargetSize` on `usePhotoOutput(...)` and receive via `onPreviewImageAvailable`, rather than showing the saved file.
 - `photoQualityBalance` prop is gone. Pass `qualityPrioritization: 'speed' | 'balanced' | 'quality'` in the capture settings (per-call) or the photo output options.
-- Shutter sound / red-eye options live on `CapturePhotoSettings`.
+- Shutter sound / red-eye options live on `CapturePhotoSettings`. Note the renames: `flash` → `flashMode`, `enableAutoRedEyeReduction` → `enableRedEyeReduction`.
 
 ## 5. Recording video
 
@@ -208,7 +208,7 @@ const recorder = await videoOutput.createRecorder({
   // optional: location, audio settings, codec, etc.
 })
 await recorder.startRecording(
-  (path) => console.log('finished:', path),
+  (filePath, reason) => console.log('finished:', filePath, reason),
   (err) => console.error(err),
   () => console.log('paused'),
   () => console.log('resumed'),
@@ -375,14 +375,14 @@ const codeScanner = useCodeScanner({
 import { useBarcodeScannerOutput } from 'react-native-vision-camera-barcode-scanner'
 
 const barcodeOutput = useBarcodeScannerOutput({
-  barcodeFormats: ['qr', 'ean-13'],
-  onBarcodesScanned: (codes) => {},
+  barcodeFormats: ['qr-code', 'ean-13'],
+  onBarcodeScanned: (barcodes) => {},
 })
 <Camera outputs={[barcodeOutput]} />
 
 // Or use the simple drop-in view:
 import { CodeScanner } from 'react-native-vision-camera-barcode-scanner'
-<CodeScanner isActive barcodeFormats={['qr']} onBarcodeScanned={(c) => {}} onError={(e) => {}} />
+<CodeScanner isActive barcodeFormats={['qr-code']} onBarcodeScanned={(barcodes) => {}} onError={(e) => {}} />
 
 // Or, iOS-only, no ML dependency, native AVCaptureMetadataOutput:
 import { useObjectOutput, isScannedCode } from 'react-native-vision-camera'
