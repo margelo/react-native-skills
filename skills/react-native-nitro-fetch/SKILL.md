@@ -16,7 +16,7 @@ A focused reference for AI coding assistants working in a project that uses the 
 
 `react-native-nitro-fetch` is a drop-in, native-backed replacement for the browser networking stack on React Native:
 
-- `fetch` — WHATWG-compatible, backed by `URLSession` (iOS) and `OkHttp`/`HttpURLConnection` (Android) via [Nitro Modules](https://github.com/mrousavy/nitro).
+- `fetch` — WHATWG-compatible, backed by `URLSession` (iOS) and `Cronet` (Android) via [Nitro Modules](https://github.com/mrousavy/nitro).
 - `NitroWebSocket` — native WebSocket (libwebsockets + mbedTLS) with the same shape as the browser `WebSocket`.
 - `NitroTextDecoder` — native UTF-8 decoder that beats the Hermes JS polyfill.
 
