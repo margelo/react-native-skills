@@ -14,8 +14,27 @@ Covers publish metadata and npm package contents.
 {
   "name": "react-native-math",
   "version": "0.1.0",
+  "description": "Fast, type-safe math utilities for React Native powered by Nitro Modules",
   "author": "Your Name <your@email.com>",
+  "contributors": [
+    "Contributor Name <contributor@email.com>"
+  ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/react-native-math.git"
+  },
+  "homepage": "https://math.margelo.com",
+  "bugs": {
+    "url": "https://github.com/yourusername/react-native-math/issues"
+  },
+  "keywords": [
+    "react-native",
+    "nitro-modules",
+    "ios",
+    "android",
+    "math"
+  ],
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsc",
@@ -60,24 +79,39 @@ Covers publish metadata and npm package contents.
 
 ## Step-by-Step
 
-### 1. Update author and contact info
+### 1. Update SEO and ownership metadata
+
+Set a concise, catchy description and complete metadata in `packages/react-native-math/package.json`. Keep this aligned with GitHub's About description, repository topics, README intro, npm tags, and docs site.
 
 In `packages/react-native-math/package.json`:
 
 ```json
 {
+  "description": "Fast, type-safe math utilities for React Native powered by Nitro Modules",
+  "keywords": [
+    "react-native",
+    "nitro-modules",
+    "ios",
+    "android",
+    "math"
+  ],
   "author": "Your Full Name <your@email.com>",
+  "contributors": [
+    "Contributor Name <contributor@email.com>"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/yourusername/react-native-math.git"
   },
-  "homepage": "https://github.com/yourusername/react-native-math#readme",
+  "homepage": "https://math.margelo.com",
   "bugs": {
     "url": "https://github.com/yourusername/react-native-math/issues"
   }
 }
 ```
+
+For Margelo repos, prefer a short docs domain such as `<simple-name>.margelo.com` when a docs site exists. Otherwise use the GitHub README URL as `homepage`.
 
 ### 2. Set the `files` field
 
@@ -170,19 +204,22 @@ For one-command release automation, use [release-it-publishing.md](release-it-pu
 {
   "name": "react-native-math",
   "version": "0.1.0",
-  "description": "A fast React Native Math module built with Nitro Modules",
+  "description": "Fast, type-safe math utilities for React Native powered by Nitro Modules",
   "main": "lib/index",
   "module": "lib/index",
   "types": "lib/index.d.ts",
   "react-native": "src/index",
   "source": "src/index",
   "author": "Your Name <your@email.com>",
+  "contributors": [
+    "Contributor Name <contributor@email.com>"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/yourusername/react-native-math.git"
   },
-  "homepage": "https://github.com/yourusername/react-native-math#readme",
+  "homepage": "https://math.margelo.com",
   "bugs": {
     "url": "https://github.com/yourusername/react-native-math/issues"
   },
@@ -190,7 +227,8 @@ For one-command release automation, use [release-it-publishing.md](release-it-pu
     "react-native",
     "nitro-modules",
     "ios",
-    "android"
+    "android",
+    "math"
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",

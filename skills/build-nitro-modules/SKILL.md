@@ -81,6 +81,7 @@ Load [release-it-publishing.md][release-it-publishing] only when setting up or r
 
 - Prefer behavior tests over type-shape tests. Nitrogen already enforces specs at compile time, so tests should cover real feature behavior, inputs, settings, failure paths, and order-of-execution cases.
 - Use `react-native-harness` when available for end-to-end testing in a real React Native environment. For native-heavy libraries, prefer real-device or CI device-farm coverage for the API surface that depends on hardware or OS behavior.
+- In GitHub Actions, prefer harness E2E jobs over standalone native unit tests for APIs that are only public through React Native. Add Kotlin JUnit, XCTest, or other native-only tests only when the package has a native target usable outside React Native or RN harness coverage cannot exercise the behavior.
 
 ## Ask First — Before Doing Anything
 
@@ -240,7 +241,7 @@ Run: `bun example android`, `bun example ios`, `bun specs`
 
 | File | Description |
 |------|-------------|
-| [repo-structure-and-workflow.md][repo-structure-and-workflow] | Root layout, packages/apps/docs/config/scripts, CI, branch, draft PR, and squash-merge workflow |
+| [repo-structure-and-workflow.md][repo-structure-and-workflow] | Root layout, README/docs, packages/apps/config/scripts, CI, branch, draft PR, and squash-merge workflow |
 | [setup-monorepo-init.md][setup-monorepo-init] | Collecting scaffold inputs and running `nitrogen init` |
 | [spec-hybrid-object.md][spec-hybrid-object] | Writing `*.nitro.ts` specs and exporting HybridObjects |
 | [spec-nitro-json.md][spec-nitro-json] | `nitro.json` all fields, autolinking, namespace configuration |
@@ -261,7 +262,7 @@ Run: `bun example android`, `bun example ios`, `bun specs`
 |---------|-----------|--------|
 | Need to design the public API first | `api-design` + this SKILL.md | Shape the TS/React API, then apply Nitro constraints |
 | Need latest general APIs | `api-design` | Check official docs, release notes, source repos, package metadata, or `llms-full.txt` before deciding |
-| Need a recommended repo structure | [repo-structure-and-workflow.md][repo-structure-and-workflow] | Use `packages/`, `apps/` or `example/`, optional `docs/`, `scripts/`, `config/`, and `.github/workflows/` |
+| Need a recommended repo structure | [repo-structure-and-workflow.md][repo-structure-and-workflow] | Use `main`, a strong README, `packages/`, `apps/` or `example/`, optional Fumadocs, `scripts/`, `config/`, and `.github/workflows/` |
 | Unsure static module vs instance API | This SKILL.md | Prefer HybridObjects for native state, resources, prewarming, and zero-copy data |
 | Don't know where to start | [setup-monorepo-init.md][setup-monorepo-init] | Scaffold with `nitrogen init` |
 | Spec file syntax error | [spec-hybrid-object.md][spec-hybrid-object] | Fix `*.nitro.ts` interface |

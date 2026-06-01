@@ -109,6 +109,7 @@ Before choosing public API shape, dependency APIs, platform capabilities, or imp
 ## Documentation Contracts
 
 - Treat exported TypeScript as product documentation. Add JSDoc to every exported declaration users import, including interfaces, type aliases, string-literal unions, runtime enums, classes, HybridObjects, option objects, event objects, hooks, components, and public constants.
+- Assume these comments will become API documentation through TypeDoc or a similar generator. Write them as navigable reference docs, not inline-only code notes.
 - Do not create exported callback aliases only to attach JSDoc. Inline simple callback parameters and document the method or parameter that accepts them. Export and document a callback type only when it is intentionally part of the public API.
 - Use JSDoc for semantics, lifecycle, platform behavior, defaults, and performance costs that types cannot express.
 - Keep JSDoc user-facing. Do not mention native class names, framework implementation details, or current platform limitations unless the caller must know them to use the API correctly.
@@ -117,5 +118,6 @@ Before choosing public API shape, dependency APIs, platform capabilities, or imp
 - Every type-level JSDoc should connect the type to a real related API with `{@linkcode ...}` or `@see`. Use the property, method, factory, or result that exposes the type, for example `Represents the format of a {@linkcode Barcode}.` plus `@see {@linkcode Barcode.format}`. Do not invent link targets or add filler links only to satisfy this rule.
 - For base interfaces or abstract concepts, describe how callers encounter the value and link concrete variants exported by the package, for example `Represents a value scanned by {@linkcode DataScanner}. Concrete values include {@linkcode ScannedTextValue} and {@linkcode ScannedBarcodeValue}.`
 - Use `{@linkcode ...}` or `@see` to point to related methods, configuration objects, and capability checks instead of writing generic warnings about not assuming the current OS or platform.
+- Link docs densely enough that users can click around the generated API reference: factories link to returned objects, options link to methods that consume them, result objects link to methods that produce them, events link to listener registration methods, and cleanup/disposal docs link to the API that creates the resource.
 - Use `@default`, `@throws`, `@platform`, `@example`, `@see`, and `@discussion` where they clarify behavior. Link related APIs with `{@linkcode ...}`.
 - Document resource ownership and cleanup explicitly. If a returned object must be disposed, say when and why.
