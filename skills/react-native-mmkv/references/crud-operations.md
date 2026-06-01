@@ -66,7 +66,7 @@ storage.clearAll()                            // removes all keys
 ### Storage size and maintenance
 
 ```ts
-const size = storage.size  // total file size in bytes
+const size = storage.byteSize  // total file size in bytes
 
 // Free unused space after many deletes
 if (size >= 4096) {
@@ -88,14 +88,14 @@ Copies all key-value pairs from `otherStorage` into this instance. Returns the n
 |----------|------|-------------|
 | `id` | `string` | The instance identifier |
 | `length` | `number` | Number of stored keys |
-| `size` | `number` | Total file size in bytes |
-| `byteSize` | `number` | Byte size of storage |
+| `byteSize` | `number` | Total file size in bytes |
+| `size` | `number` | Deprecated — use `byteSize` instead |
 | `isReadOnly` | `boolean` | Whether the instance is read-only |
 | `isEncrypted` | `boolean` | Whether encryption is enabled |
 
 ## Gotchas
 
-- **`getString` on a number key returns `undefined`.** Type must match. If you stored a number, use `getNumber`.
+- **Type must match what you stored.** If you stored a number, use `getNumber`. Reading with the wrong getter (e.g. `getString` on a number key) is incorrect and may result in garbage value
 - **`remove()` not `delete()`.** V4 renamed this because `delete` is a C++ reserved keyword in the Nitro binding.
 - **`clearAll()` is instant and irreversible.** No confirmation dialog. All keys gone.
 - **Object storage = your responsibility.** `JSON.stringify`/`JSON.parse` failures are on your code. Consider `useMMKVObject` hook for type-safe reactive access.

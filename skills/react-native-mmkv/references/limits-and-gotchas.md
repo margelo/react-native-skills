@@ -93,7 +93,7 @@ MMKV_LOG_LEVEL=4 pod install
 After many deletes, the storage file may have unused space. Call `storage.trim()` to compact it:
 
 ```ts
-const size = storage.size
+const size = storage.byteSize
 if (size >= 4096) {
   storage.trim()
 }

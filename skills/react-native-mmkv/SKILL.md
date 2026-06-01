@@ -22,7 +22,7 @@ The three things that trip people up:
 2. **It's a key-value store, not a database.** All data is cached in memory. Keep total size under ~100 MB; for larger datasets use [react-native-nitro-sqlite](https://github.com/margelo/react-native-nitro-sqlite) or WatermelonDB. There is no fixed storage limit — but memory warnings will fire if you go too large.
 3. **V4 is a breaking rewrite.** The constructor changed from `new MMKV()` to `createMMKV()`, `.delete()` became `.remove()`, and `react-native-nitro-modules` is now a required peer dependency. See the [upgrade guide](./references/upgrade-v4.md).
 
-> **V4 requires React Native 0.75+ with New Architecture / TurboModules enabled.**
+> **V4 requires React Native 0.75+.** It works on both the New Architecture and the old architecture (Nitro is backwards compatible).
 
 ## Routing table — problem to reference
 
@@ -67,8 +67,8 @@ const storage = createMMKV({ id: 'my-store' })
 // Properties (read-only)
 storage.id          // string
 storage.length      // number of keys
-storage.size        // total file size in bytes
-storage.byteSize    // byte size
+storage.byteSize    // total file size in bytes
+storage.size        // (deprecated — use byteSize)
 storage.isReadOnly  // boolean
 storage.isEncrypted // boolean
 
@@ -91,7 +91,7 @@ storage.clearAll()         // void
 storage.encrypt('password')
 storage.encrypt('password', 'AES-256')
 storage.decrypt()
-storage.recrypt('newPassword' | undefined)
+storage.recrypt('newPassword' | undefined)  // (deprecated — use encrypt()/decrypt())
 
 // Maintenance
 storage.trim()                       // free unused space

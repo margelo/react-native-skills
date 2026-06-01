@@ -42,7 +42,7 @@ The `.remove()` call is on the returned `Listener` object — not on the storage
 class SettingsManager {
   private listener: Listener
 
-  constructor() {
+  constructor(storage: MMKV) {
     this.listener = storage.addOnValueChangedListener((key) => {
       this.handleChange(key)
     })

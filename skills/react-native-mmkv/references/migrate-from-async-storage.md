@@ -123,6 +123,7 @@ Key differences:
 ## Gotchas
 
 - **AsyncStorage stores everything as strings.** Numbers come back as `"42"`, booleans as `"true"`. Parse them during migration if you want typed values in MMKV.
+- **`null` vs `undefined`.** AsyncStorage's `getItem` returns `null` for missing keys; MMKV's getters return `undefined`. Update any `value === null` checks to `value === undefined`.
 - **Remove migration code eventually.** Once all users have upgraded, the migration path is dead code. Add a TODO to remove it.
 - **Don't migrate on every launch.** The `MIGRATION_KEY` flag is critical — without it, you'll re-run the (now empty) migration on every cold start.
 - **Error handling is your decision.** If migration fails partway, some keys are in MMKV and some are still in AsyncStorage. Decide whether to retry, crash, or continue.
