@@ -90,7 +90,10 @@ func getStatus() throws -> Promise<SessionStatus> {
 - Make classes `final` by default unless subclassing is part of the design.
 - Prefer Swift-native types such as `String`, `Array`, `Dictionary`, structs, protocols, and Foundation value types. Avoid Objective-C bridge types unless an Apple API requires them.
 - Use `guard` to validate input and state early. Throw specific errors for user-reachable failures.
-- Keep implementation files focused. Split delegates, framework adapters, conversions, and protocol conformances into separate files when they grow.
+- Treat a filename as a scope contract. `HybridDataScanner.swift` should implement `HybridDataScanner`; it should not also contain unrelated `CGPoint` conversions, `UIViewController` helpers, delegates, or framework adapters.
+- Keep one primary type or cohesive extension family per file by default. Put reusable extensions in named files such as `Extensions/UIViewController+topPresentedViewController.swift` or `Extensions/CGPoint+Point.swift` with `internal` or `package` visibility where appropriate.
+- Split delegates, framework adapters, converters, native protocols, and helper state into separate files instead of adding them below the main type.
+- Use line count as a review signal: files below roughly 300 lines are usually fine; files above that need a clear reason tied to one cohesive responsibility. Size caused by unrelated extensions, conversions, or helper types is a design issue.
 - Break meaningful conversions into named intermediate values instead of long inline expressions.
 
 ## Nitro Notes

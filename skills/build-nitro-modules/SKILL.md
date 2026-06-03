@@ -25,7 +25,7 @@ Let `api-design` own general public API rules and API freshness checks. In this 
 
 If the user is building a JS-only React or React Native library, do not apply this skill unless Nitro, HybridObjects, native modules, codegen, C++/Swift/Kotlin bindings, or `react-native-nitro-modules` are part of the task.
 
-Pair with `swift` when implementing or reviewing Swift-backed HybridObjects, AVFoundation/session code, DispatchQueue usage, Swift concurrency, or thread-affine Swift state. Pair with `kotlin` when implementing or reviewing Kotlin-backed HybridObjects, Android threading, coroutines, Kotlin nullability, sealed result models, or Android service access.
+Pair with `swift` when implementing or reviewing Swift-backed HybridObjects, AVFoundation/session code, DispatchQueue usage, Swift concurrency, or thread-affine Swift state. Pair with `kotlin` when implementing or reviewing Kotlin-backed HybridObjects, Android threading, coroutines, Kotlin nullability, sealed result models, or Android service access. Pair with `cpp` when implementing or reviewing C++-backed HybridObjects, shared native engines, CMake, RAII ownership, or generated C++ spec bindings.
 
 ## Repo and Release References
 
@@ -69,6 +69,8 @@ Load [release-it-publishing.md][release-it-publishing] only when setting up or r
 - Every native HybridObject implementation must implement or inherit from the generated `Hybrid*Spec` for that platform. Never implement a standalone native class and expect Nitro to discover it.
 - Make native implementation classes `final` by default unless inheritance is genuinely required. This is especially true for Swift and Kotlin HybridObjects.
 - Keep top-level native types in separate files. Nest only truly local private helpers.
+- Treat native filenames as scope contracts. A file named after a HybridObject should focus on that HybridObject's implementation, not collect unrelated extensions, platform helpers, converters, delegates, protocols, or reusable utilities.
+- Use line count as a review signal for native files: below roughly 300 lines is usually acceptable; above that needs a concrete reason tied to one cohesive responsibility. If the size comes from helpers that could be named separately, split the file.
 - Validate invalid inputs and required unsupported behavior early. Do not reject cross-platform configuration just because the current native backend ignores an optional preference. If the operation still does its core job, ignore or degrade the preference and report support through capabilities or resolved state.
 - Do not silently swallow real failures. Throw, reject a Promise, or emit through an explicit error callback/listener when the requested outcome cannot be delivered.
 - Prefer Nitro/runtime errors or language-native exceptions that surface cleanly to JS. Avoid Objective-C-style `NSError` public paths unless the generated API specifically requires it.

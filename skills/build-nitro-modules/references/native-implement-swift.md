@@ -286,8 +286,10 @@ If state can only be observed on a specific queue, prefer a listener or event AP
 
 - Make HybridObject implementation classes `final` unless inheritance is genuinely required.
 - Use Swift types such as `String`, `[String: T]`, arrays, structs, and typed Foundation values. Avoid Objective-C bridge types such as `NSString`, `NSDictionary`, `NSArray`, and `NSObject` inheritance unless an Apple API requires them.
-- Put reusable conversions, Apple framework helpers, and small protocol conveniences in Swift extensions under `ios/Extensions/`, such as `ios/Extensions/AVFoundation/AVCaptureDevice+withLock.swift`.
-- Keep implementation files focused. Move delegates, extension helpers, converters, and native protocols into separate files instead of growing one large HybridObject file.
+- Treat `ios/HybridDataScanner.swift` as the implementation file for `HybridDataScanner`, not as a dumping ground for unrelated Swift extensions, UI helpers, geometry conversions, delegates, or native protocols.
+- Put reusable conversions, Apple framework helpers, and small protocol conveniences in Swift extensions under `ios/Extensions/`, such as `ios/Extensions/UIViewController+topPresentedViewController.swift`, `ios/Extensions/CGPoint+Point.swift`, or `ios/Extensions/AVFoundation/AVCaptureDevice+withLock.swift`.
+- Move delegates, framework adapters, converters, native protocols, and helper state into separate named files. Use `internal` or `package` visibility when the helper should not be public API.
+- Use line count as a review signal: under roughly 300 lines is usually acceptable, while files above that need a concrete reason tied to one cohesive responsibility. A large file caused by extension methods or helper variables belongs in multiple files.
 - Break complex expressions into named intermediate values. Avoid inline chains that allocate, convert units, and call another API in one expression.
 - Pass named constants or variables into API calls instead of building values inline when the expression has meaningful steps.
 
@@ -315,6 +317,7 @@ renderer.render(point: projectedPoint)
 - **Using the `override` keyword** — Swift implementations conform to the generated spec shape; methods and properties declared by the spec must NOT use `override` (unlike the Kotlin counterpart, which does). `override` only applies when overriding a superclass member.
 - **Defaulting HybridObjects to `actor`** — JS-facing methods and properties are synchronous entry points. Prefer queue-owned state and async methods where serialization is needed.
 - **Leaking Objective-C types** — Avoid `NSDictionary`, `NSString`, `NSArray`, and `NSError` in Nitro implementation APIs unless required by an Apple API boundary.
+- **Letting one HybridObject file absorb every helper** — Split extensions, delegates, converters, and protocols into named files. The filename should still describe the file after the implementation is done.
 
 ## Related Skills
 

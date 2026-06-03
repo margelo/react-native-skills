@@ -250,6 +250,14 @@ Examples:
 - Throw when a requested flash mode cannot work because the device has no flash.
 - Do not throw only because a quality, guidance UI, high-frame-rate, auto-zoom, or region preference is unsupported, unless the API documents that field as a hard requirement.
 
+### Kotlin style and organization
+
+- Treat `HybridDataScanner.kt` as the implementation file for `HybridDataScanner`, not as a dumping ground for unrelated Android helpers, geometry conversions, listeners, or extension utilities.
+- Keep one primary class, sealed family, or cohesive extension family per file by default.
+- Move reusable extensions, Android adapters, conversion helpers, delegates/listeners, and protocol-style interfaces into named files such as `Extensions/ViewExtensions.kt`, `Conversions/PointConversions.kt`, or `DataScannerDelegate.kt`.
+- Use `internal` visibility for helpers that should stay inside the module.
+- Use line count as a review signal: under roughly 300 lines is usually acceptable, while files above that need a concrete reason tied to one cohesive responsibility. A large file caused by helpers or Android glue belongs in multiple files.
+
 ## Common Pitfalls
 
 - **Missing `@Keep` or `@DoNotStrip`** — The class will be removed in release builds, causing crashes
@@ -264,6 +272,7 @@ Examples:
 - **Modeling variants with nullable clusters** — Use distinct TypeScript/Nitro variants so Kotlin receives non-null related fields
 - **Storing `NitroModules.applicationContext` in a field** — It can be null at construction time; always access it via a `get()` property
 - **Not null-checking `applicationContext`** — Always use `?: throw Error("No ApplicationContext set!")` to fail explicitly
+- **Letting one HybridObject file absorb every helper** — Split extensions, adapters, converters, and listeners into named files. The filename should still describe the file after the implementation is done.
 
 ## Related Skills
 

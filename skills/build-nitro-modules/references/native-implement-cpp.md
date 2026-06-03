@@ -221,6 +221,14 @@ void HybridMath::compute(double input, std::function<void(double)> onResult) {
 }
 ```
 
+### C++ style and organization
+
+- Treat `cpp/HybridDataScanner.cpp` as the implementation file for `HybridDataScanner`, not as a dumping ground for unrelated geometry conversions, OpenCV helpers, platform adapters, or utility functions.
+- Keep one primary class, cohesive algorithm, or small variant family per file by default.
+- Move reusable conversions, adapters, thread helpers, and platform shims into named files such as `GeometryConversions.cpp`, `FrameProcessorAdapter.cpp`, or `DataScannerSession.cpp`.
+- Use anonymous namespaces only for small helpers that serve the file's primary type. Put larger reusable helpers in a `detail` namespace or an internal folder.
+- Use line count as a review signal: under roughly 300 lines is usually acceptable, while files above that need a concrete reason tied to one cohesive responsibility. A large file caused by helpers or glue belongs in multiple files.
+
 ## Common Pitfalls
 
 - **Wrong namespace** — The namespace must match `cxxNamespace` in `nitro.json` (e.g. `margelo::nitro::math`)
@@ -228,9 +236,11 @@ void HybridMath::compute(double input, std::function<void(double)> onResult) {
 - **Using `float` instead of `double`** — Nitro uses `double` for all `number` types
 - **Inventing async return types** — Generated async methods return `std::shared_ptr<Promise<T>>`. Copy the generated signature exactly and use `Promise<T>::async(...)`, `Promise<T>::resolved(...)`, `Promise<T>::rejected(...)`, or `Promise<T>::create()` depending on how the native work completes.
 - **Missing `TAG` member** — Required for `HybridObject(TAG)` constructor call
+- **Letting one HybridObject file absorb every helper** — Split converters, adapters, utility functions, and platform glue into named files. The filename should still describe the file after the implementation is done.
 
 ## Related Skills
 
+- [cpp](../../cpp/SKILL.md) — General C++ API, ownership, and file-organization guidance
 - [native-nitrogen-codegen.md](native-nitrogen-codegen.md) — Must generate specs before implementing
 - [spec-nitro-json.md](spec-nitro-json.md) — Configure `"c++"` in autolinking
 - [native-implement-kotlin.md](native-implement-kotlin.md) — Android Kotlin alternative

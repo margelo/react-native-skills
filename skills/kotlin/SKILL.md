@@ -90,6 +90,9 @@ fun getStatus(): Promise<SessionStatus> {
 - Use `require`, `check`, or specific exceptions for invalid inputs and invalid state. Do not silently no-op user-reachable failures.
 - Keep Java interop explicit. Convert platform types into Kotlin types before exposing them through the public API where practical.
 - Avoid `!!` except at narrow boundaries where a prior check makes the invariant obvious. Prefer early returns, `requireNotNull`, or typed state.
+- Treat a filename as a scope contract. `HybridDataScanner.kt` should implement `HybridDataScanner`; it should not also contain unrelated Android helpers, geometry conversions, listeners, or extension utilities.
+- Keep one primary class, sealed family, or cohesive extension family per file by default. Move reusable extensions and helpers into named files such as `Extensions/ViewExtensions.kt`, `Conversions/PointConversions.kt`, or `DataScannerDelegate.kt` with `internal` visibility where appropriate.
+- Use line count as a review signal: files below roughly 300 lines are usually fine; files above that need a clear reason tied to one cohesive responsibility. Size caused by unrelated helpers, conversions, or Android glue is a design issue.
 
 ## Nitro Notes
 
