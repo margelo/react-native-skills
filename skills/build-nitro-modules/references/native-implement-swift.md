@@ -141,8 +141,11 @@ For any type uncertainty, consult the canonical Swift test implementation:
 
 Choose one concurrency model for the feature before implementing it.
 
-- Use `Promise.parallel(queue)` for DispatchQueue-based work. This fits most AVFoundation and session-style APIs because you can keep all native state mutations on one queue.
+- Use `Promise.parallel(queue)` for DispatchQueue-owned work. This fits most AVFoundation and session-style APIs because you can keep all native state mutations on one queue.
 - Use `Promise.async` only when the operation is naturally Swift `async`/`await` or Task-based from end to end.
+- Do not use `Task { @MainActor in ... }` as a generic main-thread hop from a generated Nitro method. For UIKit/VisionKit callback and delegate APIs, use a manual Promise plus direct `DispatchQueue.main.async` at the Nitro entry or callback boundary.
+- Direct `DispatchQueue.main.async` closures are recognized by Swift's actor checker for `@MainActor` calls; generic queue wrappers such as `Promise.parallel(.main)` usually are not unless their closure is explicitly typed as `@MainActor`.
+- If an Apple completion can return on an arbitrary queue, normalize that completion to the chosen owner queue once, close to the callback source, instead of nesting repeated main-thread hops through the workflow.
 - Do not mix Swift concurrency with `DispatchQueue.sync`, `DispatchQueue.main.sync`, `MainActor.assumeIsolated`, or `Thread.isMainThread` workarounds. If those seem necessary, use a queue-based design or change the public API boundary.
 - Never call `DispatchQueue.sync` or `DispatchQueue.main.sync` in Nitro implementation code. This is especially dangerous in generated property getters and setters because those are synchronous JS entry points.
 

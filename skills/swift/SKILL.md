@@ -59,6 +59,9 @@ struct ScannedFace: ScannedData {
 - Choose Swift concurrency or DispatchQueue for a feature, not both as interleaved control flow.
 - Use Swift `async`/`await`, `Task`, and actors only when the full operation can be represented cleanly in Swift concurrency without queue escape hatches.
 - Use a private serial `DispatchQueue` when Apple APIs, delegates, callbacks, C++ bridges, JS runtimes, or Nitro thread boundaries already revolve around queues.
+- Do not use `Task { @MainActor in ... }` as a generic main-thread hop from a nonisolated or Nitro-generated entry point. It creates unstructured Swift concurrency. Use it only when the operation is otherwise Swift-concurrency based and benefits from `async`/`await`, task cancellation, or actor isolation end to end.
+- For UIKit, AppKit, VisionKit, and other main-thread callback/delegate APIs, prefer a direct `DispatchQueue.main.async` boundary or an async public method that owns the hop. Direct `DispatchQueue.main.async` is understood by Swift's actor checker for `@MainActor` calls; generic queue wrappers such as `Promise.parallel(.main)` usually are not.
+- If a callback can return on an arbitrary queue, normalize it to the chosen owner queue once, close to the callback source, instead of scattering nested `Task { @MainActor }` or `DispatchQueue.main.async` hops through the workflow.
 - Do not force `MainActor.assumeIsolated`, `Thread.isMainThread` branches, or queue `.sync` calls to make a Swift-concurrency design compile. That is a signal to choose a queue-based design or change the API boundary.
 - Do not call `DispatchQueue.sync`, `DispatchQueue.main.sync`, or equivalent synchronous queue hops. Treat them as bugs, especially in property getters and setters.
 - Use `DispatchQueue.async` or a Nitro `Promise` method for queue-bound work that callers must wait for.
