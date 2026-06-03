@@ -39,6 +39,8 @@ Use this skill for C++ code that needs clear ownership, strong type modeling, ma
 - Use `std::variant`, `std::optional`, and strong structs to express API flow instead of stringly typed states.
 - Do not block caller threads for I/O, long CPU work, or platform callbacks. Use the project's async abstraction, executor, or Nitro `Promise<T>` when the operation can wait.
 - Keep thread-affine state behind a clear owner. Do not mix mutexes, queues, callbacks, and shared ownership without a documented boundary.
+- Treat repeated executor, queue, thread, or callback hops as an architecture smell. A component should either own the executor/thread it works on, or cross into that owner once at the public async boundary or native callback boundary.
+- If a workflow bounces between platform, worker, JS/Nitro, and callback threads in multiple nested places, stop and redesign the object/lifecycle/API. Excessive hops hide latency, make ordering harder to reason about, and create future performance problems.
 - Treat `std::mutex` as last-resort synchronization, not default listener or callback plumbing. Before adding one, identify the exact shared mutable values, concurrent callers, and why one owner thread/queue, immutable snapshots, or message passing is not enough.
 - Never hold a mutex while invoking callbacks, crossing into JS/Nitro, calling platform APIs with unknown reentrancy, or calling user-provided code. Copy/snapshot the data needed for dispatch, unlock, then call out.
 

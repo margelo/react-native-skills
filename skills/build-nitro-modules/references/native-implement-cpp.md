@@ -225,6 +225,8 @@ Treat `std::mutex` as last-resort synchronization, not default callback or liste
 
 Never invoke JS/Nitro callbacks while holding a mutex. Copy or snapshot listener collections if needed, unlock, then call them. A listener removed during an in-flight emission may receive that current event.
 
+Treat repeated executor, queue, platform, callback, and JS/Nitro runtime hops as an architecture smell. A HybridObject/session should own the executor/thread it works on, or cross into that owner once at the Promise, lifecycle, or native callback boundary. If an operation bounces through multiple nested contexts, redesign the object boundary or returned handle instead of adding more hops.
+
 ### C++ style and organization
 
 - Treat `cpp/HybridDataScanner.cpp` as the implementation file for `HybridDataScanner`, not as a dumping ground for unrelated geometry conversions, OpenCV helpers, platform adapters, or utility functions.
