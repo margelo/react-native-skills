@@ -33,6 +33,7 @@ Before choosing public API shape, dependency APIs, platform capabilities, or imp
 - Avoid giant "does everything" objects. Split by domain or lifecycle when responsibilities differ.
 - Prefer literal unions, discriminated unions, interfaces, and typed option groups when the valid states are known. In TypeScript libraries, prefer string literal unions over runtime `enum`s unless consumers need a runtime value.
 - Avoid untyped dictionaries, boolean clusters, stringly typed commands, and loosely shaped events when the valid states are known.
+- Do not model a binary option as an optional two-case string union such as `'enabled' | 'disabled'`. If omitted means "use the default" and provided means true/false, use an optional boolean and document the default.
 - Do not represent multiple object states as one interface full of optional fields. Use a discriminated union, inheritance, or separate variant interfaces so impossible field combinations are unrepresentable.
 - Keep related fields together on the variant where they are required. If `barcode` and `barcodeType` only make sense together, both should be nonoptional on `ScannedBarcode`, not optional on a generic `ScannedData`.
 - If you create variant interfaces, use them in the actual public type. Do not define `RecognizedTextDataType` and `RecognizedBarcodeDataType` but keep `recognizedDataTypes: RecognizedDataType[]` where `RecognizedDataType` still contains every variant field as optional.
@@ -98,7 +99,11 @@ type ScannedResult = ScannedText | ScannedBarcode | ScannedFace
 ## Names and Members
 
 - Name commands with a verb and subject. Add unit suffixes to numeric values. Prefer `getCurrentSystemTimestampMs()` over `timestamp()`.
-- Use `is*`, `has*`, or `can*` prefixes for boolean properties.
+- Name booleans by their role, not just by their type.
+- Use predicate names such as `is*`, `has*`, `can*`, or `supports*` for booleans that reflect observed state, capability, or resolved configuration. Examples: `isFlashEnabled`, `isFlashAvailable`, `hasFlash`, `supportsFlash`.
+- Use command or preference names such as `enable*`, `allow*`, or domain-specific verbs for boolean options that control future behavior. Examples: `enableFlash`, `allowCellularAccess`, `preferHighAccuracy`.
+- In React and React Native public APIs, reserve `use*` names for hooks. Outside React contexts, `use*` can be acceptable only when it reads naturally in the local domain and cannot be confused with a hook.
+- Avoid `is*Enabled` for input preferences when the feature is not enabled yet. `enableGuidance?: boolean` reads as a requested setting; `isGuidanceEnabled: boolean` reads as resolved state.
 - Use properties for cheap observed state or capability. Prefer `readonly isAccelerometerAvailable: boolean` over `accelerometerAvailable()`.
 - Use methods for side effects, expensive work, allocation, mutation, async boundaries, or operations that can fail.
 - Make units explicit in names: `timeoutMs`, `byteSize`, `maxRetries`, `createdAt`.
