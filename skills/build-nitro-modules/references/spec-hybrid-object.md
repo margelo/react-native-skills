@@ -197,7 +197,10 @@ export type { Math } from './specs/Math.nitro'
 - Add JSDoc to every exported spec interface, type alias, string-literal union, options struct, event struct, HybridObject, and public property. Type-level comments must describe domain meaning and link to a real related type or member with `{@linkcode ...}` or `@see`, for example `Represents the format of a {@linkcode Barcode}.` and `@see {@linkcode Barcode.format}`. Do not invent link targets.
 - JSDoc `{@linkcode ...}` and `@see` targets must resolve in the file where they are written. Import type-only symbols used only by docs when needed, and verify there are no editor/doc-tooling squiggles. Do not rely on `tsc` alone to catch broken documentation links.
 - Do not create exported callback aliases only to attach JSDoc. For listener methods, inline the callback type and document the listener method or parameter.
+- Repeated event methods should be additive: `addOnCodeScannedListener(callback): ListenerSubscription`, not a single shared `setOnCodeScanned(...)` slot. Each subscription owns its cleanup and can coexist with other subscribers.
 - Listener methods must return a flat subscription object with `remove: () => void`. Do not make the subscription a HybridObject unless it exposes native state beyond cleanup. Do not expose numeric listener IDs or `removeListener(listenerId)` methods. Call sites still use `subscription.remove()`.
+- Use `setOn...Callback(callback | undefined)` only when the object intentionally owns one replaceable callback slot, such as a hot-path frame processor or output callback that cannot safely or cheaply multiplex. Document that the new callback replaces the previous one and that `undefined` removes it.
+- Avoid `setOn...Listener` naming for single-slot setters. Use `addOn...Listener` for additive listeners and `setOn...Callback` for replacement callbacks.
 
 ## Code Examples
 
