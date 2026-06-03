@@ -227,6 +227,8 @@ Never invoke JS/Nitro callbacks while holding a mutex. Copy or snapshot listener
 
 Treat repeated executor, queue, platform, callback, and JS/Nitro runtime hops as an architecture smell. A HybridObject/session should own the executor/thread it works on, or cross into that owner once at the Promise, lifecycle, or native callback boundary. If an operation bounces through multiple nested contexts, redesign the object boundary or returned handle instead of adding more hops.
 
+Do not fix lifecycle, readiness, or race bugs with `sleep_for`, `usleep`, timers, extra executor hops, or calling the same native method twice. Use an explicit Promise, callback, listener event, returned configured HybridObject, state transition, or owner queue instead. Retry only for external hardware, OS service, remote service, or network uncertainty, with bounded/cancellable/idempotent behavior.
+
 ### C++ style and organization
 
 - Treat `cpp/HybridDataScanner.cpp` as the implementation file for `HybridDataScanner`, not as a dumping ground for unrelated geometry conversions, OpenCV helpers, platform adapters, or utility functions.
