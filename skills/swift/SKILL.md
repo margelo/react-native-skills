@@ -94,8 +94,8 @@ func getStatus() throws -> Promise<SessionStatus> {
 - Keep one primary type or cohesive extension family per file by default. Put reusable extensions in named files such as `Extensions/UIViewController+topPresentedViewController.swift` or `Extensions/CGPoint+Point.swift` with `internal` or `package` visibility where appropriate.
 - Split delegates, framework adapters, converters, native protocols, and helper state into separate files instead of adding them below the main type.
 - Use line count as a review signal: files below roughly 300 lines are usually fine; files above that need a clear reason tied to one cohesive responsibility. Size caused by unrelated extensions, conversions, or helper types is a design issue.
-- Put conversions on the element type, not on arrays, when the batch operation is only a standard `map`. Prefer `RecognizedDataType+VNRecognizedDataType.swift` with `dataTypes.map { $0.toVNRecognizedDataType() }` over an `[RecognizedDataType].toVisionRecognizedDataTypes()` helper.
-- Add `Array` or `Collection` extensions only when the collection has real domain behavior, such as validation across elements, deduplication, ordering, batching, caching, or error aggregation.
+- Put conversions on the element type, not on arrays, when the conversion only reads one element. The element method may still return multiple values; compose callers with `map`, `flatMap`, `reduce`, or `Set(...)`.
+- Add `Array` or `Collection` extensions only when the collection has real domain behavior, such as validation across elements, deduplication, ordering, batching, caching, nonempty checks, or error aggregation.
 - Break meaningful conversions into named intermediate values instead of long inline expressions.
 
 ## Nitro Notes

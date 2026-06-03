@@ -228,8 +228,8 @@ void HybridMath::compute(double input, std::function<void(double)> onResult) {
 - Move reusable conversions, adapters, thread helpers, and platform shims into named files such as `GeometryConversions.cpp`, `FrameProcessorAdapter.cpp`, or `DataScannerSession.cpp`.
 - Use anonymous namespaces only for small helpers that serve the file's primary type. Put larger reusable helpers in a `detail` namespace or an internal folder.
 - Use line count as a review signal: under roughly 300 lines is usually acceptable, while files above that need a concrete reason tied to one cohesive responsibility. A large file caused by helpers or glue belongs in multiple files.
-- Put one-element conversions on the source type or a one-element converter function. Prefer `toNativeRecognizedDataType(type)` plus `std::transform` where the vector is used. Do not add a vector helper when it only wraps that transform.
-- Add collection helpers only when the collection conversion has real behavior beyond mapping, such as validation across elements, deduplication, ordering, batching, caching, or error aggregation.
+- Put one-element conversions on the source type or a one-element converter function. The converter may return a vector/set when one source value expands to several native values.
+- Compose collections where they are used with standard loops, `std::transform`, set insertion, or accumulation. Keep an aggregate helper only when it owns real collection semantics such as deduplication, validation across elements, nonempty checks, batching, caching, or error aggregation.
 
 ## Common Pitfalls
 
@@ -239,7 +239,7 @@ void HybridMath::compute(double input, std::function<void(double)> onResult) {
 - **Inventing async return types** — Generated async methods return `std::shared_ptr<Promise<T>>`. Copy the generated signature exactly and use `Promise<T>::async(...)`, `Promise<T>::resolved(...)`, `Promise<T>::rejected(...)`, or `Promise<T>::create()` depending on how the native work completes.
 - **Missing `TAG` member** — Required for `HybridObject(TAG)` constructor call
 - **Letting one HybridObject file absorb every helper** — Split converters, adapters, utility functions, and platform glue into named files. The filename should still describe the file after the implementation is done.
-- **Putting trivial transforms behind vector helpers** — Prefer a one-element converter plus `std::transform` at the call site. A collection helper is justified only when the collection itself adds behavior.
+- **Putting trivial transforms behind vector helpers** — Prefer a one-element converter plus standard collection composition at the call site. A collection helper is justified only when the collection itself adds behavior such as deduplication or validation.
 
 ## Related Skills
 

@@ -35,6 +35,7 @@ Before choosing public API shape, dependency APIs, platform capabilities, or imp
 - Avoid untyped dictionaries, boolean clusters, stringly typed commands, and loosely shaped events when the valid states are known.
 - Do not represent multiple object states as one interface full of optional fields. Use a discriminated union, inheritance, or separate variant interfaces so impossible field combinations are unrepresentable.
 - Keep related fields together on the variant where they are required. If `barcode` and `barcodeType` only make sense together, both should be nonoptional on `ScannedBarcode`, not optional on a generic `ScannedData`.
+- If you create variant interfaces, use them in the actual public type. Do not define `RecognizedTextDataType` and `RecognizedBarcodeDataType` but keep `recognizedDataTypes: RecognizedDataType[]` where `RecognizedDataType` still contains every variant field as optional.
 - Use `undefined` or optional fields for absence. Use `null` only when "explicit none" means something different from "not provided".
 - Prefer discriminated unions for state machines, loading states, and result variants.
 - Model user intent separately from resolved state when negotiation is involved. For example, an ordered array of constraint objects can express priorities, while a resolved config object reports what the platform actually selected.
@@ -90,8 +91,8 @@ type ScannedResult = ScannedText | ScannedBarcode | ScannedFace
 - Default to one exported public type per file. Group multiple exported types in one file only when they form one tightly coupled logical construct and are rarely imported independently, such as a `DynamicRange` type plus the exact literal unions that define it.
 - A 600-line type/spec file is not acceptable when the types can be split by concept, such as barcode formats, scanned values, configuration, capabilities, and subscriptions.
 - Put shared fields and methods on a base interface or class. Subtypes should add only the members that are specific to that subtype, not repeat fields such as `format`, `valueType`, `id`, or `bounds` across every concrete variant.
-- Put helpers and conversions on the smallest meaningful type. A conversion from `RecognizedDataType` to a native enum belongs on `RecognizedDataType`; converting an array should usually stay as `dataTypes.map(...)` at the call site. Do not add collection-level helpers that only wrap one standard `map`, `filter`, or `compactMap`.
-- Add collection-level helpers only when the collection itself has domain semantics, such as validation across elements, deduplication, ordering guarantees, caching, batching for performance, or error aggregation.
+- Put helpers and conversions on the smallest meaningful receiver: if a conversion only reads one element, put it on that element even when it returns zero, one, or many target values. Compose arrays with normal `map`, `flatMap`, `reduce`, or `Set(...)` at the call site.
+- Add collection-level helpers only when the collection itself has domain semantics, such as validation across elements, deduplication, ordering guarantees, caching, batching for performance, nonempty checks, or error aggregation. Do not add a collection helper merely to hide one standard collection operation.
 - Keep performance and implementation strategy out of the public shape unless it changes how the caller should use the API. For example, the API may expose an explicit conversion method, but names and docs should not advertise internal details like "lazy", "lightweight", or "normalized" unless that behavior is directly observable.
 
 ## Names and Members

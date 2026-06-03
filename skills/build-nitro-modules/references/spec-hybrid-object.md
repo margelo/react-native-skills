@@ -348,6 +348,7 @@ Rules:
 - Return the base type for heterogeneous collections, such as `ScannedItem[]`.
 - Add a discriminator property such as `type` so JS can narrow to the child type.
 - Use this instead of one flat struct with every subtype field optional.
+- If you define separate variant structs/interfaces, wire them into the API type that callers actually use. Do not define clean variants but keep the public option/result typed as the old loose base struct.
 - Native code can accept the generated base spec when it needs common behavior, or the generated child spec when it needs subtype behavior.
 - Keep thin inheritance families in the base `.nitro.ts` file. Move child HybridObjects to their own `.nitro.ts` file when they gain substantial API surface.
 
