@@ -37,7 +37,9 @@ Use this skill for C++ code that needs clear ownership, strong type modeling, ma
 - Prefer RAII and explicit ownership with values, `std::unique_ptr`, and `std::shared_ptr` only when shared lifetime is real.
 - Avoid raw owning pointers. Raw pointers and references should be non-owning and documented by surrounding lifetime.
 - Use `std::variant`, `std::optional`, and strong structs to express API flow instead of stringly typed states.
-- Do not block caller threads for I/O, long CPU work, or platform callbacks. Use the project's async abstraction, executor, or Nitro `Promise<T>` when the operation can wait.
+- Keep quick, deterministic, local work synchronous. Do not introduce executors, promises, or callback plumbing for simple value construction, cached metadata, or pure transforms.
+- Do not block caller threads for I/O, long CPU work, or platform callbacks. Use the project's async abstraction, an owned executor/thread, or Nitro `Promise<T>` when the operation can wait.
+- Avoid platform main/UI threads unless the platform API requires them. Keep main-thread blocks small and move parsing, conversion, I/O, session negotiation, and CPU work to an owned executor/thread or async API.
 - Keep thread-affine state behind a clear owner. Do not mix mutexes, queues, callbacks, and shared ownership without a documented boundary.
 - Treat repeated executor, queue, thread, or callback hops as an architecture smell. A component should either own the executor/thread it works on, or cross into that owner once at the public async boundary or native callback boundary.
 - If a workflow bounces between platform, worker, JS/Nitro, and callback threads in multiple nested places, stop and redesign the object/lifecycle/API. Excessive hops hide latency, make ordering harder to reason about, and create future performance problems.

@@ -141,8 +141,10 @@ For any type uncertainty, consult the canonical Swift test implementation:
 
 Choose one concurrency model for the feature before implementing it.
 
+- Keep quick, deterministic, local work synchronous. Do not introduce `Promise`, `Task`, or `DispatchQueue` for simple value construction, cached metadata, or pure transforms.
 - Use `Promise.parallel(queue)` for DispatchQueue-owned work. This fits most AVFoundation and session-style APIs because you can keep all native state mutations on one queue.
 - Use `Promise.async` only when the operation is naturally Swift `async`/`await` or Task-based from end to end.
+- Avoid `.main` unless the Apple API requires it, such as UIKit/AppKit/VisionKit presentation or view mutation. Keep main-thread blocks small and move parsing, conversion, I/O, session negotiation, and CPU work to an owned queue or async API.
 - Avoid `let promise = Promise<T>()` by default. Prefer `Promise.parallel(queue)`, `Promise.async`, `Promise.resolved`, or `Promise.rejected` so the helper owns exactly-once completion. A manual Promise is only justified when bridging a native completion/delegate/callback API; keep it near the bridge, do not pass it through arbitrary helpers or session objects, and make every branch resolve or reject exactly once.
 - Treat repeated `Task`, `DispatchQueue`, actor, or JS/Nitro thread hops as an architecture smell. A HybridObject/session should own the queue/actor it works on, or cross into that owner once at the Promise, lifecycle, or native callback boundary.
 - If an operation bounces between main, background, JS, and native queues in multiple nested places, redesign the HybridObject boundary or returned lifecycle handle instead of adding more hops.

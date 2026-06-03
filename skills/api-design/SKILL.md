@@ -130,9 +130,10 @@ type ScannedResult = ScannedText | ScannedBarcode | ScannedFace
 
 ## Async, Events, and React
 
-- Use sync APIs only when results are immediate, deterministic, and cheap.
+- Use sync APIs when results are immediate, deterministic, cheap, and local. Do not async-wrap simple value construction, cached metadata, or pure transforms just because the implementation is native.
 - Use `Promise` for one-shot async work. Use listener APIs, streams, or observable stores for repeated events.
-- Use sync methods only for fast in-process work, cheap object creation, cached metadata, and local transforms. Use `Promise` for permissions, hardware/session setup, I/O, capture/recording, platform async APIs, blocking work, native APIs that are async already, or work that may cross a thread or process boundary.
+- Use `Promise` for permissions, hardware/session setup, I/O, capture/recording, platform async APIs, blocking work, native APIs that are async already, or work that may cross a thread or process boundary. Heavy or complex work should run on an owned worker/queue/dispatcher/runtime rather than blocking the caller.
+- Avoid the main/UI thread unless the underlying platform API requires it. Main-thread APIs should do only the required UI work there and move heavy setup, conversion, parsing, I/O, and computation to an owned background context.
 - Do not pass Promise resolver state through arbitrary layers. Prefer returning a Promise from the async boundary and using `async`/`await`, native Promise helpers, or a small completion callback at the exact bridge point. Dangling promises and double resolution are lifecycle bugs.
 - Benchmark ambiguous APIs. Make the method async when normal use can block visible UI work, waits on another thread/process, or has unpredictable runtime.
 - If a transform has both cheap and potentially heavy paths, expose explicit sync and async methods such as `convertX()` and `convertXAsync()` instead of hiding blocking work behind one ambiguous method.

@@ -57,7 +57,9 @@ data class ScannedFace(
 ## Async and Threading
 
 - Use coroutines for naturally suspending APIs and Android I/O that already has coroutine support.
-- Use explicit dispatchers or Nitro `Promise.parallel` for CPU-bound synchronous work that should not run on the caller thread.
+- Keep quick, deterministic, local work synchronous. Do not introduce coroutines, dispatchers, or Promise plumbing for simple value construction, cached metadata, or pure transforms.
+- Use explicit owned dispatchers/scopes or Nitro `Promise.parallel` for CPU-bound synchronous work that should not run on the caller thread.
+- Avoid the main dispatcher unless the Android API requires it, such as view/UI mutation or lifecycle APIs. Keep main-thread blocks small and move parsing, conversion, I/O, session negotiation, and CPU work to an owned dispatcher or async API.
 - Do not use `runBlocking` in library code, property getters, setters, or JS-facing entry points.
 - Do not hide a thread hop, service lookup, blocking I/O, permission flow, or fallible native operation behind a property.
 - If a value is emitted by a specific Android callback/thread, prefer a listener, Flow, or event API. In Nitro specs, expose a listener or a `Promise<T>` method.

@@ -57,8 +57,10 @@ struct ScannedFace: ScannedData {
 ## Concurrency Model
 
 - Choose Swift concurrency or DispatchQueue for a feature, not both as interleaved control flow.
+- Keep quick, deterministic, local work synchronous. Do not introduce `Task`, `DispatchQueue`, or Promise plumbing for simple value construction, cached metadata, or pure transforms.
 - Use Swift `async`/`await`, `Task`, and actors only when the full operation can be represented cleanly in Swift concurrency without queue escape hatches.
-- Use a private serial `DispatchQueue` when Apple APIs, delegates, callbacks, C++ bridges, JS runtimes, or Nitro thread boundaries already revolve around queues.
+- Use a private owned serial `DispatchQueue` when Apple APIs, delegates, callbacks, C++ bridges, JS runtimes, or Nitro thread boundaries already revolve around queues, or when heavier native work must not block the caller.
+- Avoid `DispatchQueue.main` unless the platform API requires the main thread, such as UIKit/AppKit/VisionKit presentation or view mutation. Keep main-thread blocks small and move parsing, conversion, I/O, session negotiation, and CPU work to an owned queue or async API.
 - Treat repeated `Task`, `DispatchQueue`, actor, or thread hops as an architecture smell. A component should either own the queue/actor it works on, or cross into that owner once at the public async boundary or native callback boundary.
 - If a workflow bounces between main, background, JS, and native queues in multiple nested places, stop and redesign the object/lifecycle/API. Excessive hops hide latency, make ordering harder to reason about, and create future performance problems.
 - Do not fix races or readiness bugs with `DispatchQueue.asyncAfter`, `Task.sleep`, `Thread.sleep`, timers, extra queue hops, or calling the same method twice. Fix the owner queue, lifecycle state, completion callback, delegate event, or async API boundary instead. Retry only for external nondeterminism such as hardware, OS services, remote services, or network, and keep retries bounded, cancellable, and idempotent.

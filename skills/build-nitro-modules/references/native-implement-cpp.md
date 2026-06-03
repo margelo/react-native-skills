@@ -221,6 +221,10 @@ void HybridMath::compute(double input, std::function<void(double)> onResult) {
 }
 ```
 
+Keep quick, deterministic, local work synchronous. Do not introduce `Promise`, executors, or callback plumbing for simple value construction, cached metadata, or pure transforms. Use an owned executor/thread or Nitro Promise only for heavy work, I/O, platform async APIs, or work that must not block the caller.
+
+Avoid platform main/UI threads unless the platform API requires them. Keep main-thread sections limited to UI/view work and move parsing, conversion, I/O, session negotiation, and CPU work to an owned executor/thread or async API.
+
 Treat `std::mutex` as last-resort synchronization, not default callback or listener plumbing. Before adding one to a HybridObject, identify the concrete shared mutable values, the threads that can access them concurrently, and why one owner thread/queue, message passing, or immutable snapshots is not enough.
 
 Never invoke JS/Nitro callbacks while holding a mutex. Copy or snapshot listener collections if needed, unlock, then call them. A listener removed during an in-flight emission may receive that current event.
