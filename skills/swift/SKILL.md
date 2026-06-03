@@ -111,5 +111,6 @@ func getStatus() throws -> Promise<SessionStatus> {
 
 - Use `Promise.parallel(queue)` for DispatchQueue-based work such as AVFoundation session operations.
 - Use `Promise.async` only when wrapping Swift `async`/`await` or Task-native APIs end to end.
+- Avoid manually creating or passing around `Promise<T>` instances. Prefer `Promise.parallel`, `Promise.async`, `Promise.resolved`, and `Promise.rejected`; use a manual Promise only for real native completion/delegate/callback bridges and keep it in the smallest scope with exactly-once completion.
 - Do not mix `Promise.async` with queue `.sync` calls or actor escape hatches.
 - Generated HybridObject properties are synchronous entry points. Redesign them as methods or listeners if they need queue affinity.

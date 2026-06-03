@@ -107,6 +107,7 @@ fun getStatus(): Promise<SessionStatus> {
 
 - Kotlin HybridObject implementations must extend the generated `Hybrid*Spec` class and include `@Keep` plus `@DoNotStrip`.
 - Use `Promise.async` for suspending or I/O work and `Promise.parallel` for CPU-bound synchronous work.
+- Avoid manually creating or passing around `Promise<T>` instances. Prefer `Promise.async`, `Promise.parallel`, `Promise.resolved`, and `Promise.rejected`; use a manual Promise only for real native completion/listener/callback bridges and keep it in the smallest scope with exactly-once completion.
 - Use `Promise<Unit>` for `Promise<void>`.
 - Access `NitroModules.applicationContext` lazily and fail explicitly if it is unavailable.
 - Generated properties are synchronous JS entry points. Redesign them as methods or listeners if they need Android thread affinity or async work.

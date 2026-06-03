@@ -133,6 +133,7 @@ For any type uncertainty, consult the canonical Kotlin test implementation:
 Use the Promise helper that matches the work:
 - `Promise.async` for suspending or I/O work that should run through coroutines.
 - `Promise.parallel` for CPU-bound synchronous work that should run off the caller thread.
+- Avoid manually creating or passing around `Promise<T>` instances by default. Prefer `Promise.async`, `Promise.parallel`, `Promise.resolved`, or `Promise.rejected` so the helper owns exactly-once completion. A manual Promise is only justified when bridging a native completion/listener/callback API; keep it near the bridge, do not pass it through arbitrary helpers or session objects, and make every branch resolve or reject exactly once.
 - Do not use `runBlocking` in HybridObject methods, generated property getters/setters, or library callbacks. If callers must wait for a result, expose a `Promise<T>` method in the Nitro spec.
 - Treat repeated `launch`, `withContext`, dispatcher, handler, executor, or JS/Nitro runtime hops as an architecture smell. A HybridObject/session should own the coroutine scope/dispatcher/lifecycle it works on, or cross into that owner once at the Promise, lifecycle, or native callback boundary.
 - If an operation bounces between main, IO, default, native, and JS/Nitro contexts in multiple nested places, redesign the HybridObject boundary or returned lifecycle handle instead of adding more hops.

@@ -229,6 +229,8 @@ Treat repeated executor, queue, platform, callback, and JS/Nitro runtime hops as
 
 Do not fix lifecycle, readiness, or race bugs with `sleep_for`, `usleep`, timers, extra executor hops, or calling the same native method twice. Use an explicit Promise, callback, listener event, returned configured HybridObject, state transition, or owner queue instead. Retry only for external hardware, OS service, remote service, or network uncertainty, with bounded/cancellable/idempotent behavior.
 
+Avoid manually creating or passing around `std::shared_ptr<Promise<T>>` by default. Prefer `Promise<T>::async(...)`, `Promise<T>::resolved(...)`, or `Promise<T>::rejected(...)` so the helper owns exactly-once completion. Use `Promise<T>::create()` only when bridging a native completion/callback API; keep it near the bridge, do not pass it through arbitrary helpers or session objects, and make every branch resolve or reject exactly once.
+
 ### C++ style and organization
 
 - Treat `cpp/HybridDataScanner.cpp` as the implementation file for `HybridDataScanner`, not as a dumping ground for unrelated geometry conversions, OpenCV helpers, platform adapters, or utility functions.
@@ -244,7 +246,7 @@ Do not fix lifecycle, readiness, or race bugs with `sleep_for`, `usleep`, timers
 - **Wrong namespace** — The namespace must match `cxxNamespace` in `nitro.json` (e.g. `margelo::nitro::math`)
 - **Forgetting `override`** — All virtual method implementations need `override`
 - **Using `float` instead of `double`** — Nitro uses `double` for all `number` types
-- **Inventing async return types** — Generated async methods return `std::shared_ptr<Promise<T>>`. Copy the generated signature exactly and use `Promise<T>::async(...)`, `Promise<T>::resolved(...)`, `Promise<T>::rejected(...)`, or `Promise<T>::create()` depending on how the native work completes.
+- **Inventing async return types** — Generated async methods return `std::shared_ptr<Promise<T>>`. Copy the generated signature exactly and prefer `Promise<T>::async(...)`, `Promise<T>::resolved(...)`, or `Promise<T>::rejected(...)`; use `Promise<T>::create()` only for real native completion/callback bridges.
 - **Missing `TAG` member** — Required for `HybridObject(TAG)` constructor call
 - **Letting one HybridObject file absorb every helper** — Split converters, adapters, utility functions, and platform glue into named files. The filename should still describe the file after the implementation is done.
 - **Putting trivial transforms behind vector helpers** — Prefer a one-element converter plus standard collection composition at the call site. A collection helper is justified only when the collection itself adds behavior such as deduplication or validation.
