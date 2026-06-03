@@ -14,7 +14,8 @@ If the library is a Nitro Module, use this skill for the public TypeScript and R
 1. Sketch the user-facing TypeScript API before implementing internals.
 2. Write 2-3 realistic call-site examples, including error and cleanup paths.
 3. Check the surface against the rules below.
-4. Implement only after the public shape is coherent.
+4. Verify the exported TypeScript with the repo's typecheck/lint/docs tooling before treating the API as done.
+5. Implement only after the public shape is coherent and verified.
 
 ## API Freshness
 
@@ -31,6 +32,7 @@ Before choosing public API shape, dependency APIs, platform capabilities, or imp
 - Use option objects or named structs once a function has 3 or more parameters, parameters of the same primitive type, or values that are likely to grow.
 - Keep APIs specific instead of accepting every possible input shape. A millisecond timeout should be a `number`, not `number | string | bigint | object | null`.
 - Avoid giant "does everything" objects. Split by domain or lifecycle when responsibilities differ.
+- Before simplifying or redesigning an API, inventory the workflows the feature is supposed to support. Do not silently drop a workflow, such as a live session API, because a one-shot path is easier to implement. Split workflows into separate APIs when needed.
 - Prefer literal unions, discriminated unions, interfaces, and typed option groups when the valid states are known. In TypeScript libraries, prefer string literal unions over runtime `enum`s unless consumers need a runtime value.
 - Avoid untyped dictionaries, boolean clusters, stringly typed commands, and loosely shaped events when the valid states are known.
 - Do not model a binary option as an optional two-case string union such as `'enabled' | 'disabled'`. If omitted means "use the default" and provided means true/false, use an optional boolean and document the default.
@@ -47,9 +49,13 @@ Before choosing public API shape, dependency APIs, platform capabilities, or imp
 - Classify configuration fields as either requirements or preferences. Throw when a requirement cannot be met. Treat preferences as best-effort when the feature can still perform its core job, such as quality, guidance UI, high-frame-rate tracking, auto-zoom, or a wider scan area. Document best-effort fields and expose capabilities or resolved configuration when callers need to know what was applied.
 - Keep capability discovery separate from object contracts. Use capability fields to decide whether a workflow can be created or which optional preferences may apply. Once a factory returns a specific session/resource object, its baseline methods should be guaranteed by construction; otherwise return a narrower type or fail creation instead of making callers check `can*` before every normal method.
 - Splitting workflows should reduce runtime capability checks. Do not keep broad capability flags only to compensate for one oversized object. For example, a one-shot scanner and an app-owned live scanner can be separate APIs; if the live scanner implementation guarantees zoom, photo capture, or region control, those can be part of the live scanner contract instead of nullable properties plus `can*` checks inherited from a one-shot backend.
+- Avoid pushing defaults into implementation-facing option objects when a thin TypeScript facade can normalize them. Public wrappers can accept ergonomic optional options, but the core API should receive resolved values when that avoids native optional handling, repeated default branches, or extra bridging work.
+- When "all" is a meaningful requested value, model it explicitly instead of using `undefined` as a hidden command. For example, prefer `targetFormats: 'all' | BarcodeFormat[]` or `TargetBarcodeFormat = BarcodeFormat | 'all'` when the implementation benefits from a concrete value.
 - Do not return half-initialized objects that require a separate `prepare()`, `initialize()`, or `load()` call before normal use. If setup is required, make the factory async and resolve with a ready object. Keep lifecycle methods for real repeatable transitions such as `start()`/`stop()`, not construction readiness.
 - For larger libraries, expose one small public root or factory that creates stateful domain objects. Keep object construction, async setup, I/O, and validation behind factory methods instead of forcing callers through static functions or half-ready instances.
 - Return `undefined` only for normal domain absence, and document exactly when it occurs. Do not use optional returns as an unstated error path; throw or reject when an operation fails.
+- Decide whether returned data is a plain value or a resource. Use plain structs/interfaces for small immutable data whose fields are cheap and semantically complete. Use classes/objects/resources when the value owns native state, needs lazy expensive access, can grow behavior, or should expose methods later.
+- Choose data representations by semantics first, then performance. Use `string` for decoded text payloads. Use `ArrayBuffer` or byte-oriented objects for raw binary, opaque bytes, media, or large data where zero-copy access is part of the contract.
 
 ### Variant Example
 
@@ -92,6 +98,8 @@ type ScannedResult = ScannedText | ScannedBarcode | ScannedFace
 
 - Split public surfaces into focused files or modules and re-export them from a clear package entry point. Do not create catch-all files that contain a feature's main object plus every enum, option, result, event, and helper type.
 - Default to one exported public type per file. Group multiple exported types in one file only when they form one tightly coupled logical construct and are rarely imported independently, such as a `DynamicRange` type plus the exact literal unions that define it.
+- Re-export public package types only from package entry points such as `src/index.ts`. Do not make feature/spec/type files re-export unrelated types from the same folder.
+- Use direct re-export syntax at package entry points instead of importing just to export again. Use `export type { Foo } from './Foo'` for type-only symbols and `export { Foo } from './Foo'` for runtime values.
 - A 600-line type/spec file is not acceptable when the types can be split by concept, such as barcode formats, scanned values, configuration, capabilities, and subscriptions.
 - Put shared fields and methods on a base interface or class. Subtypes should add only the members that are specific to that subtype, not repeat fields such as `format`, `valueType`, `id`, or `bounds` across every concrete variant.
 - Put helpers and conversions on the smallest meaningful receiver: if a conversion only reads one element, put it on that element even when it returns zero, one, or many target values. Compose arrays with normal `map`, `flatMap`, `reduce`, or `Set(...)` at the call site.
@@ -159,6 +167,7 @@ type ScannedResult = ScannedText | ScannedBarcode | ScannedFace
 
 - Treat exported TypeScript as product documentation. Add JSDoc to every exported declaration users import, including interfaces, type aliases, string-literal unions, runtime enums, classes, HybridObjects, option objects, event objects, hooks, components, and public constants.
 - Assume these comments will become API documentation through TypeDoc or a similar generator. Write them as navigable reference docs, not inline-only code notes.
+- Every JSDoc `{@linkcode ...}` or `@see` target must resolve in the file where it is written. Import type-only symbols that are referenced only by docs when necessary, or link to a local symbol that is already in scope. Do not leave editor or doc-tooling squiggles just because `tsc` happens to pass.
 - Do not create exported callback aliases only to attach JSDoc. Inline simple callback parameters and document the method or parameter that accepts them. Export and document a callback type only when it is intentionally part of the public API.
 - Use JSDoc for semantics, lifecycle, platform behavior, defaults, and performance costs that types cannot express.
 - Keep JSDoc user-facing. Do not mention native class names, framework implementation details, or current platform limitations unless the caller must know them to use the API correctly.

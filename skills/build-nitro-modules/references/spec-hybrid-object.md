@@ -169,6 +169,8 @@ export type { Math } from './specs/Math.nitro'
 - Always export the runtime HybridObject value from normal TypeScript, such as `export const math = ...`. This is the value app code uses at runtime.
 - Define the spec type in the `.nitro.ts` file with `export interface Math ...`.
 - If consumers should import the spec type from the package root, re-export it from `index.ts` with `export type { Math } from './specs/Math.nitro'`. This is only an additional type export; it does not replace the runtime value export.
+- Re-export public package types only from package entry points such as `src/index.ts`. Do not re-export helper types from `.nitro.ts` spec files or sibling type files. Specs should import what they use and export only the spec declarations they own.
+- Use direct re-exports in `src/index.ts`: `export type { Foo } from './types/Foo'` for type-only symbols and `export { Foo } from './Foo'` for runtime values. Do not import a symbol only to export it again in a separate block.
 - The string `'Math'` in `createHybridObject<Math>('Math')` must exactly match the key in `nitro.json`'s `autolinking` block
 - Prefer naming native classes with the `Hybrid` prefix: `HybridMath`
 - Keep both the interface name and the autolinking key the same (e.g. `Math` = `'Math'`)
@@ -177,11 +179,17 @@ export type { Math } from './specs/Math.nitro'
 - Let factory methods enforce baseline capabilities. If a returned object represents a live native session, its core live-session methods should be guaranteed after creation. Reject `createLiveSession(...)` or return a narrower type when the backend cannot provide that workflow; do not keep unsupported methods, inert listeners, or nullable baseline properties on the live object.
 - Use capability structs for choosing workflows before creation, optional preferences, and genuinely variable support inside a coherent object. Do not add `can*` fields merely because an oversized HybridObject mixes backends or lifecycles that should be separate.
 - Do not put a HybridObject and all related enums, options, results, events, and helper structs in one `.nitro.ts` file. Split them into focused files and import them.
+- Before narrowing scope, list every requested workflow and represent each one intentionally. If both one-shot and live/streaming behavior are part of the module, keep both by splitting them, for example `scanCode(...)` plus `createLiveScanner(...)`, instead of deleting the live workflow to make the first implementation easier.
 - If creating a returned object requires setup, I/O, permission checks, or validation that can fail, make the factory method async and return a ready object. Do not expose `prepare()`/`initialize()` methods that callers must remember before normal use.
 - Model cross-platform options as requirements or best-effort preferences. Required behavior may throw when unsupported; optional preferences should degrade when the feature can still perform its core job. Surface support through capabilities or resolved configuration instead of forcing app code into `Platform.OS` branches.
+- For Nitro methods, minimize optional fields in structs that cross the native boundary. Public JS APIs can accept optional options and fill defaults in a thin TypeScript wrapper, while the `.nitro.ts` method receives resolved values. Use `T | undefined` only when native code must distinguish absence from a concrete value.
+- Model "all" or "default" as an explicit value when native code should receive a concrete instruction. For example, use `targetFormats: 'all' | BarcodeFormat[]` or a `TargetBarcodeFormat = BarcodeFormat | 'all'` helper type instead of making `barcodeFormats?: BarcodeFormat[]` mean "all".
 - In Nitro option structs, name boolean fields by whether they request behavior or report state. Use `enable*`, `allow*`, or domain-specific verbs for user-provided controls and preferences, such as `enableGuidance?: boolean` or `preferHighAccuracy?: boolean`. In React Native public APIs, reserve `use*` names for hooks unless a non-hook domain term clearly requires it. Reserve `is*Enabled`, `is*Available`, `has*`, and `supports*` for observed state, capabilities, or resolved config, such as `isGuidanceEnabled: boolean`.
 - Do not model boolean preferences as optional two-case unions such as `'enabled' | 'disabled'`. If `undefined` means "use the default", use an optional boolean and document the default.
+- Decide whether results are Nitro structs or HybridObjects. Use structs for small immutable values with cheap scalar fields. Use HybridObjects for native-owned state, lazy expensive fields, byte payloads, methods, or results likely to grow behavior later.
+- Use semantic data types. A decoded barcode/text payload is normally `string`; raw bytes, media, opaque payloads, or large binary data should be `ArrayBuffer` or a HybridObject exposing byte methods.
 - Add JSDoc to every exported spec interface, type alias, string-literal union, options struct, event struct, HybridObject, and public property. Type-level comments must describe domain meaning and link to a real related type or member with `{@linkcode ...}` or `@see`, for example `Represents the format of a {@linkcode Barcode}.` and `@see {@linkcode Barcode.format}`. Do not invent link targets.
+- JSDoc `{@linkcode ...}` and `@see` targets must resolve in the file where they are written. Import type-only symbols used only by docs when needed, and verify there are no editor/doc-tooling squiggles. Do not rely on `tsc` alone to catch broken documentation links.
 - Do not create exported callback aliases only to attach JSDoc. For listener methods, inline the callback type and document the listener method or parameter.
 - Listener methods must return a flat subscription object with `remove: () => void`. Do not make the subscription a HybridObject unless it exposes native state beyond cleanup. Do not expose numeric listener IDs or `removeListener(listenerId)` methods. Call sites still use `subscription.remove()`.
 
@@ -458,6 +466,9 @@ This is the same shape VisionCamera uses for `CameraOutput` and `NativeCameraOut
 - **Wrong file extension** — Must be `.nitro.ts`, not `.ts` or `.d.ts`
 - **Mismatch between interface name and autolinking key** — `createHybridObject<Math>('Math')` string must match `nitro.json`
 - **Forgetting platform languages** — `HybridObject<{}>` without specifying ios/android will fail
+- **Skipping TypeScript verification** — Run the package's typecheck/lint/spec generation after changing specs or exported types. TypeScript CLI can miss unresolved JSDoc links, so also fix editor/doc-tooling diagnostics before considering the API clean.
+- **Re-exporting from specs** — `.nitro.ts` files should not become barrel files. Re-export package types from `src/index.ts` only.
+- **Native defaults hidden behind optionals** — `field?: T` generates native optionals. Fill public defaults in TypeScript or model defaults explicitly before crossing into native code.
 - **Creating runtime objects inside specs** — Keep `.nitro.ts` files focused on exported types; create the runtime object in `src/index.ts`
 - **Missing export** — The hybrid object won't be usable from JS without the `createHybridObject` call and export
 
