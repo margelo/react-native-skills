@@ -173,6 +173,9 @@ export type { Math } from './specs/Math.nitro'
 - Prefer naming native classes with the `Hybrid` prefix: `HybridMath`
 - Keep both the interface name and the autolinking key the same (e.g. `Math` = `'Math'`)
 - For larger libraries, create one autolinked factory/root object and return other stateful HybridObjects from factory methods instead of autolinking every object.
+- Split returned HybridObjects by lifecycle and contract, not just by domain noun. Do not put a one-shot command and a live session API on the same HybridObject only because both belong to one feature area.
+- Let factory methods enforce baseline capabilities. If a returned object represents a live native session, its core live-session methods should be guaranteed after creation. Reject `createLiveSession(...)` or return a narrower type when the backend cannot provide that workflow; do not keep unsupported methods, inert listeners, or nullable baseline properties on the live object.
+- Use capability structs for choosing workflows before creation, optional preferences, and genuinely variable support inside a coherent object. Do not add `can*` fields merely because an oversized HybridObject mixes backends or lifecycles that should be separate.
 - Do not put a HybridObject and all related enums, options, results, events, and helper structs in one `.nitro.ts` file. Split them into focused files and import them.
 - If creating a returned object requires setup, I/O, permission checks, or validation that can fail, make the factory method async and return a ready object. Do not expose `prepare()`/`initialize()` methods that callers must remember before normal use.
 - Model cross-platform options as requirements or best-effort preferences. Required behavior may throw when unsupported; optional preferences should degrade when the feature can still perform its core job. Surface support through capabilities or resolved configuration instead of forcing app code into `Platform.OS` branches.
