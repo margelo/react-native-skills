@@ -134,6 +134,8 @@ Use the Promise helper that matches the work:
 - `Promise.async` for suspending or I/O work that should run through coroutines.
 - `Promise.parallel` for CPU-bound synchronous work that should run off the caller thread.
 - Do not use `runBlocking` in HybridObject methods, generated property getters/setters, or library callbacks. If callers must wait for a result, expose a `Promise<T>` method in the Nitro spec.
+- Treat `Mutex`, `synchronized`, and `ReentrantLock` as last-resort synchronization. Before adding one to a HybridObject, identify the concrete shared mutable values, the threads/dispatchers that can access them concurrently, and why one owner dispatcher/lifecycle, message passing, or immutable snapshots is not enough.
+- Never invoke JS/Nitro callbacks while holding a lock. Snapshot listener collections if needed, unlock, then call them. A listener removed during an in-flight emission may receive that current event.
 
 ```kotlin
 // Promise.async — for IO-bound or suspending work (uses coroutines)

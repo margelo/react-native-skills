@@ -221,6 +221,10 @@ void HybridMath::compute(double input, std::function<void(double)> onResult) {
 }
 ```
 
+Treat `std::mutex` as last-resort synchronization, not default callback or listener plumbing. Before adding one to a HybridObject, identify the concrete shared mutable values, the threads that can access them concurrently, and why one owner thread/queue, message passing, or immutable snapshots is not enough.
+
+Never invoke JS/Nitro callbacks while holding a mutex. Copy or snapshot listener collections if needed, unlock, then call them. A listener removed during an in-flight emission may receive that current event.
+
 ### C++ style and organization
 
 - Treat `cpp/HybridDataScanner.cpp` as the implementation file for `HybridDataScanner`, not as a dumping ground for unrelated geometry conversions, OpenCV helpers, platform adapters, or utility functions.
