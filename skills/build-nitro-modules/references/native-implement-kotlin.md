@@ -130,6 +130,11 @@ For any type uncertainty, consult the canonical Kotlin test implementation:
 
 ### Async with Promise
 
+Use the Promise helper that matches the work:
+- `Promise.async` for suspending or I/O work that should run through coroutines.
+- `Promise.parallel` for CPU-bound synchronous work that should run off the caller thread.
+- Do not use `runBlocking` in HybridObject methods, generated property getters/setters, or library callbacks. If callers must wait for a result, expose a `Promise<T>` method in the Nitro spec.
+
 ```kotlin
 // Promise.async — for IO-bound or suspending work (uses coroutines)
 override fun wait(seconds: Double): Promise<Unit> {
@@ -199,11 +204,32 @@ override fun compute(input: Double, onResult: (Double) -> Unit) {
 
 ### Handling nullable / optional
 
+Use Kotlin nullable types for real domain absence, not for modeling several possible object states. If fields are related, put them on a non-null variant type in the TypeScript spec and the generated Kotlin implementation.
+
 ```kotlin
 override var optionalValue: Double? = null
 
 override fun processOptional(value: Double?): Double {
   return value ?: 0.0
+}
+```
+
+For closed Kotlin-only helper state, prefer `sealed interface` or `sealed class` over a data class with many nullable fields.
+
+### Properties and thread affinity
+
+Generated Nitro properties are synchronous JS entry points. Keep `val`/`var` access cheap and local. Do not hide blocking work, `runBlocking`, Android service calls, permission flows, or thread hops in a getter or setter.
+
+```kotlin
+// Avoid: blocking async work hidden in a getter.
+val status: SessionStatus
+  get() = runBlocking { session.status() }
+
+// Prefer: make the async boundary explicit in the Nitro spec.
+override fun getStatus(): Promise<SessionStatus> {
+  return Promise.async {
+    session.status()
+  }
 }
 ```
 
@@ -234,11 +260,14 @@ Examples:
 - **`Array<Double>` vs `DoubleArray`** — Number arrays use `DoubleArray` (primitive), other types use `Array<T>`
 - **`Promise.async` vs `Promise.parallel`** — Use `async` for IO/coroutine work, `parallel` for CPU-bound sync work
 - **Calling blocking code outside `Promise.async`** — Network calls, delay, etc. must be inside `Promise.async { }` (uses coroutines)
+- **Using `runBlocking` in generated entry points** — Do not block JS-facing methods or properties; expose a `Promise<T>` method or listener instead
+- **Modeling variants with nullable clusters** — Use distinct TypeScript/Nitro variants so Kotlin receives non-null related fields
 - **Storing `NitroModules.applicationContext` in a field** — It can be null at construction time; always access it via a `get()` property
 - **Not null-checking `applicationContext`** — Always use `?: throw Error("No ApplicationContext set!")` to fail explicitly
 
 ## Related Skills
 
+- [kotlin](../../kotlin/SKILL.md) — General Kotlin API, nullability, coroutine, and threading guidance
 - [native-nitrogen-codegen.md](native-nitrogen-codegen.md) — Must generate specs before implementing
 - [spec-nitro-json.md](spec-nitro-json.md) — Configure `"kotlin"` in autolinking
 - [native-implement-swift.md](native-implement-swift.md) — iOS Swift counterpart

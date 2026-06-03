@@ -25,6 +25,8 @@ Let `api-design` own general public API rules and API freshness checks. In this 
 
 If the user is building a JS-only React or React Native library, do not apply this skill unless Nitro, HybridObjects, native modules, codegen, C++/Swift/Kotlin bindings, or `react-native-nitro-modules` are part of the task.
 
+Pair with `swift` when implementing or reviewing Swift-backed HybridObjects, AVFoundation/session code, DispatchQueue usage, Swift concurrency, or thread-affine Swift state. Pair with `kotlin` when implementing or reviewing Kotlin-backed HybridObjects, Android threading, coroutines, Kotlin nullability, sealed result models, or Android service access.
+
 ## Repo and Release References
 
 Load [repo-structure-and-workflow.md][repo-structure-and-workflow] only when creating a repo, reorganizing layout, adding examples/docs/CI, or changing workflow policy.
@@ -47,6 +49,7 @@ Load [release-it-publishing.md][release-it-publishing] only when setting up or r
 - Group multiple helper types in one file only when they form one tightly coupled logical construct, such as `DynamicRange` plus the exact literal unions that define it.
 - Use HybridObject inheritance for shared native state plus specialized result shapes. Put shared properties such as IDs, bounds, raw values, formats, and value types on the base object instead of repeating them on every subtype.
 - Use HybridObject inheritance for heterogeneous native result families. Example: `ScannedItem` owns common state and methods, while `ScannedBarcode`, `ScannedQRCode`, and `ScannedFace` extend it with specialized properties. APIs can return `ScannedItem[]`; JS narrows by a discriminator property, and native code can accept the generated base spec when it only needs common behavior.
+- Do not model state families as one Nitro struct or HybridObject with every subtype field nullable. Use HybridObject inheritance, discriminated unions, or platform protocol/interface conformance so relationships such as `barcode` plus `barcodeType` are compile-time safe.
 - Autolink only public roots, factories, views, or global utilities that JS must construct directly. Other HybridObjects can be returned from factory methods and do not need their own `nitro.json` autolinking entries. Do not autolink every concrete native implementation of the same JS-facing spec.
 - For native extension points, pair a JS-facing base HybridObject spec with a public native protocol/interface. The base spec lets JS pass the object through typed APIs; the native protocol/interface exposes platform-specific handles and behavior for first-party and third-party native code.
 - When accepting an extensible HybridObject from JS, accept the generated base spec type, then cast to the native protocol/interface on the native side and throw a clear error if it does not conform. This keeps JS portable while native integrations stay strongly typed.
@@ -70,7 +73,8 @@ Load [release-it-publishing.md][release-it-publishing] only when setting up or r
 - Do not silently swallow real failures. Throw, reject a Promise, or emit through an explicit error callback/listener when the requested outcome cannot be delivered.
 - Prefer Nitro/runtime errors or language-native exceptions that surface cleanly to JS. Avoid Objective-C-style `NSError` public paths unless the generated API specifically requires it.
 - For Android context access, use `NitroModules.applicationContext` lazily and throw a clear error if it is unavailable.
-- Use the native Promise helper that matches the platform threading model. In Swift, prefer `Promise.parallel(queue)` for DispatchQueue-based work such as AVFoundation/session operations, and use `Promise.async` only when wrapping Swift `async`/`await` or Task-based APIs.
+- Use the native Promise helper that matches the platform threading model. In Swift, prefer `Promise.parallel(queue)` for DispatchQueue-based work such as AVFoundation/session operations, and use `Promise.async` only when wrapping Swift `async`/`await` or Task-based APIs end to end. Do not mix Swift concurrency with queue `.sync` escape hatches.
+- Never hide a thread hop behind a generated property getter or setter. If native state can only be read or changed on a specific queue/thread, expose an async method, listener/event, or explicit lifecycle operation instead.
 - Implement `memorySize` for HybridObjects that own native resources or large allocations so the JS VM can collect them under memory pressure.
 - For Nitro Views, implement `prepareForRecycle` when the view owns state that should be reset before reuse.
 - Mix C++ HybridObjects with Swift/Kotlin HybridObjects in one library. Use C++ for shared or hot code, such as OpenCV/frame processing/storage engines, and Swift/Kotlin for platform services, permissions, file paths, camera/session APIs, and OS integration.

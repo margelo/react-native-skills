@@ -33,6 +33,8 @@ Before choosing public API shape, dependency APIs, platform capabilities, or imp
 - Avoid giant "does everything" objects. Split by domain or lifecycle when responsibilities differ.
 - Prefer literal unions, discriminated unions, interfaces, and typed option groups when the valid states are known. In TypeScript libraries, prefer string literal unions over runtime `enum`s unless consumers need a runtime value.
 - Avoid untyped dictionaries, boolean clusters, stringly typed commands, and loosely shaped events when the valid states are known.
+- Do not represent multiple object states as one interface full of optional fields. Use a discriminated union, inheritance, or separate variant interfaces so impossible field combinations are unrepresentable.
+- Keep related fields together on the variant where they are required. If `barcode` and `barcodeType` only make sense together, both should be nonoptional on `ScannedBarcode`, not optional on a generic `ScannedData`.
 - Use `undefined` or optional fields for absence. Use `null` only when "explicit none" means something different from "not provided".
 - Prefer discriminated unions for state machines, loading states, and result variants.
 - Model user intent separately from resolved state when negotiation is involved. For example, an ordered array of constraint objects can express priorities, while a resolved config object reports what the platform actually selected.
@@ -44,6 +46,43 @@ Before choosing public API shape, dependency APIs, platform capabilities, or imp
 - Do not return half-initialized objects that require a separate `prepare()`, `initialize()`, or `load()` call before normal use. If setup is required, make the factory async and resolve with a ready object. Keep lifecycle methods for real repeatable transitions such as `start()`/`stop()`, not construction readiness.
 - For larger libraries, expose one small public root or factory that creates stateful domain objects. Keep object construction, async setup, I/O, and validation behind factory methods instead of forcing callers through static functions or half-ready instances.
 - Return `undefined` only for normal domain absence, and document exactly when it occurs. Do not use optional returns as an unstated error path; throw or reject when an operation fails.
+
+### Variant Example
+
+Avoid nullable clusters when an object can be in several distinct states:
+
+```typescript
+interface ScannedData {
+  position: Point
+  text?: string
+  barcode?: string
+  barcodeType?: BarcodeType
+  face?: Rect
+}
+```
+
+Prefer a base type plus variants with nonoptional state-specific fields:
+
+```typescript
+interface ScannedData {
+  position: Point
+}
+
+interface ScannedText extends ScannedData {
+  text: string
+}
+
+interface ScannedBarcode extends ScannedData {
+  barcode: string
+  barcodeType: BarcodeType
+}
+
+interface ScannedFace extends ScannedData {
+  face: Rect
+}
+
+type ScannedResult = ScannedText | ScannedBarcode | ScannedFace
+```
 
 ## Public API Organization
 

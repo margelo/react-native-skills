@@ -267,6 +267,49 @@ Rules:
 
 If constructing `VideoOutput` needs native setup or can fail, make the factory async instead: `createVideoOutput(options: VideoOutputOptions): Promise<VideoOutput>`. The returned object should already be usable.
 
+### Variant results, not nullable clusters
+
+Do not represent heterogeneous result state as one object with every possible field marked optional. This loses the relationship between fields and forces callers into defensive null checks.
+
+```typescript
+// Avoid.
+export interface ScannedData
+  extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
+  readonly position: Point
+  readonly text?: string
+  readonly barcode?: string
+  readonly barcodeType?: BarcodeType
+  readonly face?: Rect
+}
+```
+
+Use inheritance for result families that carry native identity, lazy fields, common methods, or native resource ownership:
+
+```typescript
+export type ScannedDataType = 'text' | 'barcode' | 'face'
+
+export interface ScannedData
+  extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
+  readonly type: ScannedDataType
+  readonly position: Point
+}
+
+export interface ScannedText extends ScannedData {
+  readonly text: string
+}
+
+export interface ScannedBarcode extends ScannedData {
+  readonly barcode: string
+  readonly barcodeType: BarcodeType
+}
+
+export interface ScannedFace extends ScannedData {
+  readonly face: Rect
+}
+```
+
+Use a normal TypeScript discriminated union in a `.ts` helper file when the result is small, value-like, and does not need native identity or lazy native access.
+
 ### HybridObject inheritance for result families
 
 Use HybridObject inheritance when a feature returns heterogeneous native objects that share identity, lifecycle, coordinates, timestamps, raw native handles, or common methods.

@@ -139,7 +139,12 @@ For any type uncertainty, consult the canonical Swift test implementation:
 
 ### Async with Promise
 
-Use `Promise.parallel(queue)` for DispatchQueue-based work. This fits most AVFoundation and session-style APIs because you can keep all native state mutations on one queue.
+Choose one concurrency model for the feature before implementing it.
+
+- Use `Promise.parallel(queue)` for DispatchQueue-based work. This fits most AVFoundation and session-style APIs because you can keep all native state mutations on one queue.
+- Use `Promise.async` only when the operation is naturally Swift `async`/`await` or Task-based from end to end.
+- Do not mix Swift concurrency with `DispatchQueue.sync`, `DispatchQueue.main.sync`, `MainActor.assumeIsolated`, or `Thread.isMainThread` workarounds. If those seem necessary, use a queue-based design or change the public API boundary.
+- Never call `DispatchQueue.sync` or `DispatchQueue.main.sync` in Nitro implementation code. This is especially dangerous in generated property getters and setters because those are synchronous JS entry points.
 
 ```swift
 private static let cameraQueue = DispatchQueue(label: "com.margelo.camera.session")
@@ -195,6 +200,7 @@ Prefer one of these patterns:
 - Keep cheap readonly state synchronous.
 - Put mutable native/session state behind a private serial `DispatchQueue`, and run mutating or fallible operations through `Promise.parallel(queue)`.
 - Make operations async when they must serialize, wait for hardware/session state, or cross queues.
+- Emit listener events from the queue/thread that owns the state when callers need ongoing observations.
 - Add `NSLock` or another lock only after shared mutable state is proven to be accessed concurrently and a queue-owned design is not a better fit.
 
 ### Using callbacks
@@ -239,7 +245,7 @@ Examples:
 - Throw when a requested flash mode cannot work because the device has no flash.
 - Do not throw only because a quality, guidance UI, high-frame-rate, auto-zoom, or region preference is unsupported, unless the API documents that field as a hard requirement.
 
-### Properties with side effects
+### Properties and thread affinity
 
 ```swift
 private var _zoom: Double = 1.0
@@ -248,12 +254,33 @@ var zoom: Double {
   get { _zoom }
   set {
     _zoom = newValue
-    applyZoomToCamera(newValue)
   }
 }
 ```
 
-Writable properties are synchronous JS calls. Keep setters cheap and unlikely to fail. If applying a value requires queue hops, AVFoundation negotiation, permissions, allocation, or can fail, expose a method that returns `Promise<Void>` instead.
+Writable properties are synchronous JS calls. Keep getters and setters cheap, local, and unlikely to fail. If applying a value requires queue hops, AVFoundation negotiation, permissions, allocation, or can fail, expose a method that returns `Promise<Void>` instead.
+
+```swift
+// Avoid: synchronous queue hop hidden in a getter.
+var status: SessionStatus {
+  queue.sync { session.status }
+}
+
+// Prefer: make the queue boundary explicit.
+func getStatus() throws -> Promise<SessionStatus> {
+  return Promise.parallel(Self.cameraQueue) {
+    return self.session.status
+  }
+}
+
+func setZoom(_ zoom: Double) throws -> Promise<Void> {
+  return Promise.parallel(Self.cameraQueue) {
+    try self.applyZoomToCamera(zoom)
+  }
+}
+```
+
+If state can only be observed on a specific queue, prefer a listener or event API emitted from that queue instead of a getter.
 
 ### Swift style and organization
 
@@ -279,6 +306,8 @@ renderer.render(point: projectedPoint)
 - **Forgetting `throws` keyword** — Most generated methods have `throws`; check the generated spec to confirm which ones do
 - **`Promise<void>` vs `Promise<Void>`** — Swift uses `Void` (not Kotlin's `Unit`). Always `Promise<Void>`
 - **Using `Promise.async` for DispatchQueue APIs** — Prefer `Promise.parallel(queue)` for AVFoundation/session work. Use `Promise.async` for Swift `async`/`await` or Task-based APIs.
+- **Using `DispatchQueue.sync` or `DispatchQueue.main.sync`** — Treat synchronous queue hops as a design bug. Make the Nitro API async or event-based instead.
+- **Mixing actors and queues with escape hatches** — Do not use `MainActor.assumeIsolated`, `Thread.isMainThread`, or queue sync calls to force an async/await design onto queue-owned APIs.
 - **Callbacks without `@escaping`** — Stored/async callbacks must be `@escaping`; the generated spec will tell you
 - **`Dictionary<String,T>` vs `[String:T]`** — Both work; `[String:T]` is the idiomatic Swift syntax
 - **`any HybridSpec` not `HybridSpec`** — In modern Swift, protocol types need the `any` keyword
@@ -289,6 +318,7 @@ renderer.render(point: projectedPoint)
 
 ## Related Skills
 
+- [swift](../../swift/SKILL.md) — General Swift API, concurrency, and threading guidance
 - [native-nitrogen-codegen.md](native-nitrogen-codegen.md) — Must generate specs before implementing
 - [spec-nitro-json.md](spec-nitro-json.md) — Configure `"swift"` in autolinking
 - [native-implement-kotlin.md](native-implement-kotlin.md) — Android Kotlin counterpart
