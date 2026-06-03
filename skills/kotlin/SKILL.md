@@ -93,6 +93,8 @@ fun getStatus(): Promise<SessionStatus> {
 - Treat a filename as a scope contract. `HybridDataScanner.kt` should implement `HybridDataScanner`; it should not also contain unrelated Android helpers, geometry conversions, listeners, or extension utilities.
 - Keep one primary class, sealed family, or cohesive extension family per file by default. Move reusable extensions and helpers into named files such as `Extensions/ViewExtensions.kt`, `Conversions/PointConversions.kt`, or `DataScannerDelegate.kt` with `internal` visibility where appropriate.
 - Use line count as a review signal: files below roughly 300 lines are usually fine; files above that need a clear reason tied to one cohesive responsibility. Size caused by unrelated helpers, conversions, or Android glue is a design issue.
+- Put conversions on the element type, not on `List` or array types, when the batch operation is only a standard `map`. Prefer `RecognizedDataType.toVisionRecognizedDataType()` with `dataTypes.map { it.toVisionRecognizedDataType() }` over `List<RecognizedDataType>.toVisionRecognizedDataTypes()`.
+- Add collection extension functions only when the collection has real domain behavior, such as validation across elements, deduplication, ordering, batching, caching, or error aggregation.
 
 ## Nitro Notes
 

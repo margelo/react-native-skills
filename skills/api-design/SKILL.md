@@ -90,6 +90,8 @@ type ScannedResult = ScannedText | ScannedBarcode | ScannedFace
 - Default to one exported public type per file. Group multiple exported types in one file only when they form one tightly coupled logical construct and are rarely imported independently, such as a `DynamicRange` type plus the exact literal unions that define it.
 - A 600-line type/spec file is not acceptable when the types can be split by concept, such as barcode formats, scanned values, configuration, capabilities, and subscriptions.
 - Put shared fields and methods on a base interface or class. Subtypes should add only the members that are specific to that subtype, not repeat fields such as `format`, `valueType`, `id`, or `bounds` across every concrete variant.
+- Put helpers and conversions on the smallest meaningful type. A conversion from `RecognizedDataType` to a native enum belongs on `RecognizedDataType`; converting an array should usually stay as `dataTypes.map(...)` at the call site. Do not add collection-level helpers that only wrap one standard `map`, `filter`, or `compactMap`.
+- Add collection-level helpers only when the collection itself has domain semantics, such as validation across elements, deduplication, ordering guarantees, caching, batching for performance, or error aggregation.
 - Keep performance and implementation strategy out of the public shape unless it changes how the caller should use the API. For example, the API may expose an explicit conversion method, but names and docs should not advertise internal details like "lazy", "lightweight", or "normalized" unless that behavior is directly observable.
 
 ## Names and Members

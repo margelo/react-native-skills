@@ -257,6 +257,8 @@ Examples:
 - Move reusable extensions, Android adapters, conversion helpers, delegates/listeners, and protocol-style interfaces into named files such as `Extensions/ViewExtensions.kt`, `Conversions/PointConversions.kt`, or `DataScannerDelegate.kt`.
 - Use `internal` visibility for helpers that should stay inside the module.
 - Use line count as a review signal: under roughly 300 lines is usually acceptable, while files above that need a concrete reason tied to one cohesive responsibility. A large file caused by helpers or Android glue belongs in multiple files.
+- Put one-element conversions on the source type. Prefer `RecognizedDataType.toVisionRecognizedDataType()` plus `dataTypes.map { it.toVisionRecognizedDataType() }` where the list is used. Do not add `List<RecognizedDataType>.toVisionRecognizedDataTypes()` when it only wraps that one `map`.
+- Add collection extension functions only when the collection conversion has real behavior beyond mapping, such as validation across elements, deduplication, ordering, batching, caching, or error aggregation.
 
 ## Common Pitfalls
 
@@ -273,6 +275,7 @@ Examples:
 - **Storing `NitroModules.applicationContext` in a field** — It can be null at construction time; always access it via a `get()` property
 - **Not null-checking `applicationContext`** — Always use `?: throw Error("No ApplicationContext set!")` to fail explicitly
 - **Letting one HybridObject file absorb every helper** — Split extensions, adapters, converters, and listeners into named files. The filename should still describe the file after the implementation is done.
+- **Putting trivial maps behind collection extensions** — Prefer an element conversion plus `map` at the call site. A collection helper is justified only when the collection itself adds behavior.
 
 ## Related Skills
 

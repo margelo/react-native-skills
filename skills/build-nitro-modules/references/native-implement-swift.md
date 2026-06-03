@@ -290,6 +290,8 @@ If state can only be observed on a specific queue, prefer a listener or event AP
 - Put reusable conversions, Apple framework helpers, and small protocol conveniences in Swift extensions under `ios/Extensions/`, such as `ios/Extensions/UIViewController+topPresentedViewController.swift`, `ios/Extensions/CGPoint+Point.swift`, or `ios/Extensions/AVFoundation/AVCaptureDevice+withLock.swift`.
 - Move delegates, framework adapters, converters, native protocols, and helper state into separate named files. Use `internal` or `package` visibility when the helper should not be public API.
 - Use line count as a review signal: under roughly 300 lines is usually acceptable, while files above that need a concrete reason tied to one cohesive responsibility. A large file caused by extension methods or helper variables belongs in multiple files.
+- Put one-element conversions on the source type. A Vision conversion should live in a file such as `ios/Extensions/RecognizedDataType+VNRecognizedDataType.swift`, then call `dataTypes.map { $0.toVNRecognizedDataType() }` where the array is used. Do not add `[RecognizedDataType].toVisionRecognizedDataTypes()` when it only wraps that one `map`.
+- Add `Array` or `Collection` extensions only when the collection conversion has real behavior beyond mapping, such as validation across elements, deduplication, ordering, batching, caching, or error aggregation.
 - Break complex expressions into named intermediate values. Avoid inline chains that allocate, convert units, and call another API in one expression.
 - Pass named constants or variables into API calls instead of building values inline when the expression has meaningful steps.
 
@@ -318,6 +320,7 @@ renderer.render(point: projectedPoint)
 - **Defaulting HybridObjects to `actor`** — JS-facing methods and properties are synchronous entry points. Prefer queue-owned state and async methods where serialization is needed.
 - **Leaking Objective-C types** — Avoid `NSDictionary`, `NSString`, `NSArray`, and `NSError` in Nitro implementation APIs unless required by an Apple API boundary.
 - **Letting one HybridObject file absorb every helper** — Split extensions, delegates, converters, and protocols into named files. The filename should still describe the file after the implementation is done.
+- **Putting trivial maps behind collection extensions** — Prefer an element conversion plus `map` at the call site. A collection helper is justified only when the collection itself adds behavior.
 
 ## Related Skills
 

@@ -29,6 +29,8 @@ Use this skill for C++ code that needs clear ownership, strong type modeling, ma
 - Put private helpers in an anonymous namespace only when they are small and only serve the file's primary type. Move reusable or bulky helpers to a separate file under a `detail` namespace or an internal folder.
 - Use line count as a review signal: files below roughly 300 lines are usually fine; files above that need a clear reason tied to one cohesive responsibility. Size caused by unrelated helpers, conversions, or platform glue is a design issue.
 - Do not hide large implementation bodies in headers. Use headers for declarations, templates that must be visible, and small inline functions only.
+- Put conversions on the element type or as a named converter function for one element when the batch operation is only a standard loop or transform. Prefer `toNativeRecognizedDataType(type)` plus `std::transform` over a domain-specific vector helper that only wraps the transform.
+- Add collection-level helpers only when the collection has real domain behavior, such as validation across elements, deduplication, ordering, batching, caching, or error aggregation.
 
 ## Ownership and Async
 
