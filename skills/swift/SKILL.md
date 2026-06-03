@@ -62,6 +62,9 @@ struct ScannedFace: ScannedData {
 - Do not force `MainActor.assumeIsolated`, `Thread.isMainThread` branches, or queue `.sync` calls to make a Swift-concurrency design compile. That is a signal to choose a queue-based design or change the API boundary.
 - Do not call `DispatchQueue.sync`, `DispatchQueue.main.sync`, or equivalent synchronous queue hops. Treat them as bugs, especially in property getters and setters.
 - Use `DispatchQueue.async` or a Nitro `Promise` method for queue-bound work that callers must wait for.
+- Treat locks as a last-resort synchronization primitive, not a default safety wrapper. Before adding `NSLock`, identify the concrete shared mutable values, the threads/queues that can access them concurrently, and why ownership by `MainActor`, a serial queue, a Nitro runtime/thread, or immutable snapshots is not enough.
+- Swift `Array` and `Dictionary` mutations are not thread-safe. If listener add/remove can race with native delegate emission, either serialize every access on one owner queue/thread, or use a tiny lock only to mutate and snapshot the listener registry.
+- Never hold a lock while invoking callbacks, calling into JS/Nitro, or calling unknown user code. Snapshot listeners under the lock, unlock, then call them. A listener removed during an in-flight emission may receive that current event; that is acceptable cleanup semantics and does not justify heavier locking.
 
 ## Properties and Threading
 

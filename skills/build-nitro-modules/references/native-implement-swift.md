@@ -201,7 +201,9 @@ Prefer one of these patterns:
 - Put mutable native/session state behind a private serial `DispatchQueue`, and run mutating or fallible operations through `Promise.parallel(queue)`.
 - Make operations async when they must serialize, wait for hardware/session state, or cross queues.
 - Emit listener events from the queue/thread that owns the state when callers need ongoing observations.
-- Add `NSLock` or another lock only after shared mutable state is proven to be accessed concurrently and a queue-owned design is not a better fit.
+- Treat locks as a last-resort synchronization primitive, not a default safety wrapper. Before adding `NSLock`, identify the concrete shared mutable values, the threads/queues that can access them concurrently, and why ownership by `MainActor`, a serial queue, a Nitro runtime/thread, or immutable snapshots is not enough.
+- Listener registries should usually be owned by the same queue/thread that emits their events. If Nitro add/remove calls can genuinely race with native delegate callbacks, use a tiny lock only around dictionary mutation and snapshot creation.
+- Never invoke JS/Nitro callbacks while holding a lock. Snapshot listeners, unlock, then call them. A listener removed during an in-flight emission may receive that current event; cleanup only needs to prevent future emissions.
 
 ### Using callbacks
 

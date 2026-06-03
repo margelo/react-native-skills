@@ -62,6 +62,8 @@ data class ScannedFace(
 - Do not hide a thread hop, service lookup, blocking I/O, permission flow, or fallible native operation behind a property.
 - If a value is emitted by a specific Android callback/thread, prefer a listener, Flow, or event API. In Nitro specs, expose a listener or a `Promise<T>` method.
 - Keep mutable shared state owned by one coroutine scope, dispatcher, lock, or Android component lifecycle. Avoid mixing ownership models without a clear boundary.
+- Treat `Mutex`, `synchronized`, and `ReentrantLock` as last-resort synchronization, not default listener or callback plumbing. Before adding one, identify the exact shared mutable values, concurrent callers, and why a single owner dispatcher/lifecycle, channel/Flow, or immutable snapshot is not enough.
+- Never hold a lock while invoking callbacks, calling into JS/Nitro, or calling unknown user code. Snapshot listeners under the lock if needed, unlock, then call them. A listener removed during an in-flight emission may receive that current event.
 
 ## Properties
 
