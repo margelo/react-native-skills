@@ -55,7 +55,7 @@ Before choosing public API shape, dependency APIs, platform capabilities, or imp
 - Encode lifecycle transitions in the API object graph. If commands are valid only after `configure`, `connect`, `start`, or another lifecycle transition, expose those commands on a handle returned by that transition, not on the parent object with "maybe active" checks. For example, `session.configure(device, outputs)` can return a `Controller` that owns `setZoom(...)` and `focusTo(...)`; the `Session` owns graph configuration and start/stop.
 - Avoid stale-state APIs. If reconfiguration changes the native resource a command targets, return a new handle and invalidate or dispose the old one. Callers should not be able to accidentally call a command on a parent object that no longer knows which configured device/output it applies to.
 - Use callbacks or returned resolved objects for post-negotiation facts. If an output, controller, or session config becomes meaningful only after connection, provide `onConfigured`, a returned controller/config, or an explicit `resolve...(...)` method rather than forcing callers to poll nullable properties.
-- Avoid pushing defaults into implementation-facing option objects when a thin TypeScript facade can normalize them. Public wrappers can accept ergonomic optional options, but the core API should receive resolved values when that avoids native optional handling, repeated default branches, or extra bridging work.
+- For Nitro-backed imperative APIs, treat the public HybridObject as the API by default. Do not add JS wrappers that pre-parse inputs, translate enum/string shapes, normalize one public format into another, or otherwise make JS call a different API than the generated Nitro spec. Put the intended public shape directly in the Nitro spec and native implementation.
 - When "all" is a meaningful requested value, model it explicitly instead of using `undefined` as a hidden command. For example, prefer `targetFormats: 'all' | BarcodeFormat[]` or `TargetBarcodeFormat = BarcodeFormat | 'all'` when the implementation benefits from a concrete value.
 - Do not return half-initialized objects that require a separate `prepare()`, `initialize()`, or `load()` call before normal use. If setup is required, make the factory async and resolve with a ready object. Keep lifecycle methods for real repeatable transitions such as `start()`/`stop()`, not construction readiness.
 - For larger libraries, expose one small public root or factory that creates stateful domain objects. Keep object construction, async setup, I/O, and validation behind factory methods instead of forcing callers through static functions or half-ready instances.
@@ -174,8 +174,9 @@ type ScannedResult = ScannedText | ScannedBarcode | ScannedFace
 
 ## TypeScript Facades
 
-- Put defaults, convenience overloads, and discriminated unions in TypeScript only when they reduce implementation branches without changing behavior.
-- Keep TypeScript adapters thin. If the facade changes failure behavior, defaults, lifecycle, or ownership semantics, move the rule into the core API instead.
+- Avoid JS/TS facades over public Nitro HybridObjects. If callers are meant to use the imperative Nitro API, export it 1:1 as defined in the `.nitro.ts` spec and native implementation; do not wrap it to pre-parse arguments, convert strings/enums, inject hidden defaults, or alter error/lifecycle behavior.
+- Use JS/TS wrappers only when they are intentionally higher-level APIs, such as React hooks, React components, ergonomic UI composition, or when the Nitro HybridObject is an internal implementation detail that does not match the user-facing mental model.
+- If a JS facade changes failure behavior, defaults, lifecycle, ownership, or accepted value shapes, move that rule into the Nitro spec/native implementation unless the facade is deliberately the product API and the HybridObject is internal.
 - Prefer examples that show realistic setup, cleanup, unavailable-feature behavior, and invalid inputs.
 
 ## Documentation Contracts
