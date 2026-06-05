@@ -171,6 +171,7 @@ export type { Math } from './specs/Math.nitro'
 - If consumers should import the spec type from the package root, re-export it from `index.ts` with `export type { Math } from './specs/Math.nitro'`. This is only an additional type export; it does not replace the runtime value export.
 - Re-export public package types only from package entry points such as `src/index.ts`. Do not re-export helper types from `.nitro.ts` spec files or sibling type files. Specs should import what they use and export only the spec declarations they own.
 - Use direct re-exports in `src/index.ts`: `export type { Foo } from './types/Foo'` for type-only symbols and `export { Foo } from './Foo'` for runtime values. Do not import a symbol only to export it again in a separate block.
+- Keep JS/TS source explicit: write `undefined`, never `void 0`; use explicit assignment or `if` blocks instead of logical assignment operators such as `??=`, `||=`, or `&&=`.
 - The string `'Math'` in `createHybridObject<Math>('Math')` must exactly match the key in `nitro.json`'s `autolinking` block
 - Prefer naming native classes with the `Hybrid` prefix: `HybridMath`
 - Keep both the interface name and the autolinking key the same (e.g. `Math` = `'Math'`)

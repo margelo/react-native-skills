@@ -113,6 +113,11 @@ type ScannedResult = ScannedText | ScannedBarcode | ScannedFace
 - Add collection-level helpers only when the collection itself has domain semantics, such as validation across elements, deduplication, ordering guarantees, caching, batching for performance, nonempty checks, or error aggregation. Do not add a collection helper merely to hide one standard collection operation.
 - Keep performance and implementation strategy out of the public shape unless it changes how the caller should use the API. For example, the API may expose an explicit conversion method, but names and docs should not advertise internal details like "lazy", "lightweight", or "normalized" unless that behavior is directly observable.
 
+## TypeScript and JavaScript Style
+
+- Never use `void 0` as an undefined value. Write `undefined` explicitly.
+- Never use logical assignment operators such as `??=`, `||=`, or `&&=` in package/runtime code. Prefer an explicit `if` block or direct assignment so mutation and fallback behavior are obvious at the call site.
+
 ## Names and Members
 
 - Name commands with a verb and subject. Add unit suffixes to numeric values. Prefer `getCurrentSystemTimestampMs()` over `timestamp()`.

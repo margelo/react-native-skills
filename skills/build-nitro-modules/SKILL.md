@@ -244,6 +244,8 @@ export type { Math } from './specs/Math.nitro'
 
 Package entry points such as `src/index.ts`, `index.ts`, `index.js`, and `index.tsx` must stay barrels. They may contain direct re-exports and a one-line Nitro root export such as `export const camera = NitroModules.createHybridObject<Camera>('Camera')`, but no actual implementation logic, functions, classes, hooks, components, branching, side effects, or helper definitions. Move real definitions to focused files and re-export them.
 
+For JS/TS source in Nitro packages, keep absence and mutation explicit: never use `void 0` instead of `undefined`, and never use logical assignment operators such as `??=`, `||=`, or `&&=`. Prefer an explicit `if` block or direct assignment that makes fallback behavior visible.
+
 ### Minimum `nitro.json`
 
 ```json
