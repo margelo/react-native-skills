@@ -294,6 +294,7 @@ Examples:
 - Treat `HybridDataScanner.kt` as the implementation file for `HybridDataScanner`, not as a dumping ground for Android helpers, geometry conversions, listeners, or extension utilities.
 - Prefer explicit `return` statements inside multi-line control flow. Do not lift the return outside a multi-line `try`/`catch`, `if`, `when`, or lambda just to make it expression-like; use `try { return value } catch (...) { return fallback }`.
 - In multi-line lambdas, use labeled returns such as `return@map value` for the result. Omit the label only for true single-expression lambdas like `items.map { it.toString() }`.
+- Prefer inline shorthand for unambiguous single-expression lambdas: `formats.map { it.toMLKitFormat() }`, not a multi-line `map { format -> format.toMLKitFormat() }`. Do not use `it` when a surrounding or nested lambda already uses `it`; name parameters in nested lambdas or when clarity needs it.
 - Keep exactly one top-level implementation type per file. `HybridDataScannerFactory.kt` contains `HybridDataScannerFactory` and no other classes, interfaces, enums, option adapters, coordinators, delegates, scanner sessions, or helper types.
 - Keep one focused extension/conversion per file. Do not create a catch-all Kotlin file for every extension in a feature.
 - Never put Kotlin extension `fun`, `val`, or `var` declarations inside `Hybrid*` implementation files or other primary implementation files, even when they are private, tiny, or only used by that file. Put every extension in a separate named `Type+operation.kt` extension/converter file so code splitting, maintainability, and future diffs stay clean.
@@ -321,6 +322,7 @@ Examples:
 - **Calling blocking code outside `Promise.async`** — Network calls, delay, etc. must be inside `Promise.async { }` (uses coroutines)
 - **Hand-wiring callback APIs into manual Promises** — Wrap general callback APIs once as suspend adapters, such as `Task<T>.await()` in `Task+await.kt`, then call them from `Promise.async`.
 - **Lifting returns out of multi-line Kotlin control flow** — Prefer explicit returns inside `try`/`catch` branches and labeled returns inside multi-line lambdas. Use implicit lambda results only for true one-line lambdas.
+- **Expanding single-expression lambdas** — Keep simple maps/flatMaps inline with `it`, such as `formats.map { it.toMLKitFormat() }`, unless the lambda is nested or shorthand would be ambiguous.
 - **Using `runBlocking` in generated entry points** — Do not block JS-facing methods or properties; expose a `Promise<T>` method or listener instead
 - **Modeling variants with nullable clusters** — Use distinct TypeScript/Nitro variants so Kotlin receives non-null related fields
 - **Storing `NitroModules.applicationContext` in a field** — It can be null at construction time; always access it via a `get()` property
