@@ -103,8 +103,10 @@ fun getStatus(): Promise<SessionStatus> {
 - Use private top-level helpers in the same file only when they are tiny and exist solely to support that file's primary type.
 - Use line count as a review signal: files below roughly 300 lines are usually fine; files above that need a clear reason tied to one cohesive responsibility. Size caused by unrelated helpers, conversions, or Android glue is a design issue.
 - Put conversions on the element type, not on `List` or array types, when the conversion only reads one element. Prefer `TargetBarcodeFormat.toMLKitFormat()` plus `formats.map { it.toMLKitFormat() }` at the call site over `Array<TargetBarcodeFormat>.toMLKitFormats()`.
+- Do not put domain conversions on broad/common receivers such as `Int`, `String`, `Double`, or `Any`, even privately. Prefer the domain type's companion/factory direction, such as `BarcodeFormat.Companion.fromFormat(format: Int)`, over `Int.toBarcodeFormat()`.
 - Add collection extension functions only when the collection has real domain behavior, such as validation across elements, deduplication, ordering, batching, caching, nonempty checks, or error aggregation. If the receiver is a concrete `Array<SomeDomainType>` or `List<SomeDomainType>` and the body is mostly `map { ... }`, keep it in caller code.
 - When a Kotlin converter returns or accepts Android platform `Int` constants, apply the matching AndroidX/Java/Kotlin annotation where the API supports it, such as a CameraX `@ImageCapture.FlashMode`-style annotation on the function, return value, or parameter. Check the annotation target and retention before placing it; do not annotate blindly when the platform API exposes only a plain `Int`.
+- When converting from an annotated platform `Int`, put the annotation on the `format: Int` parameter if the annotation target supports parameters. For example, prefer `BarcodeFormat.Companion.fromFormat(@SomeBarcodeFormat format: Int)` over an untyped primitive input.
 
 ## Nitro Notes
 

@@ -106,6 +106,7 @@ func getStatus() throws -> Promise<SessionStatus> {
 - Split delegates, framework adapters, converters, native protocols, and helper state into separate files instead of adding them below the main type.
 - Use line count as a review signal: files below roughly 300 lines are usually fine; files above that need a clear reason tied to one cohesive responsibility. Size caused by unrelated extensions, conversions, or helper types is a design issue.
 - Put conversions on the element type, not on arrays, when the conversion only reads one element. The element method may still return multiple values; compose callers with `map`, `flatMap`, `reduce`, or `Set(...)`.
+- Do not put domain conversions on broad/common receivers such as `Int`, `String`, `Double`, `Any`, `CGPoint`, or `CGRect` unless the conversion is genuinely about that type. Prefer the domain type direction, such as `BarcodeFormat.from(format:)` or `BarcodeFormat(nativeFormat:)`, over `Int.toBarcodeFormat()`.
 - Add `Array` or `Collection` extensions only when the collection has real domain behavior, such as validation across elements, deduplication, ordering, batching, caching, nonempty checks, or error aggregation. If the receiver is a concrete `[SomeDomainType]` and the body mostly saves one `map`, keep that map in caller code.
 - Break meaningful conversions into named intermediate values instead of long inline expressions.
 
