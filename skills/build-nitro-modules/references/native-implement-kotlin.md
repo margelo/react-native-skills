@@ -260,9 +260,10 @@ Examples:
 
 ### Kotlin style and organization
 
-- Treat `HybridDataScanner.kt` as the implementation file for `HybridDataScanner`, not as a dumping ground for unrelated Android helpers, geometry conversions, listeners, or extension utilities.
+- Treat `HybridDataScanner.kt` as the implementation file for `HybridDataScanner`, not as a dumping ground for Android helpers, geometry conversions, listeners, or extension utilities.
 - Keep one primary class, sealed family, or focused extension/conversion per file by default. Do not create a catch-all Kotlin file for every extension in a feature.
-- Move reusable extensions, Android adapters, conversion helpers, delegates/listeners, and protocol-style interfaces into named files such as `Extensions/ViewExtensions.kt`, `Conversions/PointConversions.kt`, `Barcode+toScannedCode.kt`, `TargetBarcodeFormat+toMLKitFormat.kt`, or `DataScannerDelegate.kt`.
+- Never put Kotlin extension `fun`, `val`, or `var` declarations inside `Hybrid*` implementation files or other primary implementation files, even when they are private, tiny, or only used by that file. Put every extension in a separate named `Type+operation.kt` extension/converter file so code splitting, maintainability, and future diffs stay clean.
+- Move reusable extensions, Android adapters, conversion helpers, delegates/listeners, and protocol-style interfaces into named files such as `Extensions/ViewExtensions.kt`, `Conversions/PointConversions.kt`, `Barcode+toScannedCode.kt`, `TargetBarcodeFormat+toMLKitFormat.kt`, `BarcodeFormat+fromMLKitBarcodeFormat.kt`, or `DataScannerDelegate.kt`.
 - Use `internal` visibility for helpers that should stay inside the module.
 - Use line count as a review signal: under roughly 300 lines is usually acceptable, while files above that need a concrete reason tied to one cohesive responsibility. A large file caused by helpers or Android glue belongs in multiple files.
 - Put one-element conversions on the source type. The element method may return a list/set when one source value expands to several native values.
@@ -285,7 +286,7 @@ Examples:
 - **Modeling variants with nullable clusters** — Use distinct TypeScript/Nitro variants so Kotlin receives non-null related fields
 - **Storing `NitroModules.applicationContext` in a field** — It can be null at construction time; always access it via a `get()` property
 - **Not null-checking `applicationContext`** — Always use `?: throw Error("No ApplicationContext set!")` to fail explicitly
-- **Letting one HybridObject file absorb every helper** — Split extensions, adapters, converters, and listeners into named files. The filename should still describe the file after the implementation is done.
+- **Letting one HybridObject file absorb every helper** — Split extensions, adapters, converters, and listeners into named files. `Hybrid*` implementation files must not contain extension `fun`/`val`/`var` declarations at all, even private ones.
 - **Extending primitive/common types for domain conversions** — Do not add helpers like `Int.toBarcodeFormat()`. Put the factory/converter on the domain type or companion, such as `BarcodeFormat.Companion.fromFormat(format)`.
 - **Putting trivial maps behind collection extensions** — Prefer an element conversion plus `map`/`flatMap` at the call site. A collection helper is justified only when the collection itself adds behavior such as deduplication or validation.
 - **Returning unannotated Android int constants** — When CameraX/Android exposes an annotation for a mode or format `Int`, use it on converter functions or parameters so callers and tooling see the constrained value space.

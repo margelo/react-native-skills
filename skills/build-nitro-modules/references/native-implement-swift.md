@@ -297,8 +297,9 @@ If state can only be observed on a specific queue, prefer a listener or event AP
 
 - Make HybridObject implementation classes `final` unless inheritance is genuinely required.
 - Use Swift types such as `String`, `[String: T]`, arrays, structs, and typed Foundation values. Avoid Objective-C bridge types such as `NSString`, `NSDictionary`, `NSArray`, and `NSObject` inheritance unless an Apple API requires them.
-- Treat `ios/HybridDataScanner.swift` as the implementation file for `HybridDataScanner`, not as a dumping ground for unrelated Swift extensions, UI helpers, geometry conversions, delegates, or native protocols.
+- Treat `ios/HybridDataScanner.swift` as the implementation file for `HybridDataScanner`, not as a dumping ground for Swift extensions, UI helpers, geometry conversions, delegates, or native protocols.
 - Put reusable conversions, Apple framework helpers, and small protocol conveniences in focused Swift extension files under `ios/Extensions/`, such as `ios/Extensions/UIViewController+topPresentedViewController.swift`, `ios/Extensions/CGPoint+Point.swift`, `ios/Extensions/Barcode+toScannedCode.swift`, or `ios/Extensions/AVFoundation/AVCaptureDevice+withLock.swift`.
+- Never put Swift extensions inside `Hybrid*` implementation files or other primary implementation files, even when the extension is private, tiny, or only used by that file. Put every extension in a separate named `Type+operation.swift` extension/converter file so code splitting, maintainability, and future diffs stay clean.
 - Move delegates, framework adapters, converters, native protocols, and helper state into separate named files. Use `internal` or `package` visibility when the helper should not be public API.
 - Use line count as a review signal: under roughly 300 lines is usually acceptable, while files above that need a concrete reason tied to one cohesive responsibility. A large file caused by extension methods or helper variables belongs in multiple files.
 - Put one-element conversions on the source type. A Vision conversion should live in a file such as `ios/Extensions/RecognizedDataType+DataScannerRecognizedDataType.swift`; it can return `[DataScannerViewController.RecognizedDataType]` or `Set<DataScannerViewController.RecognizedDataType>` when one source value expands to several native values.
@@ -331,7 +332,7 @@ renderer.render(point: projectedPoint)
 - **Using the `override` keyword** — Swift implementations conform to the generated spec shape; methods and properties declared by the spec must NOT use `override` (unlike the Kotlin counterpart, which does). `override` only applies when overriding a superclass member.
 - **Defaulting HybridObjects to `actor`** — JS-facing methods and properties are synchronous entry points. Prefer queue-owned state and async methods where serialization is needed.
 - **Leaking Objective-C types** — Avoid `NSDictionary`, `NSString`, `NSArray`, and `NSError` in Nitro implementation APIs unless required by an Apple API boundary.
-- **Letting one HybridObject file absorb every helper** — Split extensions, delegates, converters, and protocols into named files. The filename should still describe the file after the implementation is done.
+- **Letting one HybridObject file absorb every helper** — Split extensions, delegates, converters, and protocols into named files. `Hybrid*` implementation files must not contain extensions at all, even private ones.
 - **Extending primitive/common types for domain conversions** — Do not add helpers like `Int.toBarcodeFormat()`. Put the factory/converter on the domain type with a static method or initializer.
 - **Putting trivial maps behind collection extensions** — Prefer an element conversion plus `map`/`flatMap` at the call site. A collection helper is justified only when the collection itself adds behavior such as deduplication or validation.
 
