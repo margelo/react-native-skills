@@ -108,6 +108,8 @@ Load [release-it-publishing.md][release-it-publishing] only when setting up or r
 - Use the native Promise helper that matches the platform threading model. In Swift, prefer `Promise.parallel(queue)` for DispatchQueue-owned work such as AVFoundation/session queues, and use `Promise.async` only when wrapping Swift `async`/`await` or Task-based APIs end to end. For UIKit/VisionKit main-thread callback APIs, prefer a manual Promise with direct `DispatchQueue.main.async` at the Nitro entry/callback boundary; do not use `Task { @MainActor in ... }` as a generic main-thread hop.
 - Avoid main/UI threads unless the native API requires them. Keep main-thread sections limited to UI/presentation/view mutation and run parsing, conversion, I/O, session negotiation, and CPU work on an owned queue/dispatcher/executor or native async API.
 - Avoid manually creating or passing around `Promise<T>` instances. Prefer `Promise.async`, `Promise.parallel`, `Promise.resolved`, and `Promise.rejected` because they complete exactly once through structured control flow. A manual Promise is only justified when bridging a native completion/delegate/callback API that cannot use the helpers; keep it in the smallest scope, do not pass it through arbitrary helpers, and guarantee every path resolves or rejects exactly once.
+- Before writing a manual Promise for callback/listener APIs, look for or add a general suspend/async adapter in a focused extension file. On Android, wrap Google `Task<T>` once as `Task+await.kt` with `suspendCancellableCoroutine`, then use `return Promise.async(scope) { task.await() }` in the HybridObject method.
+- Do not hand-wire `addOnSuccessListener`/`addOnFailureListener`/`addOnCanceledListener` inside `Hybrid*` methods when a reusable callback-to-suspend adapter can express the API once.
 - Never hide a thread hop behind a generated property getter or setter. If native state can only be read or changed on a specific queue/thread, expose an async method, listener/event, or explicit lifecycle operation instead.
 - Avoid chains of `Task`, `DispatchQueue`, coroutine dispatcher, executor, and JS/Nitro runtime hops inside one operation. Pick a native owner queue/thread/dispatcher for each HybridObject or session and cross into it once at the Promise, lifecycle, or callback boundary. Repeated hops are a sign the HybridObject boundaries or lifecycle handles are wrong.
 - Never fix Nitro lifecycle, readiness, or race bugs with `setTimeout`, sleeps, artificial delays, extra thread hops, or calling native methods twice. Model readiness with a Promise, listener/event, returned configured HybridObject, explicit state transition, or native completion callback. Use retries only for external hardware, OS service, remote service, or network uncertainty, with bounded/cancellable/idempotent behavior.
@@ -237,6 +239,8 @@ import type { Math } from './specs/Math.nitro'
 export const math = NitroModules.createHybridObject<Math>('Math')
 export type { Math } from './specs/Math.nitro'
 ```
+
+Package entry points such as `src/index.ts`, `index.ts`, `index.js`, and `index.tsx` must stay barrels. They may contain direct re-exports and a one-line Nitro root export such as `export const camera = NitroModules.createHybridObject<Camera>('Camera')`, but no actual implementation logic, functions, classes, hooks, components, branching, side effects, or helper definitions. Move real definitions to focused files and re-export them.
 
 ### Minimum `nitro.json`
 

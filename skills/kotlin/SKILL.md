@@ -97,6 +97,8 @@ fun getStatus(): Promise<SessionStatus> {
 - Use `require`, `check`, or specific exceptions for invalid inputs and invalid state. Do not silently no-op user-reachable failures.
 - Keep Java interop explicit. Convert platform types into Kotlin types before exposing them through the public API where practical.
 - Avoid `!!` except at narrow boundaries where a prior check makes the invariant obvious. Prefer early returns, `requireNotNull`, or typed state.
+- Prefer explicit `return` statements inside multi-line control flow. Do not lift the return outside a multi-line `try`/`catch`, `if`, `when`, or lambda just to make it expression-like; use `try { return value } catch (...) { return fallback }`.
+- In multi-line lambdas, use labeled returns such as `return@map value` for the result. Omit the label only for true single-expression lambdas like `items.map { it.toString() }`; do not write `items.map { return@map it.toString() }`.
 - Treat a filename as a scope contract. `HybridDataScanner.kt` should implement `HybridDataScanner`; it should not also contain Android helpers, geometry conversions, listeners, or extension utilities.
 - Keep one top-level implementation type per file. Do not put secondary classes, interfaces, enums, option adapters, coordinators, delegates, or helper types below the primary type. If a helper deserves a type, it deserves its own file.
 - Keep one focused extension/conversion per file. Do not create a catch-all extension file just because every helper is an extension. Split conversions into named files such as `Barcode+toScannedCode.kt`, `TargetBarcodeFormat+toMLKitFormat.kt`, and `BarcodeFormat+fromMLKitBarcodeFormat.kt` with `internal` visibility where appropriate.
@@ -116,7 +118,8 @@ fun getStatus(): Promise<SessionStatus> {
 
 - Kotlin HybridObject implementations must extend the generated `Hybrid*Spec` class and include `@Keep` plus `@DoNotStrip`.
 - Use `Promise.async` for suspending or I/O work and `Promise.parallel` for CPU-bound synchronous work.
-- Avoid manually creating or passing around `Promise<T>` instances. Prefer `Promise.async`, `Promise.parallel`, `Promise.resolved`, and `Promise.rejected`; use a manual Promise only for real native completion/listener/callback bridges and keep it in the smallest scope with exactly-once completion.
+- Avoid manually creating or passing around `Promise<T>` instances. Prefer `Promise.async`, `Promise.parallel`, `Promise.resolved`, and `Promise.rejected`; use a manual Promise only for real native completion/listener/callback bridges that cannot be wrapped as suspend APIs.
+- For general callback APIs such as Google `Task<T>`, first write a generic suspend adapter in its own extension file, such as `Task+await.kt`, then call it from `Promise.async { task.await() }`. Do not hand-wire `addOnSuccessListener`/`addOnFailureListener`/`addOnCanceledListener` into public HybridObject methods.
 - Use `Promise<Unit>` for `Promise<void>`.
 - Access `NitroModules.applicationContext` lazily and fail explicitly if it is unavailable.
 - Generated properties are synchronous JS entry points. Redesign them as methods or listeners if they need Android thread affinity or async work.

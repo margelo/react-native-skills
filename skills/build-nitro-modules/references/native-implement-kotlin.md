@@ -135,7 +135,9 @@ Use the Promise helper that matches the work:
 - `Promise.async` for suspending or I/O work that should run through coroutines.
 - `Promise.parallel` for CPU-bound synchronous work that should run off the caller thread.
 - Avoid the main dispatcher unless the Android API requires it, such as view/UI mutation or lifecycle APIs. Keep main-thread blocks small and move parsing, conversion, I/O, session negotiation, and CPU work to an owned dispatcher or async API.
-- Avoid manually creating or passing around `Promise<T>` instances by default. Prefer `Promise.async`, `Promise.parallel`, `Promise.resolved`, or `Promise.rejected` so the helper owns exactly-once completion. A manual Promise is only justified when bridging a native completion/listener/callback API; keep it near the bridge, do not pass it through arbitrary helpers or session objects, and make every branch resolve or reject exactly once.
+- Avoid manually creating or passing around `Promise<T>` instances by default. Prefer `Promise.async`, `Promise.parallel`, `Promise.resolved`, or `Promise.rejected` so the helper owns exactly-once completion. A manual Promise is only justified when a native completion/listener/callback API cannot be wrapped as a suspend API; keep it near the bridge and make every branch resolve or reject exactly once.
+- Before writing a manual Promise for callback/listener APIs, look for or add a general suspend adapter in a focused extension file. For Google `Task<T>`, create `Task+await.kt` once and call `return Promise.async(scope) { task.await() }` from the HybridObject method.
+- Do not hand-wire `addOnSuccessListener`/`addOnFailureListener`/`addOnCanceledListener` inside public HybridObject methods when a reusable `await()` adapter can express that API once.
 - Do not use `runBlocking` in HybridObject methods, generated property getters/setters, or library callbacks. If callers must wait for a result, expose a `Promise<T>` method in the Nitro spec.
 - Treat repeated `launch`, `withContext`, dispatcher, handler, executor, or JS/Nitro runtime hops as an architecture smell. A HybridObject/session should own the coroutine scope/dispatcher/lifecycle it works on, or cross into that owner once at the Promise, lifecycle, or native callback boundary.
 - If an operation bounces between main, IO, default, native, and JS/Nitro contexts in multiple nested places, redesign the HybridObject boundary or returned lifecycle handle instead of adding more hops.
@@ -162,6 +164,35 @@ override fun promiseReturnsInstantly(): Promise<Double> {
 // Promise.resolved() — for instantly-resolved void
 override fun promiseThatResolvesVoidInstantly(): Promise<Unit> {
   return Promise.resolved()
+}
+```
+
+For Google Tasks, put the generic bridge in `Task+await.kt` rather than wiring listeners in each HybridObject:
+
+```kotlin
+import com.google.android.gms.tasks.Task
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+
+internal suspend fun <T> Task<T>.await(): T {
+  return suspendCancellableCoroutine { continuation ->
+    addOnSuccessListener { result ->
+      if (continuation.isActive) {
+        continuation.resume(result)
+      }
+    }
+    addOnFailureListener { error ->
+      if (continuation.isActive) {
+        continuation.resumeWithException(error)
+      }
+    }
+    addOnCanceledListener {
+      if (continuation.isActive) {
+        continuation.resumeWithException(RuntimeException("Task was canceled."))
+      }
+    }
+  }
 }
 ```
 
@@ -261,6 +292,8 @@ Examples:
 ### Kotlin style and organization
 
 - Treat `HybridDataScanner.kt` as the implementation file for `HybridDataScanner`, not as a dumping ground for Android helpers, geometry conversions, listeners, or extension utilities.
+- Prefer explicit `return` statements inside multi-line control flow. Do not lift the return outside a multi-line `try`/`catch`, `if`, `when`, or lambda just to make it expression-like; use `try { return value } catch (...) { return fallback }`.
+- In multi-line lambdas, use labeled returns such as `return@map value` for the result. Omit the label only for true single-expression lambdas like `items.map { it.toString() }`.
 - Keep exactly one top-level implementation type per file. `HybridDataScannerFactory.kt` contains `HybridDataScannerFactory` and no other classes, interfaces, enums, option adapters, coordinators, delegates, scanner sessions, or helper types.
 - Keep one focused extension/conversion per file. Do not create a catch-all Kotlin file for every extension in a feature.
 - Never put Kotlin extension `fun`, `val`, or `var` declarations inside `Hybrid*` implementation files or other primary implementation files, even when they are private, tiny, or only used by that file. Put every extension in a separate named `Type+operation.kt` extension/converter file so code splitting, maintainability, and future diffs stay clean.
@@ -286,6 +319,8 @@ Examples:
 - **`Array<Double>` vs `DoubleArray`** — Number arrays use `DoubleArray` (primitive), other types use `Array<T>`
 - **`Promise.async` vs `Promise.parallel`** — Use `async` for IO/coroutine work, `parallel` for CPU-bound sync work
 - **Calling blocking code outside `Promise.async`** — Network calls, delay, etc. must be inside `Promise.async { }` (uses coroutines)
+- **Hand-wiring callback APIs into manual Promises** — Wrap general callback APIs once as suspend adapters, such as `Task<T>.await()` in `Task+await.kt`, then call them from `Promise.async`.
+- **Lifting returns out of multi-line Kotlin control flow** — Prefer explicit returns inside `try`/`catch` branches and labeled returns inside multi-line lambdas. Use implicit lambda results only for true one-line lambdas.
 - **Using `runBlocking` in generated entry points** — Do not block JS-facing methods or properties; expose a `Promise<T>` method or listener instead
 - **Modeling variants with nullable clusters** — Use distinct TypeScript/Nitro variants so Kotlin receives non-null related fields
 - **Storing `NitroModules.applicationContext` in a field** — It can be null at construction time; always access it via a `get()` property
