@@ -58,7 +58,8 @@ const [controller] = await session.configure([{
 await session.start()
 // ... later:
 await session.stop()
-await session.dispose()
+// No session.dispose() — CameraSession has no dispose(); Nitro releases it once unreferenced.
+// source: CameraSession.nitro.ts only exposes isRunning/configure/start/stop/addOn*Listener
 ```
 
 ## Constraints
@@ -69,7 +70,7 @@ The Constraints API replaces the entire v4 formats system. You never pick a `Cam
 
 - **Array order = priority, descending.** The first constraint is the one the Camera will bend least to satisfy.
 - **Always succeeds.** `{ fps: 99999 }` resolves to the highest supported FPS. Constraints never throw for unreachable combos.
-- **Probe with `isSessionConfigSupported(config)`** when you want to conditionally show UI (e.g. only render an HDR toggle on devices that can actually do HDR at the requested resolution).
+- **Probe with `device.isSessionConfigSupported(config)`** — a synchronous method on `CameraDevice` returning `boolean` — when you want to conditionally show UI (e.g. only render an HDR toggle on devices that can actually do HDR at the requested resolution). <!-- source: CameraDevice.nitro.ts:611 `isSessionConfigSupported(config: CameraSessionConfig): boolean` -->
 - **Observe the chosen config** via `onSessionConfigSelected={(config) => ...}` or by reading `config` returned from `resolveConstraints`.
 
 ### Constraint types
@@ -138,12 +139,12 @@ constraints={[{ videoDynamicRange: { bitDepth: 'hdr-10-bit', colorSpace: 'hlg-bt
 ### Programmatic resolution
 
 ```ts
-const config = await resolveConstraints(
+const config = await VisionCamera.resolveConstraints(
   device,
   [{ output: videoOutput, mirrorMode: 'auto' }],
   [{ resolutionBias: videoOutput }, { fps: 60 }],
-)
-const ok = await isSessionConfigSupported(device, config)
+) // resolveConstraints is a method on VisionCamera — source: CameraFactory.nitro.ts:149
+const ok = device.isSessionConfigSupported(config) // sync, single arg, on the device — source: CameraDevice.nitro.ts:611
 ```
 
 ## Devices
@@ -155,7 +156,7 @@ const ok = await isSessionConfigSupported(device, config)
   const device = useCameraDevice('back', { physicalDevices: ['wide-angle'] })
   ```
   vs. a `'triple'` virtual device that switches across ultra-wide / wide / telephoto.
-- Probe capabilities upfront: `device.getSupportedResolutions('photo')`, `device.supportedFPSRanges`, `device.supportedPixelFormats`, `device.supportsPhotoHDR`, `device.supportsVideoStabilizationMode('cinematic')`, `device.supportsExposureBias`, `device.supportsFocusMetering`, `device.supportsFocusLocking`, `device.supportsMultiCamSessions`, `device.zoomLensSwitchFactors`.
+- Probe capabilities upfront: `device.getSupportedResolutions('photo')`, `device.supportedFPSRanges`, `device.supportedPixelFormats`, `device.supportsPhotoHDR`, `device.supportsVideoStabilizationMode('cinematic')`, `device.supportsExposureBias`, `device.supportsFocusMetering`, `device.supportsFocusLocking`, `device.zoomLensSwitchFactors`. Multi-cam is **platform-level**, not a device flag: use `VisionCamera.supportsMultiCamSessions` and `deviceFactory.supportedMultiCamDeviceCombinations`. <!-- source: device props in CameraDevice.nitro.ts; multi-cam in CameraFactory.nitro.ts:71 + CameraSession.nitro.ts:70,182 (no supportsMultiCamSessions on CameraDevice) -->
 - External cameras (iPad/Mac/UVC on Android) use `'external'` and emit change notifications: `addOnCameraDevicesChangedListener`.
 
 ## Session lifecycle
@@ -193,7 +194,7 @@ Reconfiguration cost: changing `outputs`, `device`, or `constraints` pauses brie
 
 - Prefer single-physical-device cameras (`'wide-angle'` only) over virtual multi-device cameras when you don't need seamless zoom switching — faster startup.
 - Disable features you don't need: video HDR, stabilization, unneeded outputs.
-- YUV > RGB for frame output. The native format is YUV; RGB forces conversion per frame.
+- For frame output, the default `pixelFormat` is `'native'` (zero-copy, format negotiated — check `frame.pixelFormat`). Among CPU-accessible formats, `'yuv'` beats `'rgb'` (~2.6× less bandwidth); `'rgb'` forces a conversion per frame. <!-- source: useFrameOutput.ts:123 (default 'native'); CameraFrameOutput.nitro.ts:71-95 -->
 - Match FPS and resolution to the consumer. 30fps is sufficient for 99% of recording; 60/120/240 only when the UX demands it.
 - Binned formats (`{ binned: true }`) for better low-light and lower bandwidth when fine detail is not needed.
 - For rapid photo bursts: `qualityPrioritization: 'speed'` on the photo output options or per capture. For instant capture with zero shutter lag, use `takeSnapshot()` via the Camera ref.

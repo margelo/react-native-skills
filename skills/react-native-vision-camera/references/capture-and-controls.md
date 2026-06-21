@@ -17,7 +17,8 @@ const photo = await photoOutput.capturePhoto(
     flashMode: 'auto',           // 'on' | 'off' | 'auto'
     enableRedEyeReduction: true,
     enableShutterSound: false,
-    qualityPrioritization: 'quality', // override the output-level setting per capture
+    // qualityPrioritization is NOT a per-capture setting — set it on usePhotoOutput({ qualityPrioritization }).
+    // source: CapturePhotoSettings (CameraPhotoOutput.nitro.ts:137-225) has no qualityPrioritization; it lives on PhotoOutputOptions:68
     // location: locationFromReact-native-vision-camera-location
   },
   {
@@ -50,7 +51,7 @@ const { filePath } = await photoOutput.capturePhotoToFile({ flashMode: 'on' }, {
 
 ### `takeSnapshot` — zero-shutter-lag preview grab (Android only)
 
-On the Camera ref, `takeSnapshot({ quality: 90 })` grabs the latest preview buffer and JPEG-encodes it synchronously. Lower fidelity than `capturePhoto`, but instant. Good for burst / scanner UIs where the user can't tell the difference. This is Android only.
+On the Camera ref, `takeSnapshot()` (no arguments) asynchronously grabs the current preview contents and resolves to an `Image` (`react-native-nitro-image`) — there is no `quality` option and it is not a synchronous JPEG. Lower fidelity than `capturePhoto`, but near-instant. Good for burst / scanner UIs where the user can't tell the difference. Android only. <!-- source: PreviewView.nitro.ts:114 `takeSnapshot(): Promise<Image>` @platform Android; Camera.tsx:218 calls it with no args -->
 
 ### RAW
 
@@ -65,7 +66,7 @@ const path = await photo.saveToTemporaryFileAsync()   // .dng file
 const pixels = photo.getPixelBuffer()                 // raw pixel data when available
 ```
 
-Verify via `isSessionConfigSupported(...)` before exposing a RAW toggle. Preview image callbacks are especially important here because RAW write latency is high.
+Verify via `device.isSessionConfigSupported(config)` (synchronous, on the device) before exposing a RAW toggle. Preview image callbacks are especially important here because RAW write latency is high. <!-- source: CameraDevice.nitro.ts:611 -->
 
 ### HDR
 
@@ -75,12 +76,14 @@ Photo HDR fuses an under/normal/over exposure at the ISP:
 <Camera constraints={[{ photoHDR: true }]} />
 ```
 
-Alternative on Android: a vendor `CameraExtension` may provide an `'hdr'` extension:
+On Android, vendors expose `CameraExtension`s (`'hdr'`, `'night'`, `'bokeh'`, `'face-retouch'`, `'auto'`), discoverable via `useCameraDeviceExtensions(device)` / `getSupportedExtensions(device)`. **However**, in v5.0.11 there is no `<Camera>` prop to apply one — the library refactored to the Constraints API and has not re-wired extension application yet, so for Photo HDR use the `{ photoHDR: true }` constraint instead.
 
 ```ts
-const hdrExtension = extensions.find((e) => e.type === 'hdr')
-<Camera cameraExtension={hdrExtension} />
+const extensions = useCameraDeviceExtensions(device)
+const hdrExtension = extensions.find((e) => e.type === 'hdr') // CameraExtensionType
+// Applying an extension to <Camera> is NOT supported yet (see source TODO) — use constraints={[{ photoHDR: true }]}
 ```
+<!-- source: CameraExtension.nitro.ts:9 ("Camera Extensions currently cannot be used in VisionCamera since I refactored to the Constraints API"); no cameraExtension prop in useCamera.ts CameraProps or Camera.tsx CameraViewProps; type at CameraExtension.nitro.ts:24-29 -->
 
 ## Recording video
 
@@ -127,7 +130,7 @@ await recorder.cancelRecording()  // deletes the partial file
 // Apple Log: colorSpace: 'apple-log'
 ```
 
-Bit depths: `'sdr-8-bit'` (default) vs `'hdr-10-bit'`. Color spaces: `'srgb'`, `'hlg-bt2020'`, `'apple-log'`. Probe support with `isSessionConfigSupported`.
+Bit depths: `'sdr-8-bit'` (default) vs `'hdr-10-bit'`. Color spaces: `'srgb'`, `'hlg-bt2020'`, `'apple-log'`. Probe support with `device.isSessionConfigSupported(config)`. <!-- source: DynamicRange.ts; CameraDevice.nitro.ts:611 -->
 
 ### Stabilization
 
@@ -150,7 +153,7 @@ const clamped = Math.min(Math.max(value, device.minZoom), device.maxZoom)
 
 // Imperative:
 await controller.setZoom(3)
-await controller.startZoomAnimation(5, 2)  // zoom to 5x over 2s
+await controller.startZoomAnimation(5, 2)  // animate to 5x; 2nd arg is `rate`, not a duration in seconds. source: CameraController.nitro.ts:376
 await controller.cancelZoomAnimation()
 
 // Virtual-device switch points (e.g. 0.5x ↔ 1x ↔ 3x):
@@ -222,16 +225,19 @@ await controller.lockCurrentExposure()   // freeze whatever auto-exposure chose
 await controller.setFocusLocked(0.3)
 await controller.lockCurrentFocus()
 
-// White balance: temperature (K) + tint, or RGB gains
-await controller.setWhiteBalanceLocked({ temperature: 5500, tint: 0 })
+// White balance: setWhiteBalanceLocked accepts ONLY WhiteBalanceGains ({ redGain, greenGain, blueGain }).
+// To lock by temperature (K) + tint, convert first (iOS):
+const gains = controller.convertWhiteBalanceTemperatureAndTintValues({ temperature: 5500, tint: 0 })
+await controller.setWhiteBalanceLocked(gains)
 await controller.setWhiteBalanceLocked({ redGain: 1.0, greenGain: 0.1, blueGain: 0.1 })
+// source: CameraController.nitro.ts:670 (setWhiteBalanceLocked(WhiteBalanceGains)) + :655 (convertWhiteBalanceTemperatureAndTintValues); WhiteBalanceGains.ts
 await controller.lockCurrentWhiteBalance()
 
 // Back to auto:
 await controller.resetFocus()
 ```
 
-Typical temperature range 2500K–8000K; tint −150..150; lens position 0..1. Always gate on device support (`device.supportsExposureLock`, etc).
+Typical temperature range 2500K–8000K; tint −150..150; lens position 0..1. Always gate on device support: `device.supportsExposureLocking`, `device.supportsFocusLocking`, `device.supportsWhiteBalanceLocking`. <!-- source: CameraDevice.nitro.ts:429/402/469 (note: `...Locking`, not `supportsExposureLock`) -->
 
 ## Orientation
 
@@ -263,7 +269,7 @@ Gate on `device.supportsPreviewImage`.
 ## Performance knobs (capture side)
 
 - `qualityPrioritization: 'speed'` for burst / instant UX; `'quality'` for hero shots.
-- `takeSnapshot({ quality })` for true zero-shutter-lag preview grabs.
+- `takeSnapshot()` (Android, no args, resolves to an `Image`) for true zero-shutter-lag preview grabs. <!-- source: PreviewView.nitro.ts:114 -->
 - Disable Video HDR & stabilization when not needed — both add latency.
 - Prefer in-memory `capturePhoto` over `capturePhotoToFile` unless the consumer actually wants a file (e.g. sharing intent).
 - Pre-create the photo output once, not per-shot.

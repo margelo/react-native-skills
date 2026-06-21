@@ -13,6 +13,7 @@ This skill is a router. Read this file first, then load the reference that match
 
 - **New install, getting a Camera on screen, permissions, minimum boilerplate** → [references/quickstart-v5.md](references/quickstart-v5.md)
 - **Porting a v4 codebase, understanding what changed** → [references/migration-v4-to-v5.md](references/migration-v4-to-v5.md) (load this FIRST when the user mentions v4, takePhoto, useCameraFormat, format prop, photo/video boolean props, or CodeScanner in core)
+- **Porting a whole v4 *screen* — want a complete before/after file to transplant** → [references/migration-templates.md](references/migration-templates.md) (full copy-paste templates: photo screen, video screen, frame-processor+ML, barcode scanner, pro camera)
 - **Choosing/attaching outputs, fps/HDR/resolution via constraints, session lifecycle** → [references/outputs-and-constraints.md](references/outputs-and-constraints.md)
 - **Frame Processors, worklets, async frame work, pixel formats, writing a native plugin** → [references/frame-processors.md](references/frame-processors.md) (load this when user says "frame processor", "worklet", "ML on frames", "Nitro plugin", "vision-camera-plugin-*")
 - **Capturing photos (incl. callbacks, RAW, HDR, preview image), recording video, Recorder lifecycle, manual AE/AF/AWB, exposure bias, zoom, focus** → [references/capture-and-controls.md](references/capture-and-controls.md)
@@ -32,7 +33,9 @@ These are the rules that catch people who "know" v4. Apply them without asking:
 6. **Every `Frame` (and `Depth`) MUST be `.dispose()`d.** The buffer pool is bounded; leaking a frame stalls the pipeline. Wrap work in `try { ... } finally { frame.dispose() }`. When offloading via `asyncRunner.runAsync(...)`, dispose inside the async callback if it returned `true`, and dispose immediately in the `else` branch when it returned `false`.
 7. **CodeScanner is not in core.** `react-native-vision-camera-barcode-scanner` is a separate package, MLKit-based on both platforms. For iOS-only object detection (QR, faces, bodies via native AVFoundation metadata, no ML dep), use `useObjectOutput` from core.
 8. **Keep the Camera mounted; toggle `isActive`.** Remounting tears down the session. Integrate with `useIsFocused()` from react-navigation so the session goes Idle → Ready while not on screen, and keeps preferences warm for fast resume.
-9. **Prefer YUV in Frame/Depth outputs.** `pixelFormat: 'yuv'` is the native path and the default. `'rgb'` forces a YUV→RGB conversion; use only when a downstream consumer requires it. Use `react-native-vision-camera-resizer` for GPU-accelerated YUV→RGB resize into an ML tensor instead of paying that cost in the camera pipeline.
+9. **Frame output `pixelFormat` defaults to `'native'` (zero-copy), NOT `'yuv'`.** `'native'` streams in the session's negotiated `nativePixelFormat` with zero conversions (it may resolve to a YUV, RGB, RAW, or `'private'` format — verify the actual one via `frame.pixelFormat`). `'yuv'` picks the YUV format closest to native and is the best general-purpose CPU-accessible choice (MLKit/OpenCV/Skia); `'rgb'` forces a YUV→RGB conversion (~2.6× more bandwidth) — use only when a consumer hard-requires RGB. `useDepthOutput` has **no** `pixelFormat` option. For ML, prefer `react-native-vision-camera-resizer` (GPU) over paying a per-frame RGB conversion in the camera pipeline.
+<!-- source: useFrameOutput.ts:123 (`pixelFormat = 'native'` default); VideoPixelFormat.ts:52-62; CameraFrameOutput.nitro.ts:71,84-86 ("recommended to use 'native' ... zero-copy GPU-only path"); useDepthOutput.ts:70-77 (options have no pixelFormat) -->
+
 10. **Do not hand-clamp FPS/resolution with `Math.min/Math.max`.** That was a v4 workaround. In v5 the Constraints API negotiates internally — express intent and let the Camera pick.
 11. **Worklets mutate Reanimated SharedValues directly in v5.** The worklets-core bridge is gone; no `runOnJS` round-trip required to update a Reanimated `SharedValue` from a frame processor.
 
@@ -42,7 +45,9 @@ These are the rules that catch people who "know" v4. Apply them without asking:
 - Do not add documentation files (README, CHANGELOG) unless the user asks.
 - Assume the user is on v5 unless they show v4 code. If they show v4 code, load [references/migration-v4-to-v5.md](references/migration-v4-to-v5.md) before writing anything.
 - When writing a new Camera example, default to the hook-based declarative form (`useCameraPermission` + `useCameraDevice` + `usePhotoOutput` + `<Camera />`). Use the imperative `VisionCamera.createCameraSession(...)` API only when the user asks for multi-cam or full programmatic control.
-- When the user asks for an ML / CV pipeline, recommend `react-native-vision-camera-resizer` (GPU, ~5× faster than CPU/SIMD) over `vision-camera-resize-plugin` (v4-era, CPU).
+- When the user asks for an ML / CV pipeline, recommend `react-native-vision-camera-resizer` (GPU-accelerated, returns a pooled `GPUFrame`) over `vision-camera-resize-plugin` (v4-era, CPU).
+<!-- source: react-native-vision-camera-resizer/src/specs/GPUFrame.nitro.ts + Resizer.nitro.ts (GPU resize→GPUFrame). The often-quoted "~5×" figure is a blog claim, not in source, so it is omitted here. -->
+
 - Verify peer dependency installs. A user reporting a native crash after install 95% of the time has missed `react-native-nitro-modules`, `react-native-nitro-image`, or (for frame processors) `react-native-worklets` + `react-native-vision-camera-worklets`.
 
 ## Authoritative links

@@ -17,7 +17,7 @@ import { Camera, useFrameOutput, useCameraDevice } from 'react-native-vision-cam
 
 const device = useCameraDevice('back')
 const frameOutput = useFrameOutput({
-  pixelFormat: 'yuv',           // default, fastest; 'rgb' forces conversion; 'native' = zero-conv
+  pixelFormat: 'yuv',           // NOTE: default is 'native' (zero-copy). 'yuv' = CPU-accessible YUV; 'rgb' forces conversion. source: useFrameOutput.ts:123
   targetResolution: CommonResolutions.VGA_16_9, // start small
   onFrame(frame) {
     'worklet'
@@ -52,9 +52,10 @@ The same rule applies to `Depth` frames from `useDepthOutput`.
 
 | Format | When |
 |---|---|
-| `'yuv'` | Default. OpenCV, native camera pipelines, MLKit. A 4K YUV frame is ~12MB vs ~31MB RGB. |
-| `'rgb'` | ML frameworks that hard-require RGB and don't convert internally. Prefer using the GPU **Resizer** instead of paying RGB conversion on every frame. |
-| `'native'` | GPU pipelines (Metal/Vulkan) that accept the native format. Verify actual format via `frame.pixelFormat`. |
+| `'native'` | **Default.** Zero-copy GPU path — streams the session's negotiated `nativePixelFormat`. Resolved format may be YUV, RGB, RAW, or `'private'` — verify via `frame.pixelFormat`. |
+| `'yuv'` | Best CPU-accessible choice: OpenCV, native camera pipelines, MLKit, Skia. A 4K YUV frame is ~12MB vs ~31MB RGB. |
+| `'rgb'` | ML frameworks that hard-require RGB and don't convert internally. Prefer the GPU **Resizer** over paying RGB conversion on every frame. |
+<!-- source: useFrameOutput.ts:123 (default 'native'); CameraFrameOutput.nitro.ts:71-95; VideoPixelFormat.ts:52-62 -->
 
 ## Async frame work (backpressure)
 
@@ -134,7 +135,7 @@ Same pattern: accept a `Depth` in the spec, cast to `NativeDepth` to get `AVDept
 
 ## Best-practice checklist
 
-- [ ] `pixelFormat: 'yuv'` unless you have a specific reason otherwise.
+- [ ] `pixelFormat`: keep the default `'native'` (zero-copy) for GPU pipelines; pass `'yuv'` when you need CPU pixel access (MLKit/OpenCV); `'rgb'` only if a consumer hard-requires it. <!-- source: useFrameOutput.ts:123 -->
 - [ ] `targetResolution` on the frame output — smaller is faster. VGA or 720p is enough for most ML models.
 - [ ] Every `onFrame` wrapped in `try { ... } finally { frame.dispose() }`.
 - [ ] Heavy work via `useAsyncRunner` + explicit accepted/rejected disposal.
