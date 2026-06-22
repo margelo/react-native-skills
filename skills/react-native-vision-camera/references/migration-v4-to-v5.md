@@ -187,7 +187,7 @@ Behavioral changes:
 - `takePhoto` wrote to a temp file on every call. `capturePhoto` skips that entirely. Prefer it — it is faster and uses less I/O and disk.
 - Callbacks that used to fire on the Camera are now passed as a second argument object on every capture call (`onWillBeginCapture`, `onWillCapturePhoto`, `onDidCapturePhoto`, `onPreviewImageAvailable`).
 - Thumbnail preview: in v5, configure `previewImageTargetSize` on `usePhotoOutput(...)` and receive via `onPreviewImageAvailable`, rather than showing the saved file.
-- `photoQualityBalance` prop is gone. Pass `qualityPrioritization: 'speed' | 'balanced' | 'quality'` in the capture settings (per-call) or the photo output options.
+- `photoQualityBalance` prop is gone. Pass `qualityPrioritization: 'speed' | 'balanced' | 'quality'` on the photo **output** options (`usePhotoOutput({ qualityPrioritization })`) — it is NOT a per-capture `CapturePhotoSettings` field. <!-- source: PhotoOutputOptions.qualityPrioritization (CameraPhotoOutput.nitro.ts:68); CapturePhotoSettings (:137-225) has none -->
 - Shutter sound / red-eye options live on `CapturePhotoSettings`. Note the renames: `flash` → `flashMode`, `enableAutoRedEyeReduction` → `enableRedEyeReduction`.
 
 ## 5. Recording video
@@ -382,7 +382,7 @@ const barcodeOutput = useBarcodeScannerOutput({
 
 // Or use the simple drop-in view:
 import { CodeScanner } from 'react-native-vision-camera-barcode-scanner'
-<CodeScanner isActive barcodeFormats={['qr-code']} onBarcodeScanned={(barcodes) => {}} onError={(e) => {}} />
+<CodeScanner style={{ flex: 1 }} isActive barcodeFormats={['qr-code']} onBarcodeScanned={(barcodes) => {}} onError={(e) => {}} /> {/* style is required */}
 
 // Or, iOS-only, no ML dependency, native AVCaptureMetadataOutput:
 import { useObjectOutput, isScannedCode } from 'react-native-vision-camera'
@@ -442,7 +442,7 @@ const zoom = useSharedValue(device.minZoom)
 
 // Imperative:
 await controller.setZoom(2)
-await controller.startZoomAnimation(5, 2) // zoom to 5x over 2s
+await controller.startZoomAnimation(5, 2) // animate to 5x; 2nd arg is `rate`, not a duration in seconds
 await controller.cancelZoomAnimation()
 ```
 
@@ -464,16 +464,17 @@ await controller.lockCurrentWhiteBalance()
 
 ## 11. Pixel formats
 
-v4 `pixelFormat` was on the Camera (`"yuv" | "rgb"`). In v5 it moves to the Frame/Depth output, and `"native"` is supported:
+v4 `pixelFormat` was on the Camera (`"yuv" | "rgb"`). In v5 it moves to the **Frame output** (`useFrameOutput`), where the default is `"native"`. (`useDepthOutput` has no `pixelFormat` — read the depth format from `depth.pixelFormat`.)
 
 ```tsx
 const frameOutput = useFrameOutput({
-  pixelFormat: 'yuv',     // default, faster than RGB
+  // pixelFormat defaults to 'native' (zero-copy GPU path); verify the resolved format via frame.pixelFormat
+  pixelFormat: 'yuv',     // CPU-accessible YUV (MLKit/OpenCV); ~2.6× cheaper than 'rgb'
   // pixelFormat: 'rgb',  // forces YUV→RGB conversion; prefer the Resizer for ML
-  // pixelFormat: 'native' // zero-conversion GPU pipelines - fastest - verify actual format via frame.pixelFormat
   onFrame,
 })
 ```
+<!-- source: useFrameOutput.ts:123 (default 'native'); useDepthOutput.ts:70-77 (no pixelFormat); VideoPixelFormat.ts:52-62 -->
 
 ## 12. Lifecycle
 
@@ -508,10 +509,10 @@ await session.configure([{
 await session.start()
 // ...
 await session.stop()
-await session.dispose()
+// No session.dispose() exists — Nitro releases the CameraSession once it is unreferenced. source: CameraSession.nitro.ts
 ```
 
-Multi-cam: `createCameraSession(true)` + one connection per input device. Gate on `device.supportsMultiCamSessions`.
+Multi-cam: `createCameraSession(true)` + one connection per input device. Gate on `VisionCamera.supportsMultiCamSessions` (platform-level) and pick a supported input pair from `deviceFactory.supportedMultiCamDeviceCombinations`. <!-- source: CameraFactory.nitro.ts:71; CameraSession.nitro.ts:70-74,182-186 (no supportsMultiCamSessions on CameraDevice) -->
 
 ## 14. Testing / mocking
 

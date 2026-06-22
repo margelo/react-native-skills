@@ -9,9 +9,10 @@ import { Camera, useDepthOutput, useCameraDevice } from 'react-native-vision-cam
 
 const device = useCameraDevice('back')
 const depthOutput = useDepthOutput({
-  // pixelFormat: DepthPixelFormat — one of:
-  //   'depth-16-bit' | 'depth-32-bit' | 'depth-point-cloud-32-bit'
-  //   | 'disparity-16-bit' | 'disparity-32-bit' | 'unknown'
+  // useDepthOutput options: targetResolution, enableFiltering, dropFramesWhileBusy, allowDeferredStart, onDepth, onDepthFrameDropped.
+  // There is NO pixelFormat option — read the resolved format from `depth.pixelFormat` (a DepthPixelFormat):
+  //   'depth-16-bit' | 'depth-32-bit' | 'depth-point-cloud-32-bit' | 'disparity-16-bit' | 'disparity-32-bit' | 'unknown'
+  // source: useDepthOutput.ts:70-77 (options); DepthPixelFormat.ts:18-24
   onDepth(depth) {
     'worklet'
     try {
@@ -30,11 +31,11 @@ const depthOutput = useDepthOutput({
 ```
 
 - Requires `react-native-vision-camera-worklets` + `react-native-worklets`.
-- Not every device exposes depth. Gate on `device.supportsDepthCapture`.
+- Not every device exposes depth. There is **no** `supportsDepthCapture` flag — gate on `device.mediaTypes.includes('depth')`; depth-capable virtual cameras report `['video', 'depth']`. <!-- source: CameraDevice.nitro.ts:386-388 (`readonly mediaTypes: MediaType[]`); no supportsDepthCapture exists -->.
 - Two sources:
   - LiDAR / ToF / Infrared → true depth frames (`depth-16-bit`, `depth-32-bit`, `depth-point-cloud-32-bit`).
   - Dual or triple virtual cameras → disparity frames synthesized from stereo (`disparity-16-bit`, `disparity-32-bit`).
-- `depth.convert(...)` / `depth.convertAsync(...)` converts between depth/disparity formats in-place on the GPU.
+- `depth.convert(target)` / `depth.convertAsync(target)` return a **new** derivative `Depth` in the target format (must be one of `depth.availableDepthPixelFormats`); the original is untouched. <!-- source: Depth.nitro.ts:194,201,133 -->
 - Native plugins: same Nitro pattern as Frame, but use the `Depth` spec type and cast to `NativeDepth` (iOS: `AVDepthData`).
 
 ## Multi-camera sessions
@@ -42,8 +43,10 @@ const depthOutput = useDepthOutput({
 Front + back simultaneously (or any combination the device supports). iOS 13+ and supported Android devices only.
 
 ```ts
-// Probe first:
-if (!device.supportsMultiCamSessions) return
+// Probe first — multi-cam is a platform-level capability, not a CameraDevice flag:
+if (!VisionCamera.supportsMultiCamSessions) return
+// then pick a valid input pair from `deviceFactory.supportedMultiCamDeviceCombinations`
+// source: CameraFactory.nitro.ts:71; CameraSession.nitro.ts:70-74,182-186
 
 // Imperative only — no declarative shorthand for multi-cam.
 const session = await VisionCamera.createCameraSession(/* isMultiCam */ true)
@@ -51,8 +54,8 @@ const session = await VisionCamera.createCameraSession(/* isMultiCam */ true)
 const backDevice = await getDefaultCameraDevice('back')
 const frontDevice = await getDefaultCameraDevice('front')
 
-const backPreview = VisionCamera.createPreviewOutput({})
-const frontPreview = VisionCamera.createPreviewOutput({})
+const backPreview = VisionCamera.createPreviewOutput()  // takes no args — source: CameraFactory.nitro.ts:186
+const frontPreview = VisionCamera.createPreviewOutput()
 const backVideo = VisionCamera.createVideoOutput({ enableAudio: true })
 
 const [backController, frontController] = await session.configure([
@@ -97,33 +100,36 @@ import { SkiaCamera } from 'react-native-vision-camera-skia'
 ```
 
 - `<SkiaCamera />` replaces `<Camera />`'s preview with a Skia canvas and **always** attaches a frame output (you can't opt out).
-- Pixel formats: `'yuv'` (default, 8/10-bit supported), `'rgb'` (conversion overhead), `'native'` (verify compatibility).
+- Pixel formats: `'native'` / `'yuv'` / `'rgb'`. The SkiaCamera default is `'yuv'` on iOS and `'native'` on Android. With `'native'`, verify Skia compatibility (RAW or `'private'` may not be supported). <!-- source: SkiaCamera.tsx:200-203 (DEFAULT_PIXEL_FORMAT Platform.select), :170 -->
 - `focusTo` works with SkiaCamera in v5.
 - For manual rendering without the wrapper: use `NativeBuffer` + Skia's `MakeImageFromNativeBuffer()`.
 - Peer deps: `@shopify/react-native-skia`.
 
 ## GPU Resizer — the ML fast-path
 
-`react-native-vision-camera-resizer` is Margelo's GPU-accelerated replacement for CPU-based `vision-camera-resize-plugin`. Benchmarked ~5× faster. Runs Metal on iOS, Vulkan on Android 8.0+.
+`react-native-vision-camera-resizer` is Margelo's GPU-accelerated replacement for the CPU-based `vision-camera-resize-plugin`. It runs on Metal (iOS) and Vulkan + `AHardwareBuffer` (newer Android versions), and returns a pooled `GPUFrame`. <!-- source: ResizerFactory.nitro.ts:83-87 (Metal/Vulkan, isAvailable()); GPUFrame.nitro.ts. The often-quoted "~5×" multiplier is a blog claim, not in source. -->
 
 ```ts
-import { useResizer, isResizerAvailable } from 'react-native-vision-camera-resizer'
+import { useResizer } from 'react-native-vision-camera-resizer'
 
+// useResizer returns { state: 'loading' | 'ready' | 'error', resizer, error }.
+// There is NO isResizerAvailable() export — gate on `state` / `resizer != null`, and inspect `error`.
 const { resizer } = useResizer({
   width: 128,
   height: 128,
-  channelOrder: 'rgb',     // 'rgb' | 'bgr' | ...
-  dataType: 'float32',     // 'float32' for most ML models; 'uint8' for quantized
+  channelOrder: 'rgb',     // 'rgb' | 'bgr'
+  dataType: 'float32',     // 'int8' | 'uint8' | 'float16' | 'float32'
+  scaleMode: 'cover',      // 'cover' | 'contain'
   pixelLayout: 'planar',   // 'planar' = NCHW ([1,3,H,W]); 'interleaved' = NHWC ([1,H,W,3])
-  // scaleMode: 'cover' | 'contain'
 })
 
 const frameOutput = useFrameOutput({
   pixelFormat: 'yuv', // resizer is happiest with YUV input
   onFrame(frame) {
     'worklet'
+    if (resizer == null) { frame.dispose(); return } // still loading or errored
     const resized = resizer.resize(frame)
-    const pixels = resized.getPixelBuffer() // typed array / native buffer ready for ONNX/TFLite
+    const pixels = resized.getPixelBuffer() // native buffer ready for ONNX/TFLite
     try { /* model.run(pixels) */ }
     finally {
       resized.dispose()
@@ -132,8 +138,9 @@ const frameOutput = useFrameOutput({
   },
 })
 ```
+<!-- source: react-native-vision-camera-resizer/src/index.ts (no isResizerAvailable export); useResizer.ts:13-16,55-94 (ResizerState + guarded example); OutputFormat.ts (ChannelOrder='rgb'|'bgr', DataType, PixelLayout); ResizerFactory.nitro.ts:16,50 (ScaleMode) -->
 
-Always gate on `isResizerAvailable()` to provide a CPU fallback if desired. Dispose the `GPUFrame` same as a regular Frame — it's a pooled GPU resource.
+Gate on the hook's `state` / `resizer` (there is no `isResizerAvailable()`; the underlying capability check is `ResizerFactory.isAvailable()`). Provide a CPU fallback when `state === 'error'`. Dispose the returned `GPUFrame` like a regular Frame — it's a pooled GPU resource. <!-- source: useResizer.ts:13-16; ResizerFactory.nitro.ts:87 (isAvailable); GPUFrame.nitro.ts -->
 
 ## Barcode scanner — `react-native-vision-camera-barcode-scanner`
 
@@ -145,6 +152,7 @@ MLKit on both platforms, so format behavior matches across iOS and Android. The 
 import { CodeScanner } from 'react-native-vision-camera-barcode-scanner'
 
 <CodeScanner
+  style={{ flex: 1 }} // required — CodeScannerOptions.style is not optional. source: CodeScanner.tsx:20
   isActive
   barcodeFormats={['qr-code', 'ean-13']}
   onBarcodeScanned={(barcodes) => console.log(barcodes[0]?.rawValue)}
@@ -258,7 +266,7 @@ Implement `NativeCameraOutput` (iOS) / its Android equivalent, expose a factory 
 [{ resolutionBias: frameOutput }]
 ```
 
-Always pair advanced features with `isSessionConfigSupported(...)` / `onSessionConfigSelected` so your UI reflects what the Camera actually picked.
+Always pair advanced features with `device.isSessionConfigSupported(config)` / `onSessionConfigSelected` so your UI reflects what the Camera actually picked. <!-- source: CameraDevice.nitro.ts:611; useCamera.ts:71 -->
 
 ## Pointers
 
@@ -268,7 +276,7 @@ Always pair advanced features with `isSessionConfigSupported(...)` / `onSessionC
 - API — `DepthPixelFormat`: https://visioncamera.margelo.com/api/react-native-vision-camera/type-aliases/DepthPixelFormat
 - Core repo: https://github.com/mrousavy/react-native-vision-camera
 - Barcode scanner (MLKit, both platforms): https://github.com/mrousavy/react-native-vision-camera/tree/main/packages/react-native-vision-camera-barcode-scanner
-- GPU Resizer (~5× CPU, Metal/Vulkan): https://github.com/mrousavy/react-native-vision-camera/tree/main/packages/react-native-vision-camera-resizer
+- GPU Resizer (Metal on iOS, Vulkan on Android): https://github.com/mrousavy/react-native-vision-camera/tree/main/packages/react-native-vision-camera-resizer
 - Skia preview: https://github.com/mrousavy/react-native-vision-camera/tree/main/packages/react-native-vision-camera-skia
 - Location (EXIF GPS): https://github.com/mrousavy/react-native-vision-camera/tree/main/packages/react-native-vision-camera-location
 - Nitro scaffolding for custom `NativeCameraOutput`: use the `build-nitro-modules` skill.

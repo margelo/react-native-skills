@@ -21,14 +21,14 @@ npm i react-native-vision-camera-worklets react-native-worklets
 # Barcode/QR (MLKit on iOS + Android, consistent formats)
 npm i react-native-vision-camera-barcode-scanner
 
-# GPU-accelerated frame resize for ML pipelines (Metal/Vulkan, ~5x CPU)
+# GPU-accelerated frame resize for ML pipelines (Metal on iOS, Vulkan on Android)
 npm i react-native-vision-camera-resizer
 
 # GPS/EXIF metadata
 npm i react-native-vision-camera-location
 
-# Skia-based preview + shader effects
-npm i react-native-vision-camera-skia @shopify/react-native-skia
+# Skia-based preview + shader effects.
+npm i react-native-vision-camera-skia @shopify/react-native-skia react-native-vision-camera-worklets react-native-worklets 
 ```
 
 babel plugin is needed for  worklet.  `react-native-worklets/plugin` must be added in `babel.config.js` . See https://docs.swmansion.com/react-native-worklets/docs/
@@ -147,7 +147,7 @@ import { Camera, useFrameOutput, useCameraDevice } from 'react-native-vision-cam
 
 const device = useCameraDevice('back')
 const frameOutput = useFrameOutput({
-  pixelFormat: 'yuv',
+  pixelFormat: 'yuv', // optional; default is 'native' (zero-copy). 'yuv' = CPU-accessible YUV (good for MLKit/OpenCV) — source: useFrameOutput.ts:123
   onFrame(frame) {
     'worklet'
     try {
