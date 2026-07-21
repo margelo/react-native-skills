@@ -1,6 +1,6 @@
 ---
 name: build-nitro-modules
-description: Builds and designs React Native Nitro Modules with Nitrogen, HybridObject TypeScript specs, generated native implementations, zero-copy and native-state APIs, Swift/Kotlin/C++ bindings, example apps, and testing. Use when creating a Nitro Module, adding or reviewing HybridObjects, designing Nitro-specific public APIs, implementing native functionality, or setting up the nitrogen codegen pipeline. Pair with api-design for general library API shape.
+description: Builds and designs React Native Nitro Modules with Nitrogen, HybridObject TypeScript specs, Nitro View components, generated native implementations, zero-copy and native-state APIs, Swift/Kotlin/C++ bindings, example apps, and testing. Use when creating a Nitro Module, adding or reviewing HybridObjects, building a Nitro View (HybridView) component, designing Nitro-specific public APIs, implementing native functionality, or setting up the nitrogen codegen pipeline. Pair with api-design for general library API shape.
 license: MIT
 metadata:
   author: margelo
@@ -79,7 +79,7 @@ Load [release-it-publishing.md][release-it-publishing] only when setting up or r
 - Use a `setOn...(callback | undefined)`-style API only for single hot-path callbacks owned by an object, where replacing or removing the callback is the natural operation. The `set` verb and docs must make the replacement semantics clear.
 - If the native API exposes only one delegate/callback but the JS API is a repeated event, prefer multiplexing internally and exposing additive listeners unless doing so would be unsafe or too expensive for the hot path.
 - Use `Sync<(...) => ...>` callbacks only for rare thread-bound hot paths that must synchronously execute on a specific JS runtime or worklet thread.
-- For Nitro Views, expose the raw `getHostComponent` wrapper. Add React components or hooks only when they remove repeated setup code while staying layered over the same native objects and refs.
+- For Nitro Views, expose the raw `getHostComponent` wrapper. Add React components or hooks only when they remove repeated setup code while staying layered over the same native objects and refs. Load [spec-hybrid-view.md][spec-hybrid-view] when creating or reviewing a Nitro View component.
 - Follow `api-design` for naming, platform abstraction, sync/async boundaries, listener cleanup, errors, variants, TypeScript facades, and JSDoc contracts.
 
 ## Nitro Native Implementation Rules
@@ -116,7 +116,7 @@ Load [release-it-publishing.md][release-it-publishing] only when setting up or r
 - Avoid chains of `Task`, `DispatchQueue`, coroutine dispatcher, executor, and JS/Nitro runtime hops inside one operation. Pick a native owner queue/thread/dispatcher for each HybridObject or session and cross into it once at the Promise, lifecycle, or callback boundary. Repeated hops are a sign the HybridObject boundaries or lifecycle handles are wrong.
 - Never fix Nitro lifecycle, readiness, or race bugs with `setTimeout`, sleeps, artificial delays, extra thread hops, or calling native methods twice. Model readiness with a Promise, listener/event, returned configured HybridObject, explicit state transition, or native completion callback. Use retries only for external hardware, OS service, remote service, or network uncertainty, with bounded/cancellable/idempotent behavior.
 - Implement `memorySize` for HybridObjects that own native resources or large allocations so the JS VM can collect them under memory pressure.
-- For Nitro Views, implement `prepareForRecycle` when the view owns state that should be reset before reuse.
+- For Nitro Views, implement `prepareForRecycle` when the view owns state that should be reset before reuse. See [spec-hybrid-view.md][spec-hybrid-view] for the full view spec, implementation, registration, and recycling workflow.
 - Mix C++ HybridObjects with Swift/Kotlin HybridObjects in one library. Use C++ for shared or hot code, such as OpenCV/frame processing/storage engines, and Swift/Kotlin for platform services, permissions, file paths, camera/session APIs, and OS integration.
 - C++ HybridObjects can accept Swift/Kotlin-implemented HybridObjects and call their generated C++ spec API. Example: a C++ `StorageFactory` can accept a Swift/Kotlin `PlatformContext` and call `getTemporaryDirectory()` or `writeFile(...)` through the generated C++ interface. C++ can access only the public spec API, not private Swift/Kotlin fields.
 - Do not rely on Swift/Kotlin calling into C++-implemented HybridObjects unless current Nitrogen support has been verified for that direction.
@@ -155,6 +155,8 @@ Do not proceed past Step 1 of the build sequence until all five questions are an
 3. **Purpose** — What does this HybridObject do?
 
 Then skip directly to [spec-hybrid-object.md][spec-hybrid-object] (write the spec), [spec-nitro-json.md][spec-nitro-json] (add autolinking entry), [native-nitrogen-codegen.md][native-nitrogen-codegen] (re-run nitrogen), and the relevant native implementation file. Skip all setup, monorepo, and example app steps.
+
+If the new HybridObject is a **renderable view component**, use [spec-hybrid-view.md][spec-hybrid-view] instead of the plain HybridObject spec reference — it covers the `HybridView` spec, native `view` implementation, Android view manager registration, and the `getHostComponent` JS wiring.
 
 ## Typical Build Sequence
 
@@ -208,6 +210,7 @@ Reference these guidelines when:
 | 1 | Repo structure and workflow | HIGH | [repo-structure-and-workflow.md][repo-structure-and-workflow] |
 | 2 | Nitrogen scaffold | CRITICAL | [setup-monorepo-init.md][setup-monorepo-init] |
 | 3 | HybridObject spec | CRITICAL | [spec-hybrid-object.md][spec-hybrid-object] |
+| 3 | Hybrid View components *(if building a view)* | HIGH | [spec-hybrid-view.md][spec-hybrid-view] |
 | 4 | nitro.json autolinking | CRITICAL | [spec-nitro-json.md][spec-nitro-json] |
 | 5 | Nitrogen codegen | HIGH | [native-nitrogen-codegen.md][native-nitrogen-codegen] |
 | 6 | C++ implementation | HIGH | [native-implement-cpp.md][native-implement-cpp] |
@@ -292,6 +295,7 @@ Run: `bun example android`, `bun example ios`, `bun specs`
 | [repo-structure-and-workflow.md][repo-structure-and-workflow] | Root layout, README/docs, packages/apps/config/scripts, CI, branch, draft PR, and squash-merge workflow |
 | [setup-monorepo-init.md][setup-monorepo-init] | Collecting scaffold inputs and running `nitrogen init` |
 | [spec-hybrid-object.md][spec-hybrid-object] | Writing `*.nitro.ts` specs and exporting HybridObjects |
+| [spec-hybrid-view.md][spec-hybrid-view] | Building Nitro View components: `HybridView` specs, native views, `getHostComponent`, `hybridRef`, callbacks, recycling |
 | [spec-nitro-json.md][spec-nitro-json] | `nitro.json` all fields, autolinking, namespace configuration |
 | [native-nitrogen-codegen.md][native-nitrogen-codegen] | Running Nitrogen and verifying generated files |
 | [native-implement-cpp.md][native-implement-cpp] | Implementing HybridObjects in C++ |
@@ -314,6 +318,9 @@ Run: `bun example android`, `bun example ios`, `bun specs`
 | Unsure static module vs instance API | This SKILL.md | Prefer HybridObjects for native state, resources, prewarming, and zero-copy data |
 | Don't know where to start | [setup-monorepo-init.md][setup-monorepo-init] | Scaffold with `nitrogen init` |
 | Spec file syntax error | [spec-hybrid-object.md][spec-hybrid-object] | Fix `*.nitro.ts` interface |
+| Need a native view component | [spec-hybrid-view.md][spec-hybrid-view] | Write a `HybridView` spec, implement `view`, register the Android manager, wire `getHostComponent` |
+| View callback prop arrives as `true` / never fires | [spec-hybrid-view.md][spec-hybrid-view] | Wrap every function prop (including `hybridRef`) with `callback(...)` |
+| Android "view manager not found" for a Nitro View | [spec-hybrid-view.md][spec-hybrid-view] | Add the generated `Hybrid*ViewManager` in `createViewManagers` |
 | Autolinking not working | [spec-nitro-json.md][spec-nitro-json] | Check `nitro.json` autolinking block |
 | Nitrogen generates no files | [native-nitrogen-codegen.md][native-nitrogen-codegen] | Verify spec file extension and run command from right dir |
 | C++ types unclear | [native-implement-cpp.md][native-implement-cpp] | Follow type reference links to canonical examples |
@@ -329,6 +336,7 @@ Run: `bun example android`, `bun example ios`, `bun specs`
 [repo-structure-and-workflow]: references/repo-structure-and-workflow.md
 [setup-monorepo-init]: references/setup-monorepo-init.md
 [spec-hybrid-object]: references/spec-hybrid-object.md
+[spec-hybrid-view]: references/spec-hybrid-view.md
 [spec-nitro-json]: references/spec-nitro-json.md
 [native-nitrogen-codegen]: references/native-nitrogen-codegen.md
 [native-implement-cpp]: references/native-implement-cpp.md
