@@ -14,7 +14,7 @@ SQLite can attach a second database file to an open connection under an **alias*
 ```ts
 const db = open({ name: 'main.sqlite' })
 
-db.attach('stats.sqlite', 'stats', '/optional/dir')
+db.attach('stats.sqlite', 'stats', 'databases')
 const { results } = db.execute(`
   SELECT u.id, u.name, s.score
   FROM main.users u
@@ -32,7 +32,7 @@ db.detach(alias: string): void
 
 - `dbNameToAttach` — the file name of the database to attach.
 - `alias` — the schema name you reference it by in SQL (`alias.tablename`).
-- `location` — optional directory of the file to attach (same semantics as `open`'s `location`; see [connections.md](./connections.md)). Omit to use the default data directory.
+- `location` — optional directory relative to the app data root (same semantics as `open`'s `location`; see [connections.md](./connections.md)). Omit it for a file directly in the default data directory. Do not pass an absolute path.
 
 Reference tables by alias: the main DB is `main.<table>`, the attached one is `<alias>.<table>`.
 
@@ -58,6 +58,7 @@ db.detach('seed')
 - **`attach`/`detach` are synchronous** (`void`). Wrap heavy cross-db work that follows in `executeAsync`/`transaction` as usual.
 - **Alias collisions** — don't reuse an alias that's already attached; detach first.
 - **iOS sandbox** applies to the attached file's `location` too — it must be inside the sandbox. Copy external files in first.
+- **`location` is relative to the app data root.** An absolute value is appended to that root and does not work as an absolute path.
 - **Attached DBs and transactions** — a single transaction can span main + attached tables since they share the connection.
 
 ## Pointers

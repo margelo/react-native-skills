@@ -28,7 +28,8 @@ TypeORM needs its own `package.json` resolvable. Add this to TypeORM's `package.
 Persist that change across installs with `patch-package`:
 
 ```bash
-npx patch-package --exclude 'nothing' typeorm
+ni -D patch-package
+nlx patch-package --exclude 'nothing' typeorm
 ```
 
 (Make sure `patch-package` runs on `postinstall`.)
@@ -56,13 +57,13 @@ module.exports = {
 Install the plugin:
 
 ```bash
-npm i -D babel-plugin-module-resolver
+ni -D babel-plugin-module-resolver
 ```
 
 You'll also typically need decorator support for TypeORM entities:
 
 ```bash
-npm i -D babel-plugin-transform-typescript-metadata @babel/plugin-proposal-decorators
+ni -D babel-plugin-transform-typescript-metadata @babel/plugin-proposal-decorators
 ```
 
 ```js
@@ -91,7 +92,8 @@ const dataSource = new DataSource({
   location: '.',
   driver: typeORMDriver,
   entities: [/* your entities */],
-  synchronize: true,
+  migrations: [/* your migrations */],
+  synchronize: false,
 })
 
 await dataSource.initialize()
@@ -100,6 +102,7 @@ await dataSource.initialize()
 - `type: 'react-native'` — TypeORM's RN driver type.
 - `driver: typeORMDriver` — the export from this library.
 - `location` — directory for the DB file (same meaning as `open`'s `location`).
+- `synchronize: false` — use explicit migrations for persistent databases. Schema synchronization is suitable only for disposable development data.
 
 ## What `typeORMDriver` provides
 
@@ -107,10 +110,12 @@ It exposes `openDatabase(options, ok, fail)` returning a connection with `execut
 
 ## Gotchas
 
-- **Both Babel steps are mandatory.** Missing the alias → TypeORM tries to load `react-native-sqlite-storage` (not installed). Missing decorator plugins → entity decorators fail.
+- **The module alias is mandatory.** Without it, TypeORM tries to load `react-native-sqlite-storage`.
+- **Decorator transforms depend on your entity setup.** Configure them consistently with the project's TypeScript and Babel settings before importing entities.
 - **`patch-package` must persist.** Without exposing `./package.json`, TypeORM's version detection breaks under Metro.
 - **`reflect-metadata` import must come first**, before any entity is imported.
-- **Restart Metro with cache reset** after editing `babel.config.js`: `npx react-native start --reset-cache`.
+- **Restart Metro with cache reset** after editing `babel.config.js`: `nlx react-native start --reset-cache`.
+- **Do not use `synchronize: true` with production data.** Keep versioned migrations and test upgrades from previously shipped schemas.
 
 ## Pointers
 

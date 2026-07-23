@@ -2,33 +2,33 @@
 id: setup
 title: Installation and native configuration
 scope: react-native-nitro-sqlite
-keywords: install, pod-install, expo, prebuild, FTS5, Geopoly, compile flags, GCC_PREPROCESSOR_DEFINITIONS, NITRO_SQLITE_USE_PHONE_VERSION, system sqlite, app groups, RNNitroSQLite_AppGroup, nitro-modules, new architecture, peer dependency
+keywords: install, pod-install, expo, prebuild, FTS5, Geopoly, compile flags, GCC_PREPROCESSOR_DEFINITIONS, NITRO_SQLITE_USE_PHONE_VERSION, system sqlite, app groups, RNNitroSQLite_AppGroup, nitro-modules, architecture, peer dependency
 ---
 
 # Installation and native configuration
 
 ## Mental model
 
-`react-native-nitro-sqlite` is a Nitro Module: it autolinks, has **no Expo config plugin**, and requires the **New Architecture**. The native side bundles its own SQLite C build by default (so behavior is consistent across OS versions), but you can opt into the OS's system SQLite or flip SQLite compile-time flags.
+`react-native-nitro-sqlite` is a Nitro Module: it autolinks and has **no Expo config plugin**. The native side bundles its own SQLite C build by default (so behavior is consistent across OS versions), but you can opt into the OS's system SQLite or change SQLite compile-time flags.
 
 ## Requirements
 
-- **React Native ≥ 0.75** with the New Architecture enabled. (README text says 0.71+, but `peerDependencies` pins `react-native >= 0.75.0`.)
+- **React Native ≥ 0.75.** The package does not require enabling the New Architecture; compatible Nitro Modules versions include adapters for both architectures.
 - **`react-native-nitro-modules` ≥ 0.35.0** — a required peer dependency, installed alongside.
 - iOS and Android. (No web.)
 
 ## Install
 
 ```bash
-npm install react-native-nitro-sqlite react-native-nitro-modules
-npx pod-install
+ni react-native-nitro-sqlite react-native-nitro-modules
+nlx pod-install
 ```
 
 Expo (bare/prebuild — this is not a config-plugin library, so you must prebuild):
 
 ```bash
-npx expo install react-native-nitro-sqlite react-native-nitro-modules
-npx expo prebuild
+nlx expo install react-native-nitro-sqlite react-native-nitro-modules
+nlx expo prebuild
 ```
 
 Rebuild the native app after installing. No `Podfile` edits, no `MainApplication` registration — Nitro handles linking.
@@ -38,7 +38,7 @@ Rebuild the native app after installing. No `Podfile` edits, no `MainApplication
 By default the bundled SQLite is compiled in. To link against the OS's system SQLite instead (smaller binary, but version varies by iOS release):
 
 ```bash
-NITRO_SQLITE_USE_PHONE_VERSION=1 npx pod-install
+NITRO_SQLITE_USE_PHONE_VERSION=1 nlx pod-install
 ```
 
 ## Compile-time SQLite options (FTS5, Geopoly, JSON1, etc.)
@@ -82,7 +82,7 @@ The database files then live in the shared app-group directory instead of the ap
 
 ## Gotchas
 
-- **Old Architecture is not supported.** Nitro Modules require the New Architecture; if the app is on the legacy bridge, enable New Arch first.
+- **Do not migrate architectures just for this library.** Choose the architecture based on the app's wider React Native compatibility requirements.
 - **Forgetting `react-native-nitro-modules`.** It is a separate required peer dependency; installing only `react-native-nitro-sqlite` will fail at runtime.
 - **Expo Go won't work.** There's native code; use a development build (`expo prebuild` + custom dev client), not Expo Go.
 - **Rebuild after install/flag changes.** Compile-flag changes require a clean native rebuild (`pod install` again on iOS; rebuild on Android).

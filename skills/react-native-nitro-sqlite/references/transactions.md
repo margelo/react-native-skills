@@ -122,7 +122,7 @@ await Promise.all(ps) // applied one after another, in order
 - **Don't `open`/`close` inside a transaction.**
 - **Finalized = locked.** After an explicit `commit()`/`rollback()`, don't touch `tx` again.
 - **Throwing rolls back.** Don't swallow errors inside the callback if you want the rollback to happen; let them propagate.
-- **The error you catch is a `NitroSQLiteError`** (the original error is wrapped/preserved). See [migration-and-errors.md](./migration-and-errors.md).
+- **The error you catch is normalized to `NitroSQLiteError`.** See [migration-and-errors.md](./migration-and-errors.md) for the exact message, stack, and `cause` behavior.
 - **For pure bulk inserts**, `executeBatch`/`executeBatchAsync` is simpler and also atomic — see [batch-and-files.md](./batch-and-files.md). Use `transaction` when you need to read intermediate results or branch logic.
 
 ## Pointers
