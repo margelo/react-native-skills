@@ -28,8 +28,8 @@ TypeORM needs its own `package.json` resolvable. Add this to TypeORM's `package.
 Persist that change across installs with `patch-package`:
 
 ```bash
-ni -D patch-package
-nlx patch-package --exclude 'nothing' typeorm
+npm install --save-dev patch-package
+npx patch-package --exclude 'nothing' typeorm
 ```
 
 (Make sure `patch-package` runs on `postinstall`.)
@@ -57,13 +57,13 @@ module.exports = {
 Install the plugin:
 
 ```bash
-ni -D babel-plugin-module-resolver
+npm install --save-dev babel-plugin-module-resolver
 ```
 
 You'll also typically need decorator support for TypeORM entities:
 
 ```bash
-ni -D babel-plugin-transform-typescript-metadata @babel/plugin-proposal-decorators
+npm install --save-dev babel-plugin-transform-typescript-metadata @babel/plugin-proposal-decorators
 ```
 
 ```js
@@ -114,7 +114,7 @@ It exposes `openDatabase(options, ok, fail)` returning a connection with `execut
 - **Decorator transforms depend on your entity setup.** Configure them consistently with the project's TypeScript and Babel settings before importing entities.
 - **`patch-package` must persist.** Without exposing `./package.json`, TypeORM's version detection breaks under Metro.
 - **`reflect-metadata` import must come first**, before any entity is imported.
-- **Restart Metro with cache reset** after editing `babel.config.js`: `nlx react-native start --reset-cache`.
+- **Restart Metro with cache reset** after editing `babel.config.js`: `npx react-native start --reset-cache`.
 - **Do not use `synchronize: true` with production data.** Keep versioned migrations and test upgrades from previously shipped schemas.
 
 ## Pointers

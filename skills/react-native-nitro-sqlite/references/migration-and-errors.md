@@ -64,9 +64,9 @@ The package rename is only one part of the migration. Audit imports, raw module 
 ### 1. Replace dependencies
 
 ```bash
-nun react-native-quick-sqlite
-ni react-native-nitro-sqlite react-native-nitro-modules
-nlx pod-install
+npm uninstall react-native-quick-sqlite
+npm install react-native-nitro-sqlite react-native-nitro-modules
+npx pod-install
 ```
 
 React Native must satisfy the package's `>= 0.75` peer range. New Architecture is not required solely for NitroSQLite; see [setup.md](./setup.md).

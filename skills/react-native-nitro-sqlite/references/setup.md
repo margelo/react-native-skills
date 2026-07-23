@@ -20,15 +20,15 @@ keywords: install, pod-install, expo, prebuild, FTS5, Geopoly, compile flags, GC
 ## Install
 
 ```bash
-ni react-native-nitro-sqlite react-native-nitro-modules
-nlx pod-install
+npm install react-native-nitro-sqlite react-native-nitro-modules
+npx pod-install
 ```
 
 Expo (bare/prebuild — this is not a config-plugin library, so you must prebuild):
 
 ```bash
-nlx expo install react-native-nitro-sqlite react-native-nitro-modules
-nlx expo prebuild
+npx expo install react-native-nitro-sqlite react-native-nitro-modules
+npx expo prebuild
 ```
 
 Rebuild the native app after installing. No `Podfile` edits, no `MainApplication` registration — Nitro handles linking.
@@ -38,7 +38,7 @@ Rebuild the native app after installing. No `Podfile` edits, no `MainApplication
 By default the bundled SQLite is compiled in. To link against the OS's system SQLite instead (smaller binary, but version varies by iOS release):
 
 ```bash
-NITRO_SQLITE_USE_PHONE_VERSION=1 nlx pod-install
+NITRO_SQLITE_USE_PHONE_VERSION=1 npx pod-install
 ```
 
 ## Compile-time SQLite options (FTS5, Geopoly, JSON1, etc.)
