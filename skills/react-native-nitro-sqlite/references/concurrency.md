@@ -2,37 +2,38 @@
 id: concurrency
 title: Sync vs async and the per-database operation queue
 scope: react-native-nitro-sqlite
-keywords: sync, async, queue, DatabaseQueue, busy, Database is busy, ordering, serial, setImmediate, JS thread, UI thread, blocking, in progress, concurrency
+keywords: sync, async, queue, busy, Database is busy, ordering, serial, JS thread, UI thread, blocking, in progress, concurrency
 ---
 
 # Sync vs async and the per-database operation queue
 
-This is the most important behavioral concept in the library and the source of the most confusing errors.
+This behavior matters when batches and transactions overlap.
 
 ## Mental model
 
-Each open database has its own JS-level **operation queue** (`{ queue: [], inProgress: boolean }`), keyed by the db `name`. It exists to serialize the operations that go through it so they never corrupt each other or interleave mid-transaction.
+For each open database name, the library serializes async batches and transactions so they do not interleave.
 
-**Crucial detail — only three operations use this queue:** `executeBatch`, `executeBatchAsync`, and `transaction`. Everything else (`execute`, `executeAsync`, `loadFile`, `loadFileAsync`) calls the native module **directly** and does not touch the JS queue at all.
+Only `executeBatch`, `executeBatchAsync`, and `transaction` participate in that scheduling. `execute`, `executeAsync`, `loadFile`, and `loadFileAsync` call the native module directly.
 
 Two orthogonal axes:
 
-- **Blocking vs off-thread.** `execute`, `executeBatch`, `loadFile`, and `tx.execute`/`commit`/`rollback` run synchronously on the **JS thread** and block it until SQLite returns. `executeAsync`, `executeBatchAsync`, `transaction`, and `loadFileAsync` run off the JS thread and return a `Promise`.
-- **Queued vs not.** Independently, only `executeBatch` / `executeBatchAsync` / `transaction` are serialized through the JS queue (and only `executeBatch`, being synchronous, can throw "busy").
+- **Blocking vs off-thread.** `execute`, `executeBatch`, `loadFile`, and `tx.execute`/`commit`/`rollback` run synchronously on the **JS thread** and block it until SQLite returns. `executeAsync`, `executeBatchAsync`, and `loadFileAsync` run their native SQL work off-thread and return a `Promise`.
+- **Transaction callbacks still run in JavaScript.** `transaction` returns a `Promise`, but `tx.execute` inside the callback remains synchronous; use `tx.executeAsync` for potentially slow statements.
+- **Serialized vs direct.** Independently, only `executeBatch` / `executeBatchAsync` / `transaction` participate in batch/transaction serialization (and only sync `executeBatch` performs the library's "busy" check).
 
 ## Which calls touch the queue
 
 | Call | Queue behavior |
 |---|---|
-| `db.execute` (sync) | **Bypasses the queue.** Blocks the JS thread; never throws "busy". |
-| `db.executeAsync` (async) | **Bypasses the queue.** Off-thread; not serialized by the JS queue. |
-| `db.loadFile` (sync) | **Bypasses the queue.** Blocks the JS thread; never throws "busy". |
-| `db.loadFileAsync` (async) | **Bypasses the queue.** Off-thread; not serialized by the JS queue. |
-| `db.executeBatch` (sync) | Uses `startOperationSync` → **throws if the db is busy** with a queued/in-progress async batch or transaction. |
-| `db.executeBatchAsync` (async) | Enqueued (`queueOperationAsync`) — runs serially in submission order. |
-| `db.transaction` (async) | Enqueued — runs serially; can't interleave with other transactions/batches. |
+| `db.execute` (sync) | Direct. Blocks the JS thread; does not perform the batch/transaction "busy" check. |
+| `db.executeAsync` (async) | Direct. Off-thread; not serialized with batches or transactions. |
+| `db.loadFile` (sync) | Direct. Blocks the JS thread; does not perform the batch/transaction "busy" check. |
+| `db.loadFileAsync` (async) | Direct. Off-thread; not serialized with batches or transactions. |
+| `db.executeBatch` (sync) | **Throws if an async batch or transaction is pending.** |
+| `db.executeBatchAsync` (async) | Runs serially with other async batches and transactions. |
+| `db.transaction` (async) | Runs serially with other transactions and async batches. |
 
-> Practical takeaway: **transactions and async batches are strictly ordered**, and a **synchronous `executeBatch` will throw** if you run it while a batch/transaction is pending. `execute`/`executeAsync`/`loadFile`/`loadFileAsync` are never blocked by the queue and never throw "busy".
+> Practical takeaway: **transactions and async batches are strictly ordered**, and a **synchronous `executeBatch` will throw** if you run it while a batch or transaction is pending. Direct operations do not participate in that ordering.
 
 ## The "Database is busy" error
 
@@ -41,7 +42,7 @@ NitroSQLiteError: Cannot run synchronous operation on database.
 Database <name> is busy with another operation.
 ```
 
-This happens when a **synchronous `executeBatch`** is called while the queue has an in-progress or pending async batch/transaction (it is the only synchronous queue-aware op):
+This happens when a **synchronous `executeBatch`** is called while an async batch or transaction is in progress or pending:
 
 ```ts
 // ❌ Will throw if the async batch hasn't finished
@@ -95,11 +96,10 @@ JSI removes the *bridge* overhead, but the SQL work itself still takes real time
 
 ## Gotchas
 
-- **"Busy" only comes from synchronous `executeBatch`** — never from `execute`, `executeAsync`, `loadFile`, or `loadFileAsync`. If you see it, find the un-awaited async batch/transaction before it.
-- **`loadFile`/`loadFileAsync` bypass the queue** — they call native directly. `loadFile` blocks the JS thread (like `execute`); `loadFileAsync` runs off-thread but is not serialized by the JS queue.
-- **Plain `execute` won't throw "busy"**, but it still blocks the JS thread and can run concurrently with native async work — prefer wrapping related writes in a transaction.
-- **One queue per db `name`.** Two different databases have independent queues and can run truly in parallel.
-- **`setImmediate` scheduling** means even a queue with one item yields a tick before running — async ops are never synchronously resolved.
+- **The library's "busy with another operation" error comes from sync `executeBatch`.** If you see it, find an un-awaited async batch or transaction before it.
+- **`loadFile`/`loadFileAsync` are direct operations.** `loadFile` blocks the JS thread; `loadFileAsync` runs off-thread but is not serialized with batches and transactions.
+- **Plain `execute` is direct**, but it still blocks the JS thread and can run concurrently with native async work. Put related writes in one transaction.
+- **Scheduling is per database name.** Different open database names are independent.
 
 ## Pointers
 

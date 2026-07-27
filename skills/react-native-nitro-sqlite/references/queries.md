@@ -9,7 +9,7 @@ keywords: execute, executeAsync, params, parameter binding, placeholder, QueryRe
 
 ## Mental model
 
-A single SQL statement runs via `execute` (sync, on the JS thread) or `executeAsync` (async, off the JS thread). Both call the native module directly — they do **not** go through the per-database operation queue, so they never throw the "database is busy" error. Both return — directly or via `Promise` — the **same** `QueryResult` shape. Pick async by default to avoid blocking the UI (see [concurrency.md](./concurrency.md)).
+A single SQL statement runs via `execute` (sync, on the JS thread) or `executeAsync` (async, off the JS thread). Both call the native module directly — they do **not** go through the per-database operation queue or its synchronous "database is busy" check. Both return — directly or via `Promise` — the **same** `QueryResult` shape. Pick async by default to avoid blocking the UI (see [concurrency.md](./concurrency.md)).
 
 ```ts
 const r = db.execute('SELECT * FROM users WHERE age > ?', [21])
@@ -21,10 +21,17 @@ const r2 = await db.executeAsync('SELECT * FROM users WHERE age > ?', [21])
 ```ts
 type SQLiteValue = boolean | number | string | ArrayBuffer | null
 type SQLiteQueryParams = SQLiteValue[]
+type QueryResultRow = Record<string, SQLiteValue>
 
 // Optional generic Row type for the returned rows
-db.execute<Row>(query: string, params?: SQLiteQueryParams): QueryResult<Row>
-db.executeAsync<Row>(query: string, params?: SQLiteQueryParams): Promise<QueryResult<Row>>
+db.execute<Row extends QueryResultRow>(
+  query: string,
+  params?: SQLiteQueryParams,
+): QueryResult<Row>
+db.executeAsync<Row extends QueryResultRow>(
+  query: string,
+  params?: SQLiteQueryParams,
+): Promise<QueryResult<Row>>
 ```
 
 ## Parameter binding
@@ -48,7 +55,7 @@ Bindable types: `boolean | number | string | ArrayBuffer | null`. `ArrayBuffer` 
 ## The `QueryResult` shape
 
 ```ts
-type QueryResult<Row = Record<string, SQLiteValue>> = {
+type QueryResult<Row extends QueryResultRow = QueryResultRow> = {
   rowsAffected: number
   insertId?: number
   results: Row[]                  // plain array of row objects (keyed by column name)
@@ -64,7 +71,14 @@ type QueryResult<Row = Record<string, SQLiteValue>> = {
 Two equivalent ways to read rows — use whichever you like, they hold the same data:
 
 ```ts
-const r = db.execute<{ id: number; name: string }>('SELECT id, name FROM users')
+import type { QueryResultRow } from 'react-native-nitro-sqlite'
+
+type UserRow = QueryResultRow & {
+  id: number
+  name: string
+}
+
+const r = db.execute<UserRow>('SELECT id, name FROM users')
 
 // Option A — plain array
 for (const row of r.results) {
@@ -77,7 +91,7 @@ const first = r.rows.item(0)      // Row | undefined
 const all = r.rows._array         // Row[]
 ```
 
-`rowsAffected` — number of rows changed by INSERT/UPDATE/DELETE. `insertId` — the auto-generated rowid after an INSERT (present when applicable):
+Consume `rowsAffected` and `insertId` from the result of the write that produced them:
 
 ```ts
 const ins = db.execute('INSERT INTO users (name) VALUES (?)', ['Marc'])
@@ -85,16 +99,24 @@ console.log(ins.rowsAffected) // 1
 console.log(ins.insertId)     // e.g. 1
 ```
 
-> SELECT queries return `rowsAffected: 0` and an empty `insertId`; their data is in `results` / `rows`.
+> The native result reads SQLite's connection-level change count and last-insert-rowid after every statement. A later `SELECT` can therefore retain values from an earlier write. Do not interpret `rowsAffected` or `insertId` on a read result.
 
 ## Typed rows
 
 Pass a generic to get typed row objects (no runtime validation — it's a TypeScript convenience):
 
 ```ts
-interface User { id: number; name: string; age: number }
+import type { QueryResultRow } from 'react-native-nitro-sqlite'
 
-const { results } = await db.executeAsync<User>('SELECT id, name, age FROM users')
+type UserRow = QueryResultRow & {
+  id: number
+  name: string
+  age: number
+}
+
+const { results } = await db.executeAsync<UserRow>(
+  'SELECT id, name, age FROM users',
+)
 results[0].name // typed as string
 ```
 
@@ -113,7 +135,7 @@ if (metadata) {
 }
 ```
 
-`ColumnType` enum members: `BOOLEAN`, `NUMBER`, `INT64`, `TEXT`, `ARRAY_BUFFER`, `NULL_VALUE`. Declared type is `"UNKNOWN"`-equivalent for dynamic/computed columns (e.g. function results), where SQLite can't infer a static type.
+`ColumnType` enum members are `BOOLEAN`, `NUMBER`, `INT64`, `TEXT`, `ARRAY_BUFFER`, and `NULL_VALUE`. Treat metadata as informational only; do not use `metadata.type` for runtime validation or value decoding.
 
 ## Storing blobs (ArrayBuffer)
 
@@ -121,7 +143,10 @@ if (metadata) {
 const bytes = new Uint8Array([1, 2, 3, 255])
 db.execute('INSERT INTO files (id, blob) VALUES (?, ?)', [1, bytes.buffer])
 
-const { results } = db.execute<{ blob: ArrayBuffer }>('SELECT blob FROM files WHERE id = ?', [1])
+const { results } = db.execute<QueryResultRow & { blob: ArrayBuffer }>(
+  'SELECT blob FROM files WHERE id = ?',
+  [1],
+)
 const view = new Uint8Array(results[0].blob)
 ```
 
@@ -129,16 +154,17 @@ Bind the underlying `ArrayBuffer` (e.g. `typedArray.buffer`), and read it back a
 
 ## Sync vs async — when to use which
 
-- `execute` (sync): small, fast, one-off reads/writes where briefly blocking the JS thread is fine. It calls native directly and never throws "busy", but it does block the JS thread for the duration of the query.
+- `execute` (sync): small, fast, one-off reads/writes where briefly blocking the JS thread is fine. It bypasses the JS operation queue, but it blocks the JS thread for the duration of the query.
 - `executeAsync` (async): anything that could be slow (large reads, many rows, complex joins) — keeps the UI thread free. It also bypasses the operation queue; only `executeBatch`/`executeBatchAsync`/`transaction` are serialized. See [concurrency.md](./concurrency.md).
 
 ## Gotchas
 
 - **Both `results` and `rows` exist** on every result — don't assume only one. `rows` is mainly for TypeORM compatibility.
-- **`insertId` only after INSERT.** It's `undefined` for SELECT/UPDATE/DELETE.
-- **Generic types are not validated.** `execute<User>` only affects TypeScript; the runtime returns whatever SQLite produced.
+- **Write counters are connection state.** Read `rowsAffected` and `insertId` only from the corresponding write result.
+- **Generic types must extend `QueryResultRow` and are not validated.** The generic only affects TypeScript; the runtime returns whatever SQLite produced.
 - **No automatic JSON.** Store objects by serializing to TEXT yourself (`JSON.stringify` / `JSON.parse`).
-- **Booleans round-trip as the JS `boolean` type** via `SQLiteValue`, but SQLite stores them as integers under the hood; filter with `WHERE flag = ?` passing `true`/`false`.
+- **Booleans read back as numbers.** Boolean parameters bind as SQLite integers, and result integers are returned as JavaScript numbers (`0` or `1`). Convert explicitly, for example `const enabled = row.enabled === 1`.
+- **SQLite integers are read as JavaScript numbers.** Values outside the safe integer range lose precision. Read exact 64-bit values as text, for example with `CAST(id AS TEXT)`.
 
 ## Pointers
 

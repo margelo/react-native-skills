@@ -19,7 +19,7 @@ You always work through the JS `open()` wrapper, **not** the raw native module. 
 import { open } from 'react-native-nitro-sqlite'
 import type { NitroSQLiteConnection } from 'react-native-nitro-sqlite'
 
-const db: NitroSQLiteConnection = open({ name: 'app.sqlite' })
+let db: NitroSQLiteConnection = open({ name: 'app.sqlite' })
 ```
 
 ## `open(options)`
@@ -87,24 +87,37 @@ Databases are created under the app's data directory by default:
 - **iOS:** the app **Documents** directory (or the App Group container if `RNNitroSQLite_AppGroup` is set — see [setup.md](./setup.md)).
 - **Android:** the app **files** directory.
 
-To open a file elsewhere:
+`location` is a directory **relative to that default root**. The native implementation appends it to the root before appending `name`:
 
-- Pass an absolute directory in `location`: `open({ name: 'my.sqlite', location: '/some/abs/dir' })`.
-- Or use a path relative to the default root, e.g. `open({ name: 'myDb.sqlite', location: '../www' })` to read a bundled DB shipped at `../www/myDb.sqlite`.
+```ts
+const db = open({ name: 'my.sqlite', location: 'databases/archive' })
+```
+
+Relative traversal is also possible inside the sandbox, for example `location: '../www'` for a bundled database at `../www/myDb.sqlite`.
+
+> Do not pass an absolute `location`. It is still appended to the app data root and produces an invalid nested path rather than escaping that root.
 
 > **iOS sandbox:** you cannot access paths outside the app sandbox. To open a DB that lives elsewhere (e.g. a downloaded file), copy/move it into the sandbox first with a file library (`react-native-fs`, `expo-file-system`, etc.), then `open()` it.
 
 ## Loading / shipping an existing database
 
 1. Place the `.sqlite` file in your app assets or download it at runtime.
-2. Copy it into the app data directory (or the directory you'll pass as `location`).
-3. `open({ name: 'prefilled.sqlite', location: '<that dir>' })`.
+2. Copy it under the app data root.
+3. Pass the copied file's directory relative to that root:
+
+```ts
+const db = open({
+  name: 'prefilled.sqlite',
+  location: 'seeded',
+})
+```
 
 This opens the existing file as-is; no migration is performed.
 
 ## Gotchas
 
 - **One connection per name.** A second `open()` of the same name throws "already open".
+- **`location` is relative.** Absolute directories are not supported by `open` or `attach`.
 - **`delete()` is irreversible.** It removes the file from disk.
 - **`close()` before `delete()`** if you intend to reopen, to avoid the busy warning.
 - **`name` is the queue key.** Two different files must have two different `name`s; `location` only changes the directory.

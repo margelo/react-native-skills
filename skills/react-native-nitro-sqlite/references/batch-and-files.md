@@ -69,7 +69,7 @@ The whole batch runs in one transaction: if any statement fails, the batch error
 
 ## Loading SQL files
 
-`loadFile` / `loadFileAsync` read a `.sql` file from disk and execute every statement in it (e.g. a dump or seed file).
+`loadFile` / `loadFileAsync` read a `.sql` file from disk inside a transaction. The loader executes **each non-empty line as a separate SQL command**; it does not parse complete SQL statements.
 
 ```ts
 const r = db.loadFile('/absolute/path/to/dump.sql')          // sync
@@ -90,6 +90,16 @@ interface FileLoadResult extends BatchQueryResult {
 
 - Use an **absolute path** (subject to the iOS sandbox — copy the file into the app dir first if needed; see [connections.md](./connections.md)).
 - Prefer `loadFileAsync` for large files so you don't block the JS thread.
+- Keep every command on exactly one line:
+
+```sql
+CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL);
+INSERT INTO users (name) VALUES ('Marc');
+```
+
+Normal multiline `CREATE TABLE` statements, triggers, and formatted SQL dumps will fail because their individual lines are not complete commands. Standalone comment lines are not safe input either.
+
+For general migration files, use a trusted SQL parser or define the statements explicitly as `BatchQueryCommand[]`, then call `executeBatchAsync`. Do not split arbitrary SQL on semicolons; strings and triggers can contain semicolons.
 
 ## Sync vs async (important)
 
@@ -108,6 +118,7 @@ See [concurrency.md](./concurrency.md) for the full queue model.
 
 - **`params` array-of-arrays only makes sense with one `query`** repeated. Don't mix it up with separate command objects unless the queries differ.
 - **`BatchQueryResult` has only `rowsAffected`** — no per-statement results. If you need returned rows, use individual `execute`/`executeAsync` calls or a transaction.
+- **`loadFile` is line-oriented.** Use it only for files where every non-empty line is one complete command.
 - **Sync batch throws when busy** — the most common surprise; switch to async.
 
 ## Pointers
