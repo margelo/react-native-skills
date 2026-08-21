@@ -2,6 +2,8 @@
 
 V5 frame processors are worklet callbacks attached to a `CameraFrameOutput`. The worklets engine is **`react-native-worklets` (Software Mansion)**, not `react-native-worklets-core`. Native plugins are **Nitro `HybridObject`s** — the v4 `FrameProcessorPlugin` subclass + `VISION_EXPORT_SWIFT_FRAME_PROCESSOR` macro is gone.
 
+This reference covers API fundamentals. For production low-latency GPU, ML, CV, zero-copy interop, or frame-coupled overlays, use the separate `react-native-vision-camera-realtime` skill.
+
 ## Required dependencies
 
 ```sh
@@ -57,9 +59,9 @@ The same rule applies to `Depth` frames from `useDepthOutput`.
 | `'rgb'` | ML frameworks that hard-require RGB and don't convert internally. Prefer the GPU **Resizer** over paying RGB conversion on every frame. |
 <!-- source: useFrameOutput.ts:123 (default 'native'); CameraFrameOutput.nitro.ts:71-95; VideoPixelFormat.ts:52-62 -->
 
-## Async frame work (backpressure)
+## Async frame work when stale results are acceptable
 
-Any processing that can't keep up with the capture rate must run on an `AsyncRunner`:
+Use an `AsyncRunner` when non-visual work cannot keep up and the feature accepts results from older frames. For frame-coupled visual feedback, use the real-time skill and optimize synchronous same-frame processing first.
 
 ```tsx
 import { useAsyncRunner } from 'react-native-vision-camera'
@@ -106,11 +108,11 @@ const frameOutput = useFrameOutput({
 })
 ```
 
-For overlays (bounding boxes, face meshes), combine with coordinate-system conversions — see below.
+Use SharedValues for state or animation that may update asynchronously. Do not drive frame-locked bounding boxes, meshes, or masks through SharedValues; draw them from the matching frame with Skia or WebGPU as described by the real-time skill.
 
-## Coordinate conversions for overlays
+## Coordinate conversions for view-based overlays
 
-Frames stream in native sensor orientation and mirroring, not preview-view space. To draw a bounding box from frame-space onto the preview:
+When an asynchronous view overlay is acceptable, convert native frame coordinates into preview-view space rather than reimplementing orientation math:
 
 ```ts
 // Inside a worklet:
@@ -138,9 +140,9 @@ Same pattern: accept a `Depth` in the spec, cast to `NativeDepth` to get `AVDept
 - [ ] `pixelFormat`: keep the default `'native'` (zero-copy) for GPU pipelines; pass `'yuv'` when you need CPU pixel access (MLKit/OpenCV); `'rgb'` only if a consumer hard-requires it. <!-- source: useFrameOutput.ts:123 -->
 - [ ] `targetResolution` on the frame output — smaller is faster. VGA or 720p is enough for most ML models.
 - [ ] Every `onFrame` wrapped in `try { ... } finally { frame.dispose() }`.
-- [ ] Heavy work via `useAsyncRunner` + explicit accepted/rejected disposal.
-- [ ] No `runOnJS` for Reanimated `SharedValue` mutations (v5 supports direct mutation).
-- [ ] For ML: add `react-native-vision-camera-resizer` to do GPU-accelerated YUV→RGB + resize into a tensor. Don't do that on the CPU.
+- [ ] When stale results are acceptable, offload over-budget work with `useAsyncRunner` and explicit accepted/rejected disposal.
+- [ ] No `runOnJS` for ordinary Reanimated `SharedValue` mutations (v5 supports direct mutation); do not use them for frame-locked overlays.
+- [ ] For a CPU-visible ML tensor, use `react-native-vision-camera-resizer` for GPU-accelerated resize and conversion instead of doing those operations on the CPU.
 - [ ] For coordinate-space math: use the `convertFramePointToCameraPoint` / `convertCameraPointToViewPoint` pair — don't re-implement orientation math.
 - [ ] Native plugin: must be a Nitro `HybridObject`; there is no other supported path in v5.
 
