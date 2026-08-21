@@ -70,9 +70,15 @@ When a native processor intentionally depends on VisionCamera, model that depend
 import type { HybridObject } from 'react-native-nitro-modules'
 import type { Frame } from 'react-native-vision-camera'
 
+export interface DetectedResult {
+  x: number
+  y: number
+  confidence: number
+}
+
 export interface Detector
   extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
-  process(frame: Frame): void
+  process(frame: Frame): DetectedResult[]
 }
 
 export interface DetectorFactory
@@ -81,7 +87,7 @@ export interface DetectorFactory
 }
 ```
 
-Create the factory as the default-constructible autolinked root, then call `createDetector(...)` once during component or session initialization. The factory may compile and warm the native pipeline asynchronously; its Promise should resolve with a ready `Detector`. Retain that `Detector` for the component or session lifetime and call only its hot `process(frame)` method from `onFrame`.
+Create the factory as the default-constructible autolinked root, then call `createDetector(...)` once during component or session initialization. The factory may compile and warm the native pipeline asynchronously; its Promise should resolve with a ready `Detector`. Retain that `Detector` for the component or session lifetime, call only its hot `process(frame)` method from `onFrame`, and synchronously consume its small result structs for same-frame drawing or decisions.
 
 The native `Detector` implementation owns the compiled state as members, such as an `MTLComputePipelineState`, model session, GPU context, scratch textures, command resources, and pools. Their lifetime follows the HybridObject instead of the individual `process(...)` call. Release them when the HybridObject dies, and report their retained size through `memorySize` when they own significant memory.
 
