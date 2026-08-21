@@ -15,6 +15,7 @@ Before using exact APIs, check the installed package versions against the curren
 |---|---|
 | Skia rendering, effects, or overlays | `react-native-vision-camera-skia` for the fastest prototype, or `Frame.getNativeBuffer()` with `Skia.Image.MakeImageFromNativeBuffer(...)` for a custom renderer |
 | WGSL rendering, CV kernels, or GPU inference | `Frame.getNativeBuffer()` to `RNWebGPU.createVideoFrameFromNativeBuffer(...)` to `device.importExternalTexture(...)` |
+| State-only ML or scanning with no frame-coupled rendering | A platform ML runtime, benchmarked across its available ANE or NPU, GPU, and CPU backends, returning only compact state |
 | A native library that intentionally depends on VisionCamera | A Nitro `HybridObject` method that accepts `Frame` directly, then unwraps the typed native frame |
 | A third-party native library that must not depend on VisionCamera | The untyped `NativeBuffer` contract, with explicit retain and release ownership |
 | A CPU-only model or algorithm | A deliberately bounded fallback using the lowest useful resolution and a consumer-compatible pixel format |
@@ -28,7 +29,7 @@ Do not choose an `ArrayBuffer` path merely because it is easy to prototype. Choo
 3. Prefer `pixelFormat: 'native'` for a verified GPU-only path. Check `frame.pixelFormat` and `frame.hasNativeBuffer` at runtime because the negotiated native format can be YUV, RGB, RAW, or private. Constrain or fall back when the consumer cannot import the resolved format.
 4. Do not call `frame.getPixelBuffer()`, `frame.getPlanes()`, plane `getPixelBuffer()` methods, or create typed pixel views in the normal GPU hot path. These APIs do not necessarily copy immediately, but they make pixels CPU-accessible and can lazily trigger a GPU-to-CPU download or synchronization.
 5. Never allocate pipelines, shader modules, samplers, large buffers, model sessions, resizers, or native processors per frame. Treat them as long-lived state. With Nitro, create a processor HybridObject once for the component or session, often through an asynchronous factory, and let it own and reuse the warmed resources for as long as the HybridObject is alive.
-6. Keep frame-dependent processing and visual feedback on the same `Frame` whenever possible. Detection, tracking, and drawing that belong together should remain one synchronous frame pipeline and fit within the frame interval. Do not make a pipeline asynchronous merely to hide an avoidable slow path.
+6. Keep frame-dependent processing and visual feedback on the same `Frame` whenever possible. Detection, tracking, and drawing that belong together should remain one synchronous frame pipeline and fit within the frame interval. Draw real-time overlays directly with Skia or WebGPU instead of routing per-frame geometry through React state, ordinary views, or Reanimated shared values. Do not make a pipeline asynchronous merely to hide an avoidable slow path.
 7. Release every retained resource on every path. A leaked `Frame`, `NativeBuffer`, external texture, video-frame wrapper, resized frame, or pooled slot eventually stalls the Camera or grows memory.
 
 Start a GPU frame output explicitly:
@@ -166,6 +167,12 @@ For a quick shader or overlay prototype, prefer `<SkiaCamera />` and its provide
 
 For a custom Skia renderer, call `Skia.Image.MakeImageFromNativeBuffer(nativeBuffer.pointer)`, draw with a GPU matrix derived from `orientation` and `isMirrored`, then dispose the `SkImage`, release the `NativeBuffer`, and dispose the `Frame`. Reuse the Skia surface, paints, runtime effects, and other drawing resources.
 
+## Choose ML compute for the whole pipeline
+
+When inference feeds a same-frame Skia or WebGPU overlay, prefer keeping preprocessing, inference, postprocessing, and drawing on the same GPU timeline. Moving tensors to an ANE, NPU, or CPU and then returning geometry to the renderer can cost more than the isolated inference saves. Cross that boundary only when end-to-end profiling proves it is faster while still meeting the same-frame budget.
+
+When the feature only scans and emits compact state, staying on the GPU is not automatically best. Benchmark the platform runtime with its available compute-unit choices: an ANE or NPU can be faster and more efficient for a supported model without competing with rendering, while the CPU can win for a very small model when accelerator dispatch and transfer overhead dominate. Include input conversion, synchronization, inference, and result delivery in the measurement, and reuse the chosen model session. A normal React state or navigation update is fine after a state-only scan because no overlay must track each frame.
+
 ## CPU access and the Resizer fallback
 
 VisionCamera's `getPixelBuffer()` is zero-copy at the JS/native binding boundary, but source inspection confirms it may lazily perform a GPU-to-CPU download. `getPlanes()` exposes the same CPU pixel domain one plane at a time. Treat both as fallback APIs, not GPU interop APIs.
@@ -214,6 +221,12 @@ Once async is justified, bound the number of in-flight frames. Do not create an 
 
 Configure only the Camera outputs the feature actually needs. Measure camera timestamp to matching result or presentation latency as well as stage duration, because average throughput can look healthy while asynchronous visual feedback remains perceptibly behind.
 
+## Fast desktop iteration
+
+When the project and all native dependencies support it, use a resizable iPad-shaped Mac Catalyst or iPad-on-Mac build as a rapid iteration harness. A desktop agent can launch, close, resize, and screenshot the app without heating a phone, while the app uses a discovered built-in Mac camera or an external UVC camera selected with `useCameraDevice('external')`. Fall back to a phone when the Mac target or required camera plugin is unavailable.
+
+Treat the Mac build as a functional development loop, not a performance proxy. Final latency, thermal, memory, camera-format, ANE or NPU, and GPU validation must still run on every production device class.
+
 ## Production verification
 
 Validate release builds on physical iOS and Android devices across representative GPU vendors. Test cold start and sustained runs long enough to expose thermal throttling and pool leaks.
@@ -232,6 +245,7 @@ Instrumentation must not become a synchronization point. Read GPU timestamps or 
 
 - VisionCamera docs index: https://visioncamera.margelo.com/llms.txt
 - VisionCamera performance: https://visioncamera.margelo.com/docs/performance
+- VisionCamera camera devices and external cameras: https://visioncamera.margelo.com/docs/devices
 - VisionCamera orientation: https://visioncamera.margelo.com/docs/orientation
 - VisionCamera `Frame`: https://visioncamera.margelo.com/docs/a-frame
 - VisionCamera `NativeBuffer`: https://visioncamera.margelo.com/docs/a-frames-nativebuffer
@@ -244,3 +258,5 @@ Instrumentation must not become a synchronization point. Read GPU timestamps or 
 - React Native Skia source: https://github.com/Shopify/react-native-skia
 - Nitro `ArrayBuffer` ownership and threading: https://nitro.margelo.com/docs/types/array-buffers
 - Nitro callbacks: https://nitro.margelo.com/docs/types/callbacks
+- Apple Core ML compute units: https://developer.apple.com/documentation/coreml/mlcomputeunits
+- LiteRT NPU delegates: https://ai.google.dev/edge/litert/android/npu
