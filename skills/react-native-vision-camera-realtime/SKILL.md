@@ -28,7 +28,7 @@ Do not choose an `ArrayBuffer` path merely because it is easy to prototype. Choo
 3. Prefer `pixelFormat: 'native'` for a verified GPU-only path. Check `frame.pixelFormat` and `frame.hasNativeBuffer` at runtime because the negotiated native format can be YUV, RGB, RAW, or private. Constrain or fall back when the consumer cannot import the resolved format.
 4. Do not call `frame.getPixelBuffer()`, `frame.getPlanes()`, plane `getPixelBuffer()` methods, or create typed pixel views in the normal GPU hot path. These APIs do not necessarily copy immediately, but they make pixels CPU-accessible and can lazily trigger a GPU-to-CPU download or synchronization.
 5. Never allocate pipelines, shader modules, samplers, large buffers, model sessions, resizers, or native processors per frame. Treat them as long-lived state. With Nitro, create a processor HybridObject once for the component or session, often through an asynchronous factory, and let it own and reuse the warmed resources for as long as the HybridObject is alive.
-6. Never allow an unbounded frame queue. Prefer dropping stale work and processing the newest frame. End-to-end latency matters more than processing every frame for most interactive pipelines.
+6. Keep frame-dependent processing and visual feedback on the same `Frame` whenever possible. Detection, tracking, and drawing that belong together should remain one synchronous frame pipeline and fit within the frame interval. Do not make a pipeline asynchronous merely to hide an avoidable slow path.
 7. Release every retained resource on every path. A leaked `Frame`, `NativeBuffer`, external texture, video-frame wrapper, resized frame, or pooled slot eventually stalls the Camera or grows memory.
 
 Start a GPU frame output explicitly:
@@ -37,7 +37,6 @@ Start a GPU frame output explicitly:
 const frameOutput = useFrameOutput({
   pixelFormat: 'native',
   enablePhysicalBufferRotation: false,
-  dropFramesWhileBusy: true,
   targetResolution: modelOrRendererResolution,
   onFrame(frame) {
     'worklet'
@@ -187,15 +186,27 @@ Nitro `ArrayBuffer`s are not thread-safe. A single reusable buffer is valid only
 
 A normal JS-created `ArrayBuffer` is non-owning from native's perspective and is safe to access only during the synchronous Nitro call. Do not retain it or use it after a thread hop. Prefer a native-owned reusable buffer over copying a non-owning buffer on every frame.
 
-## Backpressure and scheduling
+## Prefer same-frame processing
 
-- Keep `dropFramesWhileBusy: true` for interactive pipelines unless every frame is semantically required.
-- Use an `AsyncRunner` only for work that cannot complete in the frame callback. It changes scheduling, not computation cost. Dispose the `Frame` inside an accepted task and immediately when a task is rejected.
-- Do not retain a `Frame` longer than needed. For WebGPU, release it after the commands that consume its external texture have been submitted in the documented ownership order. Do not add a per-frame GPU completion wait.
-- Prefer one GPU submission that contains dependent stages over CPU-mediated stage boundaries.
-- Configure only the Camera outputs the feature actually needs.
+Keep the full frame-dependent decision and submission synchronous by default. Consume one `Frame`, run or encode its dependent detection, tracking, and rendering stages, and associate any visual feedback with that exact frame before `onFrame(...)` returns. Hand landmarks, face boxes, masks, and overlays otherwise lag behind motion when they are computed from an older frame and drawn over a newer one.
 
-At 60 FPS the total budget is 16.67 ms; at 30 FPS it is 33.33 ms. A pipeline can meet average throughput and still feel delayed because it queues old frames, so record camera-to-result latency as well as stage duration.
+"Synchronous" describes the same-frame dataflow, not a CPU wait for the GPU. Encode ordered GPU passes and submit them as one coherent command graph when possible. Do not call `queue.onSubmittedWorkDone()`, map a result buffer, or add another CPU or GPU completion fence per frame. For WebGPU, release the `Frame` after the commands that consume its external texture have been submitted in the documented ownership order.
+
+At 60 FPS the hard frame interval is 16.67 ms; at 30 FPS it is 33.33 ms. Target under roughly 16 ms and 33 ms respectively to leave scheduling margin. Before introducing asynchronous delivery, verify that the pipeline already avoids copies and readbacks, stays on the GPU, reuses warmed state, fuses compatible passes, uses an appropriate input resolution and FPS, and has optimized model tensors and execution.
+
+Use asynchronous processing only when profiling shows that the work still cannot fit the frame interval and the product can tolerate results from an older frame. A pipeline that still takes roughly 50 ms or more after those optimizations is a reasonable async candidate, but 50 ms is an example rather than a universal cutoff. For frame-coupled visual feedback, prefer reducing or replacing the expensive work over accepting visible lag.
+
+The following async delivery patterns are equally valid. Choose according to API shape and ownership needs:
+
+- Let a native Nitro processor start bounded asynchronous work and invoke a retained callback with each completed result.
+- Let a native Nitro processor store the latest completed state and expose a synchronous getter. The frame processor polls that state without a JS callback.
+- Keep the native processor method synchronous and schedule it on VisionCamera's dedicated runtime with `useAsyncRunner()`.
+
+Once async is justified, bound the number of in-flight frames. Do not create an unbounded FIFO queue. Prefer one active task or a small fixed pool, reject or replace stale pending input, and publish only completed state. This is overload containment for an intentionally asynchronous pipeline, not a reason to make a healthy same-frame pipeline asynchronous.
+
+`dropFramesWhileBusy` is likewise an overload guard, not the architecture. A healthy synchronous pipeline should finish before the next frame, so the guard should not activate during steady state. With `useAsyncRunner()`, dispose the `Frame` inside an accepted task and immediately when `runAsync(...)` rejects it because the runner is busy.
+
+Configure only the Camera outputs the feature actually needs. Measure camera timestamp to matching result or presentation latency as well as stage duration, because average throughput can look healthy while asynchronous visual feedback remains perceptibly behind.
 
 ## Production verification
 
@@ -221,7 +232,9 @@ Instrumentation must not become a synchronization point. Read GPU timestamps or 
 - VisionCamera native plugins: https://visioncamera.margelo.com/docs/native-frame-processor-plugins
 - VisionCamera Skia integration: https://visioncamera.margelo.com/docs/skia-frame-processors
 - VisionCamera Resizer: https://visioncamera.margelo.com/docs/resizer
+- VisionCamera async frame processing: https://visioncamera.margelo.com/docs/async-frame-processing
 - React Native WebGPU VisionCamera integration: https://github.com/wcandillon/react-native-webgpu/blob/main/apps/docs/content/docs/integrations/vision-camera.mdx
 - React Native WebGPU native extensions: https://github.com/wcandillon/react-native-webgpu/blob/main/apps/docs/content/api/gpu-device-extensions.mdx
 - React Native Skia source: https://github.com/Shopify/react-native-skia
 - Nitro `ArrayBuffer` ownership and threading: https://nitro.margelo.com/docs/types/array-buffers
+- Nitro callbacks: https://nitro.margelo.com/docs/types/callbacks
