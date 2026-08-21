@@ -27,7 +27,7 @@ Do not choose an `ArrayBuffer` path merely because it is easy to prototype. Choo
 2. Stay in one execution and memory domain for as long as possible. For a GPU pipeline, import the Camera buffer once, run preprocessing, inference, postprocessing, and rendering on the GPU, and read back only the small final result that the app truly needs.
 3. Prefer `pixelFormat: 'native'` for a verified GPU-only path. Check `frame.pixelFormat` and `frame.hasNativeBuffer` at runtime because the negotiated native format can be YUV, RGB, RAW, or private. Constrain or fall back when the consumer cannot import the resolved format.
 4. Do not call `frame.getPixelBuffer()`, `frame.getPlanes()`, plane `getPixelBuffer()` methods, or create typed pixel views in the normal GPU hot path. These APIs do not necessarily copy immediately, but they make pixels CPU-accessible and can lazily trigger a GPU-to-CPU download or synchronization.
-5. Never allocate pipelines, shader modules, samplers, large buffers, model sessions, resizers, or native processors per frame. Create and warm them once, then reuse them.
+5. Never allocate pipelines, shader modules, samplers, large buffers, model sessions, resizers, or native processors per frame. Treat them as long-lived state. With Nitro, create a processor HybridObject once for the component or session, often through an asynchronous factory, and let it own and reuse the warmed resources for as long as the HybridObject is alive.
 6. Never allow an unbounded frame queue. Prefer dropping stale work and processing the newest frame. End-to-end latency matters more than processing every frame for most interactive pipelines.
 7. Release every retained resource on every path. A leaked `Frame`, `NativeBuffer`, external texture, video-frame wrapper, resized frame, or pooled slot eventually stalls the Camera or grows memory.
 
@@ -75,7 +75,16 @@ export interface Detector
   extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
   process(frame: Frame): void
 }
+
+export interface DetectorFactory
+  extends HybridObject<{ ios: 'swift'; android: 'kotlin' }> {
+  createDetector(modelPath: string): Promise<Detector>
+}
 ```
+
+Create the factory as the default-constructible autolinked root, then call `createDetector(...)` once during component or session initialization. The factory may compile and warm the native pipeline asynchronously; its Promise should resolve with a ready `Detector`. Retain that `Detector` for the component or session lifetime and call only its hot `process(frame)` method from `onFrame`.
+
+The native `Detector` implementation owns the compiled state as members, such as an `MTLComputePipelineState`, model session, GPU context, scratch textures, command resources, and pools. Their lifetime follows the HybridObject instead of the individual `process(...)` call. Release them when the HybridObject dies, and report their retained size through `memorySize` when they own significant memory.
 
 This preserves type safety and lets native implementations unwrap the platform frame without exposing raw pointers to JS:
 
@@ -170,7 +179,9 @@ If CPU access is unavoidable:
 
 ## Reuse Nitro `ArrayBuffer`s safely
 
-Do not allocate and return a new large `ArrayBuffer` from a frame processor plugin for every frame. Allocate an owning native buffer once with Nitro's `ArrayBuffer.allocate(...)`, wrap existing owned memory without a copy, or create a native-owned buffer from JS with `NitroModules.createNativeArrayBuffer(size)`. Update and reuse it.
+Do not allocate and return a new large `ArrayBuffer` from a frame processor plugin for every frame. If CPU output is unavoidable, let the long-lived processor HybridObject hold an owning `ArrayBuffer` member, allocated once with Nitro's `ArrayBuffer.allocate(...)`, wrapped around existing owned memory without a copy, or created from JS with `NitroModules.createNativeArrayBuffer(size)`. Update and reuse that buffer instead of reallocating it in `process(frame)`.
+
+An `ArrayBuffer` is CPU-visible memory, so reuse only avoids allocation and transfer overhead around a CPU path. It does not preserve an end-to-end GPU pipeline. Prefer keeping output in a GPU texture or buffer when the next stage can consume it there, and expose or read an `ArrayBuffer` only for a consumer that actually needs CPU bytes.
 
 Nitro `ArrayBuffer`s are not thread-safe. A single reusable buffer is valid only when there is exactly one in-flight writer and the consumer's access is synchronously scoped before the next write. If processing or reading can overlap, use a small fixed ring pool with explicit acquire and release ownership. Never overwrite a slot still visible to JS or another native thread.
 
